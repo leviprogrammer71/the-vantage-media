@@ -37,7 +37,8 @@ const AdminDashboard = () => {
 
   const checkAdmin = async () => {
     if (!user) return;
-    const { data } = await (supabase.from("user_roles") as any)
+    const { data } = await supabase
+      .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .eq("role", "admin")
@@ -55,7 +56,8 @@ const AdminDashboard = () => {
         .select("*", { count: "exact", head: true });
 
       // Video stats
-      const { data: allSubs } = await (supabase.from("submissions") as any)
+      const { data: allSubs } = await supabase
+        .from("submissions")
         .select("status, prompt_status, transformation_type");
 
       const totalVideos = allSubs?.length || 0;

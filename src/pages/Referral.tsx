@@ -33,7 +33,8 @@ const Referral = () => {
 
   const fetchReferralCount = async () => {
     if (!user) return;
-    const { count } = await (supabase.from("referrals") as any)
+    const { count } = await supabase
+      .from("referrals")
       .select("*", { count: "exact", head: true })
       .eq("referrer_id", user.id)
       .eq("status", "converted");
@@ -54,7 +55,8 @@ const Referral = () => {
     setApplying(true);
     try {
       // Find the referral
-      const { data: ref, error: findErr } = await (supabase.from("referrals") as any)
+      const { data: ref, error: findErr } = await supabase
+        .from("referrals")
         .select("*")
         .eq("referral_code", applyCode.trim())
         .eq("status", "pending")
@@ -72,7 +74,8 @@ const Referral = () => {
       }
 
       // Update the referral
-      await (supabase.from("referrals") as any)
+      await supabase
+        .from("referrals")
         .update({
           referred_user_id: user.id,
           status: "converted",
@@ -86,7 +89,7 @@ const Referral = () => {
       await supabase.rpc("increment_credits", { p_user_id: ref.referrer_id, p_amount: 5 });
 
       // Log transactions
-      await (supabase.from("credit_transactions") as any).insert([
+      await supabase.from("credit_transactions").insert([
         { user_id: user.id, credits_amount: 5, transaction_type: "referral_bonus", description: "Referral code applied" },
         { user_id: ref.referrer_id, credits_amount: 5, transaction_type: "referral_bonus", description: "Friend used your referral code" },
       ]);

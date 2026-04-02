@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserCredits } from "@/hooks/useUserCredits";
+import { useCredits } from "@/hooks/useCredits";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -128,7 +128,7 @@ const getStatusBadge = (status: string, promptStatus: string) => {
 const Gallery = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { credits } = useUserCredits();
+  const { credits } = useCredits();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [signedUrls, setSignedUrls] = useState<SignedUrls>({});
@@ -146,7 +146,8 @@ const Gallery = () => {
   const fetchSubmissions = useCallback(async () => {
     if (!user) return;
     try {
-      const { data, error } = await (supabase.from("submissions") as any)
+      const { data, error } = await supabase
+        .from("submissions")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -214,7 +215,7 @@ const Gallery = () => {
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     try {
-      const { error } = await (supabase.from("submissions") as any).delete().eq("id", id);
+      const { error } = await supabase.from("submissions").delete().eq("id", id);
       if (error) throw error;
       setSubmissions((prev) => prev.filter((s) => s.id !== id));
       toast({ title: "Deleted", description: "Submission removed" });
@@ -459,7 +460,8 @@ const Gallery = () => {
                             checked={submission.is_public !== false}
                             onCheckedChange={async (checked) => {
                               try {
-                                await (supabase.from("submissions") as any)
+                                await supabase
+                                  .from("submissions")
                                   .update({ is_public: checked })
                                   .eq("id", submission.id);
                                 setSubmissions((prev) =>

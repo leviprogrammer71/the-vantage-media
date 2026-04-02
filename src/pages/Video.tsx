@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserCredits } from "@/hooks/useUserCredits";
+import { useCredits } from "@/hooks/useCredits";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Helmet } from "react-helmet-async";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TransformationFlow } from "@/components/video/TransformationFlow";
 import { ListingVideoForm } from "@/components/video/ListingVideoForm";
 import {
@@ -22,7 +23,7 @@ export default function VideoPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { credits } = useUserCredits();
+  const { credits } = useCredits();
 
   const getInitialMode = (): VideoMode => {
     const mode = searchParams.get("mode");
@@ -57,7 +58,8 @@ export default function VideoPage() {
         <meta name="description" content="Create cinematic transformation or listing videos powered by AI." />
       </Helmet>
 
-      <div className="min-h-screen bg-background pb-24">
+      <ErrorBoundary>
+        <div className="min-h-screen bg-background pb-24">
         {/* Header */}
         <header className="border-b bg-background/95 backdrop-blur sticky top-0 z-50">
           <div className="px-4 h-14 flex items-center justify-between">
@@ -295,7 +297,8 @@ export default function VideoPage() {
           )}
           {videoMode === "listing" && <ListingVideoForm />}
         </main>
-      </div>
+        </div>
+      </ErrorBoundary>
     </>
   );
 }

@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserCredits } from "@/hooks/useUserCredits";
+import { useCredits } from "@/hooks/useCredits";
 import { Button } from "@/components/ui/button";
 import { Zap } from "lucide-react";
 
 export function CreditsEmptyBanner() {
   const { user } = useAuth();
-  const { credits } = useUserCredits();
+  const { credits } = useCredits();
 
   if (!user || credits === null || credits > 0) return null;
 

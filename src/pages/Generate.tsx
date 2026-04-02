@@ -5,6 +5,7 @@ import { GenerateTopNav } from "@/components/generate/GenerateTopNav";
 import { GenerateSidebar } from "@/components/generate/GenerateSidebar";
 import { GenerateMainArea } from "@/components/generate/GenerateMainArea";
 import { HistorySidebar } from "@/components/generate/HistorySidebar";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useCredits } from "@/hooks/useCredits";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -58,7 +59,7 @@ export default function Generate() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { credits, fetchCredits } = useCredits();
+  const { credits, refreshCredits } = useCredits();
   const { toast } = useToast();
 
   // Check if we're enhancing for video flow
@@ -156,7 +157,7 @@ export default function Generate() {
 
     setIsProcessing(true);
     setProgress(5);
-    setProgressMessage("Uploading image...");
+    setProgressMessage("Analyzing your photo...");
     setError(null);
 
     try {
@@ -166,7 +167,7 @@ export default function Generate() {
       const filePath = `${user.id}/${timestamp}-original.${fileExt}`;
 
       setProgress(15);
-      setProgressMessage("Uploading to storage...");
+      setProgressMessage("Preparing image for processing...");
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("property-photos")
@@ -188,7 +189,7 @@ export default function Generate() {
       const imageUrl = urlData.signedUrl;
 
       setProgress(30);
-      setProgressMessage("Starting AI enhancement...");
+      setProgressMessage("Enhancing with AI...");
 
       // Call enhance API - Nano Banana returns result directly (no polling needed)
       const response = await supabase.functions.invoke("enhance-photo", {
@@ -202,13 +203,13 @@ export default function Generate() {
         throw new Error(response.error.message || "Failed to start enhancement");
       }
 
-      setProgress(70);
-      setProgressMessage("AI processing image...");
+      setProgress(75);
+      setProgressMessage("Almost done...");
 
       const { status, enhancementId, imageUrl: enhancedUrl, newCreditsBalance, error: responseError } = response.data;
 
       // Update credits display
-      fetchCredits();
+      await refreshCredits();
 
       if (status === "completed" && enhancedUrl) {
         setProgress(100);
@@ -246,7 +247,7 @@ export default function Generate() {
         description: err instanceof Error ? err.message : "An error occurred",
         variant: "destructive",
       });
-      fetchCredits(); // Refresh in case credit was refunded
+      await refreshCredits(); // Refresh in case credit was refunded
     } finally {
       setIsProcessing(false);
     }
@@ -328,11 +329,12 @@ export default function Generate() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <GenerateTopNav
-        credits={credits}
-        onMenuClick={() => setIsMobileSidebarOpen(true)}
-      />
+    <ErrorBoundary>
+      <div className="min-h-screen bg-background">
+        <GenerateTopNav
+          credits={credits}
+          onMenuClick={() => setIsMobileSidebarOpen(true)}
+        />
 
       {/* Mobile Layout - Single Column Stacked */}
       <div className="lg:hidden pt-16 pb-8">
@@ -577,6 +579,7 @@ export default function Generate() {
           onLoadEnhancement={handleLoadFromHistory}
         />
       </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

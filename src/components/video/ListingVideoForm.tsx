@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserCredits } from "@/hooks/useUserCredits";
+import { useCredits } from "@/hooks/useCredits";
 import { supabase } from "@/integrations/supabase/client";
 import { InsufficientCreditsModal } from "./InsufficientCreditsModal";
 import { toast } from "sonner";
@@ -36,7 +36,7 @@ const MOTION_STYLES = [
 
 export function ListingVideoForm() {
   const { user } = useAuth();
-  const { credits, fetchCredits, deductCredits } = useUserCredits();
+  const { credits, refreshCredits, deductCredits } = useCredits();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [image, setImage] = useState<string | null>(null);
@@ -125,7 +125,8 @@ export function ListingVideoForm() {
       }
 
       // Create submission row
-      const { data: submission, error: insertError } = await (supabase.from("submissions") as any)
+      const { data: submission, error: insertError } = await supabase
+        .from("submissions")
         .insert({
           user_id: user.id,
           full_name: user.email || "",
@@ -166,7 +167,7 @@ export function ListingVideoForm() {
       setVideoUrl(data.video_url);
 
       await deductCredits(creditCost, `Listing video (${sceneType}, ${duration})`);
-      fetchCredits();
+      await refreshCredits();
       toast.success("Listing video ready!");
     } catch (err) {
       console.error("Listing video error:", err);

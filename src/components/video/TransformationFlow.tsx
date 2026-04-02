@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserCredits } from "@/hooks/useUserCredits";
+import { useCredits } from "@/hooks/useCredits";
 import { supabase } from "@/integrations/supabase/client";
 import { InsufficientCreditsModal } from "./InsufficientCreditsModal";
 import { SettingTooltip } from "./SettingTooltip";
@@ -114,7 +114,7 @@ const FORMAT_OPTIONS = [
 
 export function TransformationFlow({ transformationCategory }: { transformationCategory: TransformationCategory }) {
   const { user } = useAuth();
-  const { credits, fetchCredits, deductCredits } = useUserCredits();
+  const { credits, refreshCredits, deductCredits } = useCredits();
 
   // First-timer detection
   const [isFirstTimer, setIsFirstTimer] = useState(false);
@@ -125,7 +125,8 @@ export function TransformationFlow({ transformationCategory }: { transformationC
   useEffect(() => {
     if (!user) return;
     const checkSubmissions = async () => {
-      const { count } = await (supabase.from("submissions") as any)
+      const { count } = await supabase
+        .from("submissions")
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id);
       setIsFirstTimer((count ?? 0) === 0);
@@ -312,7 +313,8 @@ export function TransformationFlow({ transformationCategory }: { transformationC
       }
 
       // Create submission row immediately
-      const { data: submission, error: insertError } = await (supabase.from("submissions") as any)
+      const { data: submission, error: insertError } = await supabase
+        .from("submissions")
         .insert({
           user_id: user.id,
           full_name: user.email || "",
@@ -480,7 +482,7 @@ export function TransformationFlow({ transformationCategory }: { transformationC
       // Deduct credits after successful generation
       const desc = `Transformation video (${transformationType}, ${duration})`;
       await deductCredits(creditCost, desc);
-      fetchCredits();
+      await refreshCredits();
       toast.success("Transformation video ready!");
     } catch (err) {
       console.error("Transformation generation error:", err);

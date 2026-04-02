@@ -31,6 +31,9 @@ const Auth = () => {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const returnUrl = searchParams.get("returnUrl") || searchParams.get("redirect") || "/video?mode=transform";
 
@@ -106,6 +109,35 @@ const Auth = () => {
     }
   };
 
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      emailSchema.parse(resetEmail);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        toast.error(validationError.errors[0].message);
+        return;
+      }
+    }
+    setIsResettingPassword(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: window.location.origin + "/auth",
+      });
+      if (error) {
+        toast.error(error.message || "Failed to send reset email");
+      } else {
+        toast.success("Check your email for a password reset link");
+        setResetEmail("");
+        setShowPasswordReset(false);
+      }
+    } catch (err) {
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -175,19 +207,45 @@ const Auth = () => {
                 </TabsList>
 
                 <TabsContent value="login">
-                  <form onSubmit={handleLogin} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="login-email">Email</Label>
-                      <Input id="login-email" type="email" placeholder="you@example.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="login-password">Password</Label>
-                      <Input id="login-password" type="password" placeholder="••••••••" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required />
-                    </div>
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
-                      {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in...</> : "Sign In"}
-                    </Button>
-                  </form>
+                  {!showPasswordReset ? (
+                    <form onSubmit={handleLogin} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="login-email">Email</Label>
+                        <Input id="login-email" type="email" placeholder="you@example.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="login-password">Password</Label>
+                        <Input id="login-password" type="password" placeholder="••••••••" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required />
+                      </div>
+                      <Button type="submit" className="w-full" disabled={isSubmitting}>
+                        {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in...</> : "Sign In"}
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordReset(true)}
+                        className="w-full text-sm text-primary hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handlePasswordReset} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="reset-email">Email</Label>
+                        <Input id="reset-email" type="email" placeholder="you@example.com" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required />
+                      </div>
+                      <Button type="submit" className="w-full" disabled={isResettingPassword}>
+                        {isResettingPassword ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending...</> : "Send Reset Link"}
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordReset(false)}
+                        className="w-full text-sm text-primary hover:underline"
+                      >
+                        Back to login
+                      </button>
+                    </form>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="signup">

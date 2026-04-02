@@ -64,19 +64,23 @@ const InteractiveDemo = () => {
     setIsProcessing(true);
 
     try {
-      // Call the demo-enhance edge function (no auth required)
+      // Convert data URL to blob for edge function
+      const response = await fetch(uploadedImage);
+      const blob = await response.blob();
+
+      // Call the demo-enhance edge function
       const { data, error } = await supabase.functions.invoke("demo-enhance", {
         body: {
-          imageUrl: uploadedImage,
+          image: blob,
           preset: "exterior-enhancement",
         },
       });
 
       if (error) {
         console.error("Demo enhance error:", error);
-        toast.error("Demo is limited. Sign up for full features!");
-        // Still show a simulated result for demo purposes
+        // Show graceful fallback
         setEnhancedImage(uploadedImage);
+        toast.info("Sign up to see AI-enhanced results");
         return;
       }
 
@@ -86,13 +90,13 @@ const InteractiveDemo = () => {
       } else {
         // Fallback: show original with message
         setEnhancedImage(uploadedImage);
-        toast.info("Preview ready! Sign up to see full AI enhancements.");
+        toast.info("Sign up to see AI-enhanced results");
       }
     } catch (err) {
       console.error("Enhancement error:", err);
-      // Show simulated enhancement for demo
+      // Show graceful fallback on any error
       setEnhancedImage(uploadedImage);
-      toast.info("Sign up to unlock AI photo enhancement!");
+      toast.info("Sign up to see AI-enhanced results");
     } finally {
       setIsProcessing(false);
     }

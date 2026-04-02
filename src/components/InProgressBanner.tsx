@@ -13,7 +13,8 @@ export function InProgressBanner() {
     if (!user) return;
 
     const check = async () => {
-      const { data } = await (supabase.from("submissions") as any)
+      const { data } = await supabase
+        .from("submissions")
         .select("id")
         .eq("user_id", user.id)
         .or("status.eq.in progress,prompt_status.eq.generating")

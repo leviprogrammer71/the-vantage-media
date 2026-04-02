@@ -10,13 +10,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserCredits } from "@/hooks/useUserCredits";
+import { useCredits } from "@/hooks/useCredits";
 import { ThemeToggle } from "./ThemeToggle";
 import logo from "@/assets/logo.png";
 
 const Header = () => {
   const { user, signOut } = useAuth();
-  const { credits } = useUserCredits();
+  const { credits } = useCredits();
 
   const handleSignOut = async () => {
     await signOut();
