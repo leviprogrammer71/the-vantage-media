@@ -1,0 +1,41 @@
+{
+  "name": "The Vantage",
+  "short_name": "Vantage",
+  "description": "Turn your after photos into viral transformation videos",
+  "start_url": "/video?mode=transform",
+  "display": "standalone",
+  "background_color": "#0A0A0A",
+  "theme_color": "#E8C547",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["photo", "video", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Create Video",
+      "short_name": "Create",
+      "description": "Create a new transformation video",
+      "url": "/video?mode=transform",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Gallery",
+      "short_name": "Gallery",
+      "description": "View your videos",
+      "url": "/gallery",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

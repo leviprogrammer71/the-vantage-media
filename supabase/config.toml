@@ -1,0 +1,43 @@
+project_id = "tsvmyjxnvdrwcdesiewv"
+
+[functions.send-confirmation]
+verify_jwt = false
+
+[functions.analyze-submission]
+verify_jwt = false
+
+[functions.generate-transformation-video]
+verify_jwt = false
+
+[functions.check-subscription]
+verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.customer-portal]
+verify_jwt = false
+
+[functions.demo-enhance]
+verify_jwt = false
+
+[functions.enhance-photo]
+verify_jwt = false
+
+[functions.generate-video]
+verify_jwt = false
+
+[functions.website-consultation]
+verify_jwt = false
+
+[functions.build-video-prompt]
+verify_jwt = false
+
+[functions.get-shared-video]
+verify_jwt = false
+
+[functions.send-email-sequence]
+verify_jwt = false
+
+[functions.generate-listing-video]
+verify_jwt = false

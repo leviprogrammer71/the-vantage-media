@@ -1,0 +1,1 @@
+ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS build_type text DEFAULT 'team_build';

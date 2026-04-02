@@ -1,0 +1,1 @@
+ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS transformation_category text DEFAULT 'construction';
