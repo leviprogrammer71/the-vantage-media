@@ -36,8 +36,9 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Helmet } from "react-helmet-async";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import LuxuryHeader from "@/components/lux/LuxuryHeader";
+import LuxuryFooter from "@/components/lux/LuxuryFooter";
+import ReferralNudge from "@/components/ReferralNudge";
 
 interface Submission {
   id: string;
@@ -250,7 +251,7 @@ const Gallery = () => {
     <>
       <Helmet><title>My Gallery — The Vantage</title></Helmet>
       <div className="min-h-screen bg-background">
-        <Header />
+        <LuxuryHeader variant="bone" />
         <main id="main-content" className="container mx-auto px-4 py-8 pt-24">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
@@ -264,6 +265,8 @@ const Gallery = () => {
               </div>
             </Link>
           </div>
+
+          <ReferralNudge className="mb-8" />
 
           {/* Loading skeleton */}
           {loading ? (
@@ -485,7 +488,7 @@ const Gallery = () => {
             </div>
           )}
         </main>
-        <Footer />
+        <LuxuryFooter />
 
         <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
           <DialogContent className="max-w-3xl p-1 overflow-hidden">

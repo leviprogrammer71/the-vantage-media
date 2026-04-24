@@ -53,21 +53,21 @@ const Header = () => {
               <>
                 <Link
                   to="/video"
-                  className="text-base font-medium text-foreground hover:text-primary transition-colors flex items-center gap-2"
+                  className="text-base font-medium text-white hover:text-[#E8C547] transition-colors flex items-center gap-2"
                 >
                   <Video className="h-4 w-4" />
                   Video 🔥
                 </Link>
                 <Link
                   to="/gallery"
-                  className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+                  className="text-base font-medium text-neutral-300 hover:text-white transition-colors flex items-center gap-2"
                 >
                   <FolderOpen className="h-4 w-4" />
                   Gallery
                 </Link>
                 <Link
                   to="/credits"
-                  className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-base font-medium text-neutral-300 hover:text-white transition-colors"
                 >
                   Buy Credits
                 </Link>
@@ -116,24 +116,24 @@ const Header = () => {
               <>
                 <Link
                   to="/video"
-                  className="text-base font-medium text-foreground hover:text-primary transition-colors flex items-center gap-2"
+                  className="text-base font-medium text-white hover:text-[#E8C547] transition-colors flex items-center gap-2"
                 >
                   Video 🔥
                 </Link>
                 <Link
                   to="/demo"
-                  className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-base font-medium text-neutral-300 hover:text-white transition-colors"
                 >
                   Demo
                 </Link>
                 <Link
                   to="/credits"
-                  className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-base font-medium text-neutral-300 hover:text-white transition-colors"
                 >
                   Buy Credits
                 </Link>
                 <ThemeToggle />
-                <Button asChild variant="outline" size="sm">
+                <Button asChild variant="outline" size="sm" className="border-[#E8C547] text-[#E8C547] hover:bg-[#E8C547] hover:text-black bg-transparent">
                   <Link to="/login">Sign In</Link>
                 </Button>
               </>

@@ -19,8 +19,11 @@ export default {
       },
       fontFamily: {
         'sans': ['Inter', 'system-ui', 'sans-serif'],
-        'serif': ['Playfair Display', 'Georgia', 'serif'],
-        'display': ['Clash Display', 'system-ui', 'sans-serif'],
+        'serif': ['"Cormorant Garamond"', 'Georgia', 'serif'],
+        'display': ['"Playfair Display"', 'Georgia', 'serif'],
+        'editorial': ['"Playfair Display"', 'Georgia', 'serif'],
+        'mono': ['"Space Mono"', 'ui-monospace', 'monospace'],
+        'clash': ['"Clash Display"', 'system-ui', 'sans-serif'],
       },
       gridTemplateColumns: {
         '16': 'repeat(16, minmax(0, 1fr))',
@@ -51,6 +54,19 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        // Luxury palette — fashion-house bone/ink/champagne
+        bone: "#F4EFE6",
+        cream: "#EDE6D6",
+        parchment: "#FAF6EE",
+        ink: "#0E0E0C",
+        onyx: "#1A1816",
+        graphite: "#2A2724",
+        ash: "#6B6760",
+        smoke: "#A39E94",
+        champagne: "#C9A96E",
+        brass: "#8C7A52",
+        rust: "#8C3F2E",
+        marigold: "#E8C547",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",

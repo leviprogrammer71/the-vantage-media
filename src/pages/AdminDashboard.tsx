@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, Users, Film, DollarSign, AlertTriangle, BarChart3, ArrowLeft } from "lucide-react";
 import { Helmet } from "react-helmet-async";
-import Header from "@/components/Header";
+import LuxuryHeader from "@/components/lux/LuxuryHeader";
 
 interface AdminStats {
   totalUsers: number;
@@ -101,7 +101,7 @@ const AdminDashboard = () => {
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        <LuxuryHeader variant="bone" />
         <main className="container mx-auto px-4 py-24 text-center">
           <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
           <p className="text-muted-foreground">You don't have admin access.</p>
@@ -125,7 +125,7 @@ const AdminDashboard = () => {
     <>
       <Helmet><title>Admin Dashboard — The Vantage</title></Helmet>
       <div className="min-h-screen bg-background">
-        <Header />
+        <LuxuryHeader variant="bone" />
         <main className="container mx-auto px-4 py-8 pt-24">
           <div className="flex items-center gap-3 mb-8">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>

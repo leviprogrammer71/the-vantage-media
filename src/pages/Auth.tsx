@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Helmet } from "react-helmet-async";
 import logo from "@/assets/logo.png";
+import { supabase } from "@/integrations/supabase/client";
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -35,7 +36,20 @@ const Auth = () => {
   const [resetEmail, setResetEmail] = useState("");
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
-  const returnUrl = searchParams.get("returnUrl") || searchParams.get("redirect") || "/video?mode=transform";
+  // Safely read a returnUrl: must be same-origin path (starts with /) — guards against open-redirects
+  const rawReturn = searchParams.get("returnUrl") || searchParams.get("redirect") || "";
+  let safeReturn = "/video?mode=transform";
+  if (rawReturn) {
+    try {
+      const decoded = decodeURIComponent(rawReturn);
+      if (decoded.startsWith("/") && !decoded.startsWith("//")) {
+        safeReturn = decoded;
+      }
+    } catch {
+      /* fall through to default */
+    }
+  }
+  const returnUrl = safeReturn;
 
   useEffect(() => {
     if (user && !loading) {
@@ -45,7 +59,7 @@ const Auth = () => {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
-    const { error } = await signInWithGoogle();
+    const { error } = await signInWithGoogle(returnUrl);
     setIsGoogleLoading(false);
     if (error) {
       toast.error(error.message || "Failed to sign in with Google");
@@ -105,7 +119,8 @@ const Auth = () => {
       }
     } else {
       toast.success("Account created! You have 50 free credits to get started.");
-      navigate(returnUrl);
+      // Brand-new account: send to welcome screen first, preserving returnUrl
+      navigate(`/welcome?next=${encodeURIComponent(returnUrl)}`);
     }
   };
 
@@ -122,7 +137,7 @@ const Auth = () => {
     setIsResettingPassword(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: window.location.origin + "/auth",
+        redirectTo: window.location.origin + "/login",
       });
       if (error) {
         toast.error(error.message || "Failed to send reset email");

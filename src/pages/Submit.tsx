@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import LuxuryHeader from "@/components/lux/LuxuryHeader";
+import LuxuryFooter from "@/components/lux/LuxuryFooter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,7 +102,7 @@ const Submit = () => {
           <title>Project Received | The Vantage</title>
         </Helmet>
         <div className="min-h-screen bg-background">
-          <Header />
+          <LuxuryHeader variant="bone" />
           <main className="px-4 py-20 max-w-xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -122,7 +122,7 @@ const Submit = () => {
               </p>
             </motion.div>
           </main>
-          <Footer />
+          <LuxuryFooter />
         </div>
       </>
     );
@@ -136,7 +136,7 @@ const Submit = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        <Header />
+        <LuxuryHeader variant="bone" />
         <main className="px-4 py-12 md:py-20 max-w-xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -279,7 +279,7 @@ const Submit = () => {
             </CardContent>
           </Card>
         </main>
-        <Footer />
+        <LuxuryFooter />
       </div>
     </>
   );

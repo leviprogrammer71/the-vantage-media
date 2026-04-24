@@ -11,8 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User, Mail, Coins, Calendar, Save, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import LuxuryHeader from "@/components/lux/LuxuryHeader";
+import LuxuryFooter from "@/components/lux/LuxuryFooter";
 
 const Profile = () => {
   const { user, loading: authLoading } = useAuth();
@@ -113,7 +113,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <LuxuryHeader variant="bone" />
       <main className="container mx-auto px-4 py-8 pt-24 max-w-2xl">
         <div className="mb-8">
           <h1 className="font-display text-3xl font-bold">Profile</h1>
@@ -236,7 +236,7 @@ const Profile = () => {
           </CardContent>
         </Card>
       </main>
-      <Footer />
+      <LuxuryFooter />
     </div>
   );
 };

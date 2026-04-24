@@ -8,7 +8,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithGoogle: (returnUrl?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -65,11 +65,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error: error as Error | null };
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (returnUrl?: string) => {
     const allowedOrigins = [window.location.origin, 'https://thevantage.co'];
-    const redirectTo = allowedOrigins.includes(window.location.origin)
+    const baseOrigin = allowedOrigins.includes(window.location.origin)
       ? window.location.origin
       : 'https://thevantage.co';
+
+    // Validate returnUrl is a same-origin path (starts with single "/").
+    let safeReturn: string | null = null;
+    if (returnUrl) {
+      try {
+        const decoded = decodeURIComponent(returnUrl);
+        if (decoded.startsWith('/') && !decoded.startsWith('//')) {
+          safeReturn = decoded;
+        }
+      } catch {
+        safeReturn = null;
+      }
+    }
+
+    const redirectTo = safeReturn
+      ? `${baseOrigin}/?returnUrl=${encodeURIComponent(safeReturn)}`
+      : baseOrigin;
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",

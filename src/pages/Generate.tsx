@@ -395,9 +395,9 @@ export default function Generate() {
               ) : (
                 <>
                   <Upload className="h-10 w-10 text-muted-foreground/50 mb-3" />
-                  <h3 className="text-base font-semibold">Upload Property Photo</h3>
+                  <h3 className="text-base font-semibold">Upload a property photo</h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Tap to select • JPG, PNG, HEIC (max 10MB)
+                    Tap to choose · JPG, PNG, HEIC · up to 10MB
                   </p>
                 </>
               )}
@@ -487,7 +487,7 @@ export default function Generate() {
                 </div>
                 {credits < 1 && (
                   <p className="text-xs text-destructive mt-2 font-medium">
-                    Insufficient credits! Add more to continue.
+                    You're out of credits. Top up to keep enhancing.
                   </p>
                 )}
               </div>
@@ -510,7 +510,7 @@ export default function Generate() {
                 )}
               </Button>
               <p className="text-[10px] text-center text-muted-foreground">
-                MLS-ready enhancement with realistic results
+                MLS-ready. Realistic. No fake skies or impossible staging.
               </p>
             </div>
           </div>

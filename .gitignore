@@ -32,5 +32,11 @@ dist-ssr
 # Supabase local
 .supabase/
 
+# Vite temp files
+vite.config.ts.timestamp-*
+
+# Supabase temp
+supabase/.temp/
+
 # OS files
 Thumbs.db

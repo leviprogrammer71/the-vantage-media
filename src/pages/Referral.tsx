@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Copy, Check, Gift, Users } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Helmet } from "react-helmet-async";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import LuxuryHeader from "@/components/lux/LuxuryHeader";
+import LuxuryFooter from "@/components/lux/LuxuryFooter";
 
 const Referral = () => {
   const { user } = useAuth();
@@ -108,7 +108,7 @@ const Referral = () => {
     <>
       <Helmet><title>Referrals — The Vantage</title></Helmet>
       <div className="min-h-screen bg-background">
-        <Header />
+        <LuxuryHeader variant="bone" />
         <main className="container mx-auto px-4 py-8 pt-24 max-w-lg">
           <div className="text-center mb-8">
             <Gift className="h-12 w-12 text-primary mx-auto mb-3" />
@@ -161,7 +161,7 @@ const Referral = () => {
             </Card>
           </div>
         </main>
-        <Footer />
+        <LuxuryFooter />
       </div>
     </>
   );

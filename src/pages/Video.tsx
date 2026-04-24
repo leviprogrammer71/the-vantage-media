@@ -137,7 +137,7 @@ export default function VideoPage() {
                 <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                   CREATE A VIDEO
                 </h1>
-                <p className="text-sm text-muted-foreground">Choose what you want to make.</p>
+                <p className="text-sm text-muted-foreground">Two formats. One upload. Cinematic output.</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -154,10 +154,10 @@ export default function VideoPage() {
                     TRANSFORMATION VIDEO
                   </h2>
                    <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                    Upload your finished after photo. We generate the before state and create a cinematic construction arc video. Perfect for TikTok and Instagram Reels.
+                    Upload the finished shot. We recreate the before state and render a cinematic build, cleanup, or setup video. Built for TikTok and Reels.
                   </p>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-primary font-mono">from 3 credits</span>
+                    <span className="text-xs text-primary font-mono">from 30 credits</span>
                     <span className="text-xs text-primary font-semibold">Start Transformation →</span>
                   </div>
                 </button>
@@ -174,7 +174,7 @@ export default function VideoPage() {
                     LISTING VIDEO
                   </h2>
                    <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                     Upload a photo of a room or property exterior. We create a smooth cinematic showcase video with no hallucinations. Perfect for MLS and social media.
+                     One photo of a room or exterior. We render a smooth cinematic showcase — no AI hallucinations, just real camera movement. Built for MLS and social.
                    </p>
                    <div className="flex items-center justify-between">
                      <span className="text-xs text-muted-foreground font-mono">2 credits</span>
@@ -220,8 +220,8 @@ export default function VideoPage() {
                     CONSTRUCTION TRANSFORMATION
                   </h2>
                   <p style={{ fontFamily: "Inter, sans-serif", fontSize: "13px", color: "#AAAAAA", lineHeight: 1.6, marginBottom: "12px" }}>
-                    Upload your finished after photo. We reconstruct what the space looked like before construction began and generate a cinematic build video.
-                    Perfect for contractors, landscapers, pool builders, and renovators.
+                    Upload the finished shot. We reconstruct the raw site before you broke ground and render a cinematic build arc.
+                    Contractors, landscapers, pool builders, renovators.
                   </p>
                   <div className="flex items-center justify-between">
                     <span style={{ fontFamily: "'Space Mono', monospace", fontSize: "11px", color: "#E8C547" }}>from 40 credits</span>
@@ -250,8 +250,8 @@ export default function VideoPage() {
                     CLEANUP TRANSFORMATION
                   </h2>
                   <p style={{ fontFamily: "Inter, sans-serif", fontSize: "13px", color: "#AAAAAA", lineHeight: 1.6, marginBottom: "12px" }}>
-                    Upload your cleaned finished space. We generate what it looked like before — full of rubbish, junk, and debris — then create a dramatic cleanup reveal video.
-                    Perfect for rubbish removal, junk hauling, hoarding cleanouts, and site cleanup.
+                    Upload the cleaned shot. We recreate the messy before — rubbish, junk, debris — and render a dramatic cleanup reveal.
+                    Rubbish removal, junk hauling, hoarding cleanouts, site clearance.
                   </p>
                   <div className="flex items-center justify-between">
                      <span style={{ fontFamily: "'Space Mono', monospace", fontSize: "11px", color: "#E8C547" }}>from 50 credits</span>
@@ -280,8 +280,8 @@ export default function VideoPage() {
                     SETUP TRANSFORMATION
                   </h2>
                   <p style={{ fontFamily: "Inter, sans-serif", fontSize: "13px", color: "#AAAAAA", lineHeight: 1.6, marginBottom: "12px" }}>
-                    Upload your finished setup or styled space. We generate what it looked like before — empty and unstyled — then create a satisfying setup reveal video.
-                    Perfect for event setups, catering, venue styling, and hospitality.
+                    Upload the styled shot. We recreate the empty unstyled before and render a satisfying setup reveal.
+                    Event setups, catering, venue styling, hospitality.
                   </p>
                   <div className="flex items-center justify-between">
                      <span style={{ fontFamily: "'Space Mono', monospace", fontSize: "11px", color: "#E8C547" }}>from 50 credits</span>

@@ -2,6 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Mobile Native Feel (Brief Task 3) ────────────────────────────── */
+:root {
+  --tab-bar-height: 60px;
+  --bottom-clearance: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px) + 16px);
+}
+
+/* Reserve space for bottom nav on mobile so nothing is hidden behind it */
+@media (max-width: 767px) {
+  main#main-content,
+  main.app-main {
+    padding-bottom: var(--bottom-clearance);
+  }
+  /* Sticky action bars sit above the tab bar */
+  .sticky-action-bar {
+    bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  /* Toasts and banners clear the tab bar */
+  [data-sonner-toaster][data-y-position="bottom"] {
+    bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px) + 16px) !important;
+  }
+  /* Prevent iOS zoom on input focus */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Native-feel polish: kill tap flash, enable momentum scroll */
+html, body {
+  -webkit-tap-highlight-color: transparent;
+}
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.scroll-container, [data-scroll-container] {
+  -webkit-overflow-scrolling: touch;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .page-fade-in {
+    animation: vp-fade-in 0.22s ease-out both;
+  }
+}
+@keyframes vp-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
@@ -205,6 +253,200 @@ All colors MUST be HSL.
     }
   }
 }
+
+/* ── Luxury Design System (Fashion-House) ──────────────────────────── */
+:root {
+  --lux-bone: #F4EFE6;
+  --lux-cream: #EDE6D6;
+  --lux-parchment: #FAF6EE;
+  --lux-ink: #0E0E0C;
+  --lux-onyx: #1A1816;
+  --lux-graphite: #2A2724;
+  --lux-ash: #6B6760;
+  --lux-smoke: #A39E94;
+  --lux-champagne: #C9A96E;
+  --lux-brass: #8C7A52;
+  --lux-rust: #8C3F2E;
+  --lux-hairline: rgba(14, 14, 12, 0.12);
+  --lux-hairline-strong: rgba(14, 14, 12, 0.32);
+  --lux-shadow-soft: 0 1px 1px rgba(14,14,12,0.04), 0 24px 48px -24px rgba(14,14,12,0.18);
+  --lux-shadow-deep: 0 1px 2px rgba(14,14,12,0.08), 0 60px 120px -40px rgba(14,14,12,0.34);
+  --lux-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.lux-bg-bone { background: var(--lux-bone); }
+.lux-bg-cream { background: var(--lux-cream); }
+.lux-bg-parchment { background: var(--lux-parchment); }
+.lux-bg-ink { background: var(--lux-ink); }
+.lux-bg-onyx { background: var(--lux-onyx); }
+
+.lux-text-ink { color: var(--lux-ink); }
+.lux-text-ash { color: var(--lux-ash); }
+.lux-text-bone { color: var(--lux-bone); }
+.lux-text-champagne { color: var(--lux-champagne); }
+
+.lux-eyebrow {
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--lux-brass);
+  font-weight: 400;
+  line-height: 1;
+}
+
+@media (min-width: 768px) {
+  .lux-eyebrow { font-size: 11px; letter-spacing: 0.4em; }
+}
+
+.lux-display {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 500;
+  line-height: 0.96;
+  letter-spacing: -0.015em;
+  color: var(--lux-ink);
+}
+
+.lux-display-italic {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.lux-serif {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 400;
+}
+
+.lux-prose {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--lux-ash);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+@media (min-width: 768px) {
+  .lux-prose { font-size: 17px; line-height: 1.7; }
+}
+
+.lux-hairline { border-color: var(--lux-hairline); }
+.lux-hairline-t { border-top: 1px solid var(--lux-hairline); }
+.lux-hairline-b { border-bottom: 1px solid var(--lux-hairline); }
+
+/* Subtle film-grain overlay for hero panels */
+.lux-grain {
+  position: relative;
+}
+.lux-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.7'/></svg>");
+}
+
+/* Reveal on scroll — slow & ceremonial */
+.lux-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 1.2s var(--lux-ease), transform 1.2s var(--lux-ease);
+  will-change: opacity, transform;
+}
+.lux-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Ken-burns slow image drift */
+@keyframes lux-kenburns {
+  0% { transform: scale(1.04) translate(0, 0); }
+  100% { transform: scale(1.12) translate(-1.5%, -1%); }
+}
+.lux-kenburns {
+  animation: lux-kenburns 18s var(--lux-ease) both;
+}
+
+/* Marquee for stockists/tickers */
+@keyframes lux-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.lux-marquee {
+  display: flex;
+  gap: 4rem;
+  animation: lux-marquee 40s linear infinite;
+  white-space: nowrap;
+  width: max-content;
+}
+
+/* Underlined link with slow ink-fill */
+.lux-link {
+  position: relative;
+  color: var(--lux-ink);
+  text-decoration: none;
+  padding-bottom: 2px;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  transition: color 0.4s var(--lux-ease);
+}
+.lux-link:hover { color: var(--lux-rust); }
+
+/* Buttons */
+.lux-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 32px;
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  background: var(--lux-ink);
+  color: var(--lux-bone);
+  border: 1px solid var(--lux-ink);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.5s var(--lux-ease), color 0.5s var(--lux-ease);
+}
+.lux-btn:hover {
+  background: var(--lux-bone);
+  color: var(--lux-ink);
+}
+.lux-btn-ghost {
+  background: transparent;
+  color: var(--lux-ink);
+  border-color: var(--lux-hairline-strong);
+}
+.lux-btn-ghost:hover {
+  background: var(--lux-ink);
+  color: var(--lux-bone);
+}
+.lux-btn-bone {
+  background: var(--lux-bone);
+  color: var(--lux-ink);
+  border-color: var(--lux-bone);
+}
+.lux-btn-bone:hover {
+  background: transparent;
+  color: var(--lux-bone);
+  border-color: var(--lux-bone);
+}
+
+/* Section padding rhythm */
+.lux-section { padding: 96px 0; }
+@media (min-width: 768px) { .lux-section { padding: 144px 0; } }
+@media (min-width: 1180px) { .lux-section { padding: 180px 0; } }
+
+/* Container */
+.lux-container { max-width: 1320px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+@media (min-width: 768px) { .lux-container { padding-left: 48px; padding-right: 48px; } }
 
 /* Add the keyframes definition */
 @keyframes fadeInUp {

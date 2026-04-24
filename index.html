@@ -2,11 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TheVantage</title>
-    <meta name="description" content="A done-for-you viral video service for home transformation businesses. Contractors, landscapers, pool companies, renovators, and developers submit their before/">
-    <meta name="author" content="TheVantage" />
-    <link rel="icon" type="image/x-icon" href="/favicon.jpg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>The Vantage — Cinematic Transformation Videos for Real Estate Photographers & Builders</title>
+    <meta name="description" content="One photo in. A cinematic before-and-after listing video out. Built for the world's most demanding real estate photographers, videographers, and builders." />
+    <meta name="keywords" content="real estate listing videos, AI listing video, real estate photographer software, before and after videos, viral videos for contractors, drone reel alternative, Rendy alternative, cinematic real estate reels" />
+    <meta name="author" content="The Vantage" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="https://thevantage.co/" />
+
+    <link rel="icon" type="image/x-icon" href="/favicon.jpg" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#E8C547" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -14,45 +18,88 @@
     <meta name="apple-mobile-web-app-title" content="The Vantage" />
     <link rel="apple-touch-icon" href="/icons/icon-512.png" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="dns-prefetch" href="https://deqxtvnmjqrkdifaolho.supabase.co" />
-    <link rel="preconnect" href="https://deqxtvnmjqrkdifaolho.supabase.co" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&display=swap" rel="stylesheet">
+    <meta name="format-detection" content="telephone=no" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://tsvmyjxnvdrwcdesiewv.supabase.co" />
+    <link rel="preconnect" href="https://tsvmyjxnvdrwcdesiewv.supabase.co" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&display=swap" rel="stylesheet" />
 
     <style>
       #splash {
         position: fixed; inset: 0;
-        background: #0A0A0A;
+        background: #F4EFE6;
         display: flex; align-items: center;
         justify-content: center;
         z-index: 9999;
-        transition: opacity 0.3s;
+        transition: opacity 0.6s ease;
       }
       #splash.hidden { opacity: 0; pointer-events: none; }
       #splash-logo {
-        color: #E8C547;
-        font-size: 32px;
-        font-weight: 900;
-        letter-spacing: 4px;
+        color: #0E0E0C;
+        font-family: 'Playfair Display', Georgia, serif;
+        font-style: italic;
+        font-weight: 500;
+        font-size: 28px;
+        letter-spacing: 0.02em;
+      }
+      #splash-logo span {
+        display: block;
+        font-family: 'Space Mono', monospace;
+        font-size: 9px;
+        letter-spacing: 0.5em;
+        text-transform: uppercase;
+        color: #8C7A52;
+        margin-top: 12px;
+        text-align: center;
+        font-style: normal;
+      }
+      /* Prevent iOS input zoom */
+      @media (max-width: 768px) {
+        input, select, textarea { font-size: 16px !important; }
       }
     </style>
 
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/026cfc34-89fd-4c8b-81b4-5e9d6986ae0b/id-preview-042b8916--d8ea1259-9f14-4ec7-b408-2c9e4fea7c0a.lovable.app-1770752247036.png">
+    <meta property="og:url" content="https://thevantage.co/" />
+    <meta property="og:site_name" content="The Vantage" />
+    <meta property="og:title" content="The Vantage — Viral Videos for Contractors & Builders" />
+    <meta property="og:description" content="Done-for-you viral videos for home transformation businesses. Submit your before/afters, get 3 scroll-stopping videos in 48 hours. $497." />
+    <meta property="og:image" content="https://thevantage.co/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@thevantage" />
-    <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/026cfc34-89fd-4c8b-81b4-5e9d6986ae0b/id-preview-042b8916--d8ea1259-9f14-4ec7-b408-2c9e4fea7c0a.lovable.app-1770752247036.png">
-    <meta property="og:title" content="TheVantage">
-  <meta name="twitter:title" content="TheVantage">
-  <meta property="og:description" content="A done-for-you viral video service for home transformation businesses. Contractors, landscapers, pool companies, renovators, and developers submit their before/">
-  <meta name="twitter:description" content="A done-for-you viral video service for home transformation businesses. Contractors, landscapers, pool companies, renovators, and developers submit their before/">
-</head>
+    <meta name="twitter:title" content="The Vantage — Viral Videos for Contractors & Builders" />
+    <meta name="twitter:description" content="Done-for-you viral videos for home transformation businesses. 3 videos, 48 hours, $497." />
+    <meta name="twitter:image" content="https://thevantage.co/og-image.jpg" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "name": "The Vantage",
+        "url": "https://thevantage.co",
+        "description": "Done-for-you viral video service for contractors, landscapers, pool builders, and home renovators.",
+        "provider": { "@type": "Organization", "name": "The Vantage", "url": "https://thevantage.co" },
+        "areaServed": "US",
+        "serviceType": "Short-form video production",
+        "offers": {
+          "@type": "Offer",
+          "name": "Starter Pack — 3 Viral Videos",
+          "price": "497",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock"
+        }
+      }
+    </script>
+  </head>
 
   <body>
-    <div id="splash"><div id="splash-logo">THE VANTAGE</div></div>
+    <div id="splash"><div id="splash-logo">The Vantage<span>Cinematic Listing Films</span></div></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,18 @@ const corsHeaders = {
 
 const REPLICATE = "https://api.replicate.com/v1"
 const OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
+
+async function fetchImageAsBase64(url: string): Promise<string> {
+  console.log(`[fetchImageAsBase64] fetching ${url.slice(0, 100)}...`)
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Failed to fetch image (${res.status}): ${url.slice(0, 120)}`)
+  const buffer = await res.arrayBuffer()
+  const b64 = base64Encode(new Uint8Array(buffer))
+  const ct = res.headers.get("content-type") || "image/jpeg"
+  const mime = ct.split(";")[0].trim()
+  console.log(`[fetchImageAsBase64] ok, ${buffer.byteLength} bytes, mime=${mime}`)
+  return `data:${mime};base64,${b64}`
+}
 
 async function callAI(
   systemPrompt: string,
@@ -22,7 +35,9 @@ async function callAI(
   if (imageUrls.length > 0) {
     const parts: any[] = []
     for (const url of imageUrls) {
-      parts.push({ type: "image_url", image_url: { url } })
+      // Convert to base64 data URL so OpenRouter/Azure can read the format
+      const dataUrl = await fetchImageAsBase64(url)
+      parts.push({ type: "image_url", image_url: { url: dataUrl } })
     }
     parts.push({ type: "text", text: userText })
     userContent = parts
@@ -567,29 +582,55 @@ serve(async (req) => {
       const description = body.description || ""
       const category = body.transformation_category || "construction"
 
+      console.log(`[direct] start category=${category} type=${transformationType} hasAfterUrl=${Boolean(afterUrl)}`)
+
+      if (!afterUrl) throw new Error("after_photo_url required in direct mode")
+      if (!Deno.env.get("OPENROUTER_API_KEY")) throw new Error("OPENROUTER_API_KEY missing in edge function secrets")
+
       const prompts = getPrompts(category)
 
       // Step 1: GPT-4o analyzes after photo, writes FLUX instruction
-      const fluxPrompt = await callAI(
-        prompts.fluxSystem,
-        prompts.getFluxUser(transformationType),
-        [afterUrl]
-      )
+      console.log("[direct] step 1: calling OpenRouter for flux prompt")
+      let fluxPrompt: string
+      try {
+        fluxPrompt = await callAI(
+          prompts.fluxSystem,
+          prompts.getFluxUser(transformationType),
+          [afterUrl]
+        )
+      } catch (e) {
+        throw new Error(`Step 1 (flux prompt AI) failed: ${(e as Error).message}`)
+      }
+      console.log(`[direct] step 1 ok, fluxPrompt length=${fluxPrompt.length}`)
 
       // Step 2: FLUX generates before image using image-to-image with after photo
-      const beforeImageUrl = await runFlux(
-        REPLICATE_TOKEN,
-        fluxPrompt,
-        "9:16",
-        afterUrl
-      )
+      console.log("[direct] step 2: calling Replicate flux-kontext-pro")
+      let beforeImageUrl: string
+      try {
+        beforeImageUrl = await runFlux(
+          REPLICATE_TOKEN,
+          fluxPrompt,
+          "9:16",
+          afterUrl
+        )
+      } catch (e) {
+        throw new Error(`Step 2 (flux image) failed: ${(e as Error).message}`)
+      }
+      console.log(`[direct] step 2 ok, beforeImageUrl=${beforeImageUrl?.slice(0, 80)}`)
 
       // Step 3: GPT-4o writes Kling video prompt from both images + build type
-      const videoPrompt = await callAI(
-        prompts.videoSystem,
-        prompts.getVideoUser(transformationType, buildType, motionStyle, description),
-        [beforeImageUrl, afterUrl]
-      )
+      console.log("[direct] step 3: calling OpenRouter for video prompt")
+      let videoPrompt: string
+      try {
+        videoPrompt = await callAI(
+          prompts.videoSystem,
+          prompts.getVideoUser(transformationType, buildType, motionStyle, description),
+          [beforeImageUrl, afterUrl]
+        )
+      } catch (e) {
+        throw new Error(`Step 3 (video prompt AI) failed: ${(e as Error).message}`)
+      }
+      console.log(`[direct] step 3 ok, videoPrompt length=${videoPrompt.length}`)
 
       return new Response(
         JSON.stringify({
@@ -688,6 +729,11 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
   } catch (err) {
+    const errorMsg = (err as Error).message || String(err)
+    const errorStack = (err as Error).stack || ""
+    console.error(`[analyze-submission] ERROR: ${errorMsg}`)
+    console.error(`[analyze-submission] STACK: ${errorStack}`)
+
     if (submissionId) {
       try {
         const sb = createClient(
@@ -698,14 +744,14 @@ serve(async (req) => {
           .from("submissions")
           .update({
             prompt_status: "error",
-            prompt_error: (err as Error).message,
+            prompt_error: errorMsg,
           })
           .eq("id", submissionId)
       } catch (_) {}
     }
 
     return new Response(
-      JSON.stringify({ error: (err as Error).message }),
+      JSON.stringify({ error: errorMsg, stack: errorStack }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

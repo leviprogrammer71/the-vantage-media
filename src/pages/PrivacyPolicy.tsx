@@ -1,10 +1,10 @@
 import CenteredContent from "@/components/CenteredContent";
-import Header from "@/components/Header";
+import LuxuryHeader from "@/components/lux/LuxuryHeader";
 
 const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header />
+      <LuxuryHeader variant="bone" />
 
       <main className="flex-grow">
         <CenteredContent className="py-16 md:py-24">

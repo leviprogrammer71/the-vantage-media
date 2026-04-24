@@ -1,6 +1,6 @@
 import { Link, useParams, Navigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import Header from "@/components/Header";
+import LuxuryHeader from "@/components/lux/LuxuryHeader";
 import {
   Article as ArticleWrapper,
   ArticleContainer,
@@ -28,7 +28,7 @@ const Article = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <LuxuryHeader variant="bone" />
 
       <ArticleWrapper>
         {/* Title-Dominant Hero Section */}

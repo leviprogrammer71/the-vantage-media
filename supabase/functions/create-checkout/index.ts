@@ -49,11 +49,17 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      throw new Error("STRIPE_SECRET_KEY is not set in Supabase secrets");
+    }
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
 
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
+    const { data, error: authError } = await supabaseClient.auth.getUser(token);
+    if (authError) throw new Error(`Auth failed: ${authError.message}`);
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id, email: user.email });
@@ -65,7 +71,7 @@ serve(async (req) => {
       throw new Error(`Invalid price type: ${priceType}`);
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -79,20 +85,33 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://thevantage.co";
 
-    // Get all prices to find the correct one for our product
+    // Resolve price: try product ID first, then fall back to lookup_key by priceType.
     const productId = PRODUCT_IDS[priceType as keyof typeof PRODUCT_IDS];
-    const prices = await stripe.prices.list({
-      product: productId,
-      active: true,
-      limit: 1,
-    });
+    let priceId: string | null = null;
 
-    if (!prices.data.length) {
-      throw new Error(`No active price found for product: ${productId}`);
+    if (productId && !productId.includes("essentials_sub")) {
+      const prices = await stripe.prices.list({ product: productId, active: true, limit: 1 });
+      if (prices.data.length > 0) {
+        priceId = prices.data[0].id;
+        logStep("Found price by product", { priceId, productId });
+      }
     }
 
-    const priceId = prices.data[0].id;
-    logStep("Found price", { priceId, productId });
+    // Fallback: lookup by lookup_key matching the priceType (e.g., "starter", "standard", etc.)
+    if (!priceId) {
+      const byLookup = await stripe.prices.list({ lookup_keys: [priceType], active: true, limit: 1 });
+      if (byLookup.data.length > 0) {
+        priceId = byLookup.data[0].id;
+        logStep("Found price by lookup_key", { priceId, lookup_key: priceType });
+      }
+    }
+
+    if (!priceId) {
+      throw new Error(
+        `No active price found. Either create a Stripe product with ID "${productId}" ` +
+          `or add a price with lookup_key "${priceType}". See setup guide for details.`
+      );
+    }
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,

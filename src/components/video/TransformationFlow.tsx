@@ -360,7 +360,22 @@ export function TransformationFlow({ transformationCategory }: { transformationC
           }
         );
 
-        if (analyzeError) throw new Error(analyzeError.message);
+        if (analyzeError) {
+          // Unwrap real error body from Supabase FunctionsHttpError
+          let detail = analyzeError.message;
+          try {
+            const ctx = (analyzeError as any).context;
+            if (ctx && typeof ctx.json === "function") {
+              const body = await ctx.json();
+              if (body?.error) detail = `analyze-submission: ${body.error}`;
+            } else if (ctx && typeof ctx.text === "function") {
+              const txt = await ctx.text();
+              if (txt) detail = `analyze-submission: ${txt}`;
+            }
+          } catch (_) {}
+          console.error("analyze-submission error:", detail, analyzeError);
+          throw new Error(detail);
+        }
         if (!analyzeData?.before_image_url && !analyzeData?.before_image_path) {
           throw new Error("Analysis failed — missing data");
         }
@@ -402,7 +417,17 @@ export function TransformationFlow({ transformationCategory }: { transformationC
           }
         );
 
-        if (promptError) throw new Error(promptError.message);
+        if (promptError) {
+          let detail = promptError.message;
+          try {
+            const ctx = (promptError as any).context;
+            if (ctx && typeof ctx.json === "function") {
+              const body = await ctx.json();
+              if (body?.error) detail = `build-video-prompt: ${body.error}`;
+            }
+          } catch (_) {}
+          throw new Error(detail);
+        }
         if (!promptData?.video_prompt) throw new Error("Failed to generate video prompt");
 
         videoPrompt = promptData.video_prompt;
@@ -427,7 +452,17 @@ export function TransformationFlow({ transformationCategory }: { transformationC
         }
       );
 
-      if (startError) throw new Error(startError.message);
+      if (startError) {
+        let detail = startError.message;
+        try {
+          const ctx = (startError as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            if (body?.error) detail = `generate-transformation-video: ${body.error}`;
+          }
+        } catch (_) {}
+        throw new Error(detail);
+      }
 
       // If it completed immediately (within Replicate's wait window)
       if (startData?.status === "complete" && startData?.video_url) {

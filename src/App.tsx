@@ -34,7 +34,15 @@ const Submit = lazy(() => import("./pages/Submit"));
 const Share = lazy(() => import("./pages/Share"));
 const Referral = lazy(() => import("./pages/Referral"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminPortal = lazy(() => import("./pages/AdminPortal"));
+const ClientDashboard = lazy(() => import("./pages/ClientDashboard"));
+const ClientOnboarding = lazy(() => import("./pages/ClientOnboarding"));
+const ServicePricing = lazy(() => import("./pages/ServicePricing"));
 const Demo = lazy(() => import("./pages/Demo"));
+const Welcome = lazy(() => import("./pages/Welcome"));
+const IndustryLanding = lazy(() => import("./pages/IndustryLanding"));
+const FAQPage = lazy(() => import("./pages/FAQ"));
+const RealEstatePhotographers = lazy(() => import("./pages/RealEstatePhotographers"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -62,6 +70,7 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/login" element={<Auth />} />
+                  <Route path="/auth" element={<Auth />} />
                   <Route path="/signup" element={<Auth />} />
                   <Route path="/generate" element={<Generate />} />
                   <Route path="/gallery" element={<Gallery />} />
@@ -74,13 +83,30 @@ const App = () => (
                   <Route path="/for-agents" element={<AgentsLanding />} />
                   <Route path="/for-airbnb" element={<AirbnbLanding />} />
                   <Route path="/for-agencies" element={<AgenciesLanding />} />
+                  <Route path="/real-estate-photographers" element={<RealEstatePhotographers />} />
+                  <Route path="/photographers" element={<RealEstatePhotographers />} />
+                  <Route path="/for-photographers" element={<RealEstatePhotographers />} />
                   <Route path="/consultation" element={<WebsiteConsultation />} />
                   <Route path="/video" element={<Video />} />
                   <Route path="/submit" element={<Submit />} />
                   <Route path="/share/:id" element={<Share />} />
                   <Route path="/referral" element={<Referral />} />
+                  <Route path="/refer" element={<Referral />} />
                   <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/admin-portal" element={<AdminPortal />} />
+                  <Route path="/client-dashboard" element={<ClientDashboard />} />
+                  <Route path="/onboarding" element={<ClientOnboarding />} />
+                  <Route path="/services" element={<ServicePricing />} />
                   <Route path="/demo" element={<Demo />} />
+                  <Route path="/welcome" element={<Welcome />} />
+                  <Route path="/faq" element={<FAQPage />} />
+                  {/* Industry landing pages — Task 8 (shared template) */}
+                  <Route path="/landscaping" element={<IndustryLanding slug="landscaping" />} />
+                  <Route path="/pool-builders" element={<IndustryLanding slug="pool-builders" />} />
+                  <Route path="/kitchen-renovation" element={<IndustryLanding slug="kitchen-renovation" />} />
+                  <Route path="/bathroom-renovation" element={<IndustryLanding slug="bathroom-renovation" />} />
+                  <Route path="/outdoor-living" element={<IndustryLanding slug="outdoor-living" />} />
+                  <Route path="/general-construction" element={<IndustryLanding slug="general-construction" />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

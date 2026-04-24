@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,7 +9,7 @@ const corsHeaders = {
 
 const OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
 
-const VIDEO_SYSTEM_PROMPT = `You write construction transformation video prompts for Kling 2.5 Turbo Pro. This model receives a start frame (empty before state) and an end frame (finished result) and interpolates the motion between them.
+const CONSTRUCTION_VIDEO_SYSTEM_PROMPT = `You write construction transformation video prompts for Kling 2.5 Turbo Pro. This model receives a start frame (empty before state) and an end frame (finished result) and interpolates the motion between them.
 
 YOUR ONLY JOB: Describe what happens BETWEEN those two frames. Never describe the start or end — Kling already sees both images directly.
 
@@ -112,6 +113,86 @@ Follow this exact order every time:
 
 TOTAL: 100-130 words. Never exceed 130. Output ONLY the video prompt, nothing else.`
 
+const CLEANUP_VIDEO_SYSTEM_PROMPT = `You write cleanup / declutter transformation video prompts for Kling 2.5 Turbo Pro. Start frame is the messy "before". End frame is the clean "after". Describe the cleanup motion between.
+
+PHYSICS LAW 1 — HUMAN CAUSATION
+Every item that disappears must be physically removed by a named person. Every surface that gets clean must be wiped, swept, or vacuumed by a named person. NO EXCEPTIONS.
+CORRECT: "The cleaner picks up the pizza box with gloved hands and drops it into a black garbage bag."
+CORRECT: "She sprays blue cleaner on the kitchen bench and wipes it in overlapping strokes with a microfibre cloth, leaving the surface gleaming behind her."
+WRONG: "Clutter disappears." "The room tidies itself." "Items vanish."
+
+PHYSICS LAW 2 — ITEM REMOVAL PHYSICS
+Bulky items are carried or dragged (show the cleaner's weight shift). Soft items (clothes, towels) are folded or bundled into laundry baskets. Small items (wrappers, bottles) are tossed into bags with a visible arc. Liquids are mopped up — the mop darkens as it absorbs. Dust is wiped and visibly collects on the cloth.
+
+PHYSICS LAW 3 — SURFACE TRANSFORMATION
+Wipe = streak visible momentarily, then dries clean. Vacuum = nozzle runs over carpet leaving a slightly darker tracked line. Sweep = small dust pile forms in front of the brush. Polish = reflection brightens where the cloth passed.
+
+PHYSICS LAW 4 — BODY PHYSICS OF CLEANERS
+Bending to pick up (knees flex). Reaching into high corners (arm extended, shoulder tension). Carrying bags (weight visibly pulling arm down). Pausing to wipe brow. Stepping back to check work.
+
+MOTION STYLE APPLICATION (same four styles): DRAMATIC_PUSH = fast tidy-up montage, camera pushes in on every surface. SLOW_REVEAL = methodical, deliberate, calm. FAST_PROGRESSION = rapid cut every 1.5s, each cut measurably cleaner. CINEMATIC_ORBIT = slow arc around the space while cleaners work.
+
+PROMPT STRUCTURE — MANDATORY
+1. OPENING AGENT (1 sentence): Name the cleaner taking the first action. "The cleaner snaps on blue gloves and..."
+2. CLEANUP SEQUENCE (3 sentences): Three specific acts of removal or wiping, each with a named agent and a visible physical result.
+3. CAMERA MOVE (1 sentence): Named camera movement tied to the motion style.
+4. TACTILE PHYSICS DETAIL (1 sentence): Spray mist in light, microfibre streak drying, vacuum track on carpet, bag weight on arm.
+5. FINAL STILLNESS (1 sentence): Cleaner stepping back, surveying work, warm light on clean surface, no motion.
+
+TOTAL: 100-130 words. Never exceed 130. Output ONLY the video prompt, nothing else.`
+
+const SETUP_VIDEO_SYSTEM_PROMPT = `You write setup / staging transformation video prompts for Kling 2.5 Turbo Pro. Start frame is the empty or blank space. End frame is the fully set-up result (styled room, decorated event, arranged display). Describe the placement motion between.
+
+PHYSICS LAW 1 — HUMAN CAUSATION
+Every item that appears must be carried in and placed by a named person. Furniture does not slide itself. Decorations do not float into place. Every object has a hand on it.
+CORRECT: "The stylist lifts the ceramic vase with both hands and lowers it onto the dining table, adjusting it a half-inch to the left."
+WRONG: "The room comes together." "Decorations arrange themselves."
+
+PHYSICS LAW 2 — PLACEMENT PHYSICS
+Heavy items (furniture): two people lift, lean back to counterbalance, set down slowly with knees bent. Medium items (lamps, chairs): one person carries at waist height, places with a small adjustment after. Light items (cushions, books, vases): picked from a crate, positioned, then fine-tuned by hand.
+
+PHYSICS LAW 3 — FABRIC AND SOFT GOODS
+Bedding: snapped open in the air, drifts down onto the mattress, tucked at corners. Curtains: threaded onto rod, slid across, falling into natural folds. Tablecloth: shaken out, settles over table with a small air displacement.
+
+PHYSICS LAW 4 — BODY PHYSICS OF STYLISTS
+Stylists step back frequently to assess. They adjust with fingertips after placing. They tilt their head. They nudge objects a few millimetres. The human eye and hand visible in every decision.
+
+MOTION STYLE APPLICATION: DRAMATIC_PUSH = fast staging, camera pushes into each completed vignette. SLOW_REVEAL = deliberate placement, camera lingers on each new detail. FAST_PROGRESSION = rapid cuts, space fills progressively. CINEMATIC_ORBIT = camera arcs around the space while stylists work inside it.
+
+PROMPT STRUCTURE — MANDATORY
+1. OPENING AGENT (1 sentence): Name the stylist taking the first action.
+2. SETUP SEQUENCE (3 sentences): Three specific placements with named agents and physical results.
+3. CAMERA MOVE (1 sentence): Named camera movement tied to motion style.
+4. TACTILE PHYSICS DETAIL (1 sentence): Fabric settling, cushion compressing, candlelight flickering, hand adjusting an object.
+5. FINAL STILLNESS (1 sentence): Stylist stepping back, warm light on the finished composition, no motion.
+
+TOTAL: 100-130 words. Never exceed 130. Output ONLY the video prompt, nothing else.`
+
+function getSystemPrompt(category?: string): string {
+  switch ((category || "").toLowerCase()) {
+    case "cleanup":
+    case "clean":
+    case "declutter":
+      return CLEANUP_VIDEO_SYSTEM_PROMPT
+    case "setup":
+    case "staging":
+    case "decoration":
+      return SETUP_VIDEO_SYSTEM_PROMPT
+    default:
+      return CONSTRUCTION_VIDEO_SYSTEM_PROMPT
+  }
+}
+
+async function fetchImageAsBase64(url: string): Promise<string> {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Failed to fetch image (${res.status}): ${url.slice(0, 120)}`)
+  const buffer = await res.arrayBuffer()
+  const b64 = base64Encode(new Uint8Array(buffer))
+  const ct = res.headers.get("content-type") || "image/jpeg"
+  const mime = ct.split(";")[0].trim()
+  return `data:${mime};base64,${b64}`
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
@@ -130,10 +211,13 @@ serve(async (req) => {
       before_image_url,
       after_image_url,
       transformation_type,
+      transformation_category,
       build_type,
       motion_style,
       description,
     } = await req.json()
+
+    const systemPrompt = getSystemPrompt(transformation_category)
 
     if (!after_image_url) {
       throw new Error("after_image_url is required")
@@ -163,6 +247,15 @@ PHYSICS REQUIREMENTS — READ BEFORE WRITING:
 
 Write the 100-130 word prompt now.`
 
+    // Convert images to base64 so OpenRouter/Azure accepts the format
+    const imageParts: any[] = []
+    if (before_image_url) {
+      const b64Before = await fetchImageAsBase64(before_image_url)
+      imageParts.push({ type: "image_url", image_url: { url: b64Before } })
+    }
+    const b64After = await fetchImageAsBase64(after_image_url)
+    imageParts.push({ type: "image_url", image_url: { url: b64After } })
+
     const res = await fetch(OPENROUTER, {
       method: "POST",
       headers: {
@@ -174,12 +267,11 @@ Write the 100-130 word prompt now.`
       body: JSON.stringify({
         model: "openai/gpt-4o",
         messages: [
-          { role: "system", content: VIDEO_SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           {
             role: "user",
             content: [
-              ...(before_image_url ? [{ type: "image_url", image_url: { url: before_image_url } }] : []),
-              { type: "image_url", image_url: { url: after_image_url } },
+              ...imageParts,
               { type: "text", text: userMessage }
             ]
           }
