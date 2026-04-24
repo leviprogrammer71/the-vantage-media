@@ -57,14 +57,26 @@ export function ListingVideoForm() {
   const creditCost = duration === "10s" ? 30 : 20;
   const hasEnoughCredits = credits !== null && credits >= creditCost;
 
-  const handleFileSelect = async (file: File) => {
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type.toLowerCase())) {
-      toast.error("Please upload a JPG, PNG, or WebP image");
+  const handleFileSelect = async (rawFile: File) => {
+    if (rawFile.size > 52428800) {
+      toast.error("Maximum file size is 50MB");
       return;
     }
-    if (file.size > 10485760) {
-      toast.error("Maximum file size is 10MB");
+
+    setIsUploading(true);
+
+    let file: File;
+    try {
+      const { normalizeWithReport } = await import("@/lib/normalize-image");
+      const normalized = await normalizeWithReport(rawFile);
+      file = normalized.file;
+      if (normalized.converted) {
+        toast.success(normalized.reason || "Image converted");
+      }
+    } catch (err) {
+      setIsUploading(false);
+      const msg = err instanceof Error ? err.message : "Please use JPEG, PNG, or WebP.";
+      toast.error(msg);
       return;
     }
 
@@ -73,7 +85,6 @@ export function ListingVideoForm() {
     reader.readAsDataURL(file);
     setImageFile(file);
 
-    setIsUploading(true);
     try {
       const timestamp = Date.now();
       const fileExt = file.name.split(".").pop();
@@ -264,7 +275,7 @@ export function ListingVideoForm() {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
           onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
           className="hidden"
         />
@@ -288,11 +299,12 @@ export function ListingVideoForm() {
         ) : (
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="w-full border-2 border-dashed border-muted-foreground/30 rounded-xl p-8 flex flex-col items-center justify-center hover:border-primary/50 transition-colors"
+            className="w-full border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition-colors"
+            style={{ borderColor: "var(--lux-hairline-strong)", backgroundColor: "var(--lux-cream)" }}
           >
-            <Upload className="h-10 w-10 text-muted-foreground/50 mb-3" />
-            <h3 className="font-semibold">Upload a photo</h3>
-            <p className="text-xs text-muted-foreground mt-1">JPG, PNG, or WebP (max 10MB)</p>
+            <Upload className="h-10 w-10 mb-3" style={{ color: "var(--lux-ash)" }} />
+            <h3 className="font-semibold" style={{ color: "var(--lux-ink)" }}>Upload a photo</h3>
+            <p className="text-xs mt-1" style={{ color: "var(--lux-ash)" }}>JPG, PNG, or WebP (max 10MB)</p>
           </button>
         )}
       </div>

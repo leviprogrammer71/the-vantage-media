@@ -228,6 +228,7 @@ export type Database = {
           prompt_status: string
           scene_analysis_prompt: string | null
           share_views: number | null
+          shot_type: string | null
           status: string
           target_platform: string[] | null
           transformation_category: string | null
@@ -258,6 +259,7 @@ export type Database = {
           prompt_status?: string
           scene_analysis_prompt?: string | null
           share_views?: number | null
+          shot_type?: string | null
           status?: string
           target_platform?: string[] | null
           transformation_category?: string | null
@@ -288,6 +290,7 @@ export type Database = {
           prompt_status?: string
           scene_analysis_prompt?: string | null
           share_views?: number | null
+          shot_type?: string | null
           status?: string
           target_platform?: string[] | null
           transformation_category?: string | null

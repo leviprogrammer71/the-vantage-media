@@ -11,14 +11,39 @@ const corsHeaders = {
 const REPLICATE = "https://api.replicate.com/v1"
 const OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
 
+const ACCEPTED_VISION_MIMES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+])
+
 async function fetchImageAsBase64(url: string): Promise<string> {
   console.log(`[fetchImageAsBase64] fetching ${url.slice(0, 100)}...`)
   const res = await fetch(url)
   if (!res.ok) throw new Error(`Failed to fetch image (${res.status}): ${url.slice(0, 120)}`)
   const buffer = await res.arrayBuffer()
-  const b64 = base64Encode(new Uint8Array(buffer))
   const ct = res.headers.get("content-type") || "image/jpeg"
-  const mime = ct.split(";")[0].trim()
+  let mime = ct.split(";")[0].trim().toLowerCase()
+
+  // HEIC / HEIF / unusual formats — sniff bytes to catch mis-reported content-types
+  const head = new Uint8Array(buffer.slice(0, 16))
+  const headStr = String.fromCharCode(...head)
+  if (headStr.includes("ftyp") && (headStr.includes("heic") || headStr.includes("heix") || headStr.includes("mif1"))) {
+    mime = "image/heic"
+  }
+
+  if (!ACCEPTED_VISION_MIMES.has(mime)) {
+    throw new Error(
+      `Image format "${mime}" is not supported by the AI vision model. Please re-upload as JPEG, PNG, or WebP. iPhone users: export as JPEG from Photos first.`
+    )
+  }
+
+  // Normalize "image/jpg" → "image/jpeg" for OpenAI strictness
+  if (mime === "image/jpg") mime = "image/jpeg"
+
+  const b64 = base64Encode(new Uint8Array(buffer))
   console.log(`[fetchImageAsBase64] ok, ${buffer.byteLength} bytes, mime=${mime}`)
   return `data:${mime};base64,${b64}`
 }

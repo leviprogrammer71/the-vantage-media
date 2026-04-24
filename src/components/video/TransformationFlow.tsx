@@ -4,6 +4,7 @@ import { useCredits } from "@/hooks/useCredits";
 import { supabase } from "@/integrations/supabase/client";
 import { InsufficientCreditsModal } from "./InsufficientCreditsModal";
 import { SettingTooltip } from "./SettingTooltip";
+import { ShotTypePicker } from "./ShotTypePicker";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "motion/react";
+import type { ShotType } from "@/lib/shot-types";
 import {
   Upload,
   Loader2,
@@ -158,6 +160,7 @@ export function TransformationFlow({ transformationCategory }: { transformationC
   const [transformationType, setTransformationType] = useState<TransformationType>(() => getTransformationTypes(transformationCategory)[0]?.id || "backyard_outdoor");
   const [buildType, setBuildType] = useState<BuildType>("team_build");
   const [motionStyle, setMotionStyle] = useState<MotionStyle>("dramatic_push");
+  const [shotType, setShotType] = useState<ShotType>("slow_push");
   const [duration, setDuration] = useState<Duration>("5s");
   const [format, setFormat] = useState<Format>("reels");
   const [description, setDescription] = useState("");
@@ -229,16 +232,32 @@ export function TransformationFlow({ transformationCategory }: { transformationC
   };
 
   const handleFileSelect = async (
-    file: File,
+    rawFile: File,
     type: "before" | "after"
   ) => {
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type.toLowerCase())) {
-      toast.error("Please upload a JPG, PNG, or WebP image");
+    if (rawFile.size > 52428800) {
+      toast.error("Maximum file size is 50MB");
       return;
     }
-    if (file.size > 10485760) {
-      toast.error("Maximum file size is 10MB");
+
+    const setUploading = type === "before" ? setIsUploadingBefore : setIsUploadingAfter;
+    const setUrl = type === "before" ? setBeforeImageUrl : setAfterImageUrl;
+
+    setUploading(true);
+
+    let file: File;
+    try {
+      // Normalize: convert HEIC/HEIF/etc to JPEG so AI models accept it.
+      const { normalizeWithReport } = await import("@/lib/normalize-image");
+      const normalized = await normalizeWithReport(rawFile);
+      file = normalized.file;
+      if (normalized.converted) {
+        toast.success(normalized.reason || "Image converted");
+      }
+    } catch (err) {
+      setUploading(false);
+      const msg = err instanceof Error ? err.message : "Please use JPEG, PNG, or WebP.";
+      toast.error(msg);
       return;
     }
 
@@ -252,10 +271,6 @@ export function TransformationFlow({ transformationCategory }: { transformationC
     if (type === "before") setBeforeFile(file);
     else setAfterFile(file);
 
-    const setUploading = type === "before" ? setIsUploadingBefore : setIsUploadingAfter;
-    const setUrl = type === "before" ? setBeforeImageUrl : setAfterImageUrl;
-
-    setUploading(true);
     try {
       const url = await uploadFile(file, type);
       setUrl(url);
@@ -325,6 +340,7 @@ export function TransformationFlow({ transformationCategory }: { transformationC
           transformation_category: transformationCategory,
           build_type: buildType,
           video_style: motionStyle,
+          shot_type: shotType,
           after_photo_paths: afterStoragePath ? [afterStoragePath] : [],
           before_photo_paths: beforeStoragePath ? [beforeStoragePath] : [],
           status: "received",
@@ -613,8 +629,8 @@ export function TransformationFlow({ transformationCategory }: { transformationC
     <div className="space-y-5">
       {/* Category Context Banner */}
       <div style={{
-        background: "#111111",
-        borderLeft: "4px solid #E8C547",
+        background: "var(--lux-bone)",
+        borderLeft: "4px solid var(--lux-brass)",
         padding: "12px 16px",
         display: "flex",
         gap: "12px",
@@ -624,22 +640,22 @@ export function TransformationFlow({ transformationCategory }: { transformationC
           {transformationCategory === "construction" ? "🏗️" : transformationCategory === "cleanup" ? "🧹" : "✨"}
         </span>
         <div>
-          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "11px", color: "#FFFFFF", fontWeight: 700 }}>
+          <div className="lux-eyebrow" style={{ color: "var(--lux-ink)" }}>
             {transformationCategory === "construction" ? "CONSTRUCTION TRANSFORMATION" : transformationCategory === "cleanup" ? "CLEANUP TRANSFORMATION" : "SETUP TRANSFORMATION"}
           </div>
-          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "10px", color: "#555555" }}>
+          <div className="lux-prose text-[10px]" style={{ color: "var(--lux-ash)" }}>
             {transformationCategory === "construction" ? "We'll reconstruct the before build state" : transformationCategory === "cleanup" ? "We'll generate the cluttered before state" : "We'll generate the empty before state"}
           </div>
         </div>
       </div>
       {/* Coming Soon Banner */}
       {!bannerDismissed && (
-        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: "#3D2E00" }}>
-          <Zap className="h-4 w-4 text-amber-400 flex-shrink-0" />
-          <p className="flex-1 text-xs font-mono text-amber-400">
+        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: "var(--lux-cream)", color: "var(--lux-ink)" }}>
+          <Zap className="h-4 w-4 flex-shrink-0" style={{ color: "var(--lux-brass)" }} />
+          <p className="lux-eyebrow flex-1 text-xs" style={{ color: "var(--lux-ink)" }}>
             NOW POWERED BY KLING 2.5 TURBO PRO — 1080p cinematic quality with start and end frame precision. Better than ever.
           </p>
-          <button onClick={handleDismissBanner} className="text-amber-400/60 hover:text-amber-400">
+          <button onClick={handleDismissBanner} className="transition-colors" style={{ color: "var(--lux-ash)" }}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -655,7 +671,7 @@ export function TransformationFlow({ transformationCategory }: { transformationC
           <input
             ref={beforeInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
             onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0], "before")}
             className="hidden"
           />
@@ -680,15 +696,16 @@ export function TransformationFlow({ transformationCategory }: { transformationC
           ) : beforeMode === "upload" ? (
             <button
               onClick={() => beforeInputRef.current?.click()}
-              className="w-full border-2 border-dashed border-muted-foreground/30 rounded-xl p-6 flex flex-col items-center justify-center hover:border-primary/50 transition-colors"
+              className="w-full border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center transition-colors"
+              style={{ borderColor: "var(--lux-hairline-strong)", backgroundColor: "var(--lux-cream)" }}
             >
-              <Upload className="h-8 w-8 text-muted-foreground/50 mb-2" />
-              <span className="text-xs font-medium">Upload before photo</span>
+              <Upload className="h-8 w-8 mb-2" style={{ color: "var(--lux-ash)" }} />
+              <span className="text-xs font-medium" style={{ color: "var(--lux-ink)" }}>Upload before photo</span>
             </button>
           ) : (
-            <div className="w-full border-2 border-dashed border-muted-foreground/20 rounded-xl p-6 flex flex-col items-center justify-center bg-muted/30">
-              <Sparkles className="h-8 w-8 text-muted-foreground/30 mb-2" />
-              <span className="text-xs text-muted-foreground">We'll reconstruct the before state using AI</span>
+            <div className="w-full border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center" style={{ borderColor: "var(--lux-hairline-strong)", backgroundColor: "var(--lux-cream)" }}>
+              <Sparkles className="h-8 w-8 mb-2" style={{ color: "var(--lux-ash)" }} />
+              <span className="text-xs" style={{ color: "var(--lux-ash)" }}>We'll reconstruct the before state using AI</span>
             </div>
           )}
 
@@ -723,7 +740,7 @@ export function TransformationFlow({ transformationCategory }: { transformationC
           <input
             ref={afterInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
             onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0], "after")}
             className="hidden"
           />
@@ -748,11 +765,12 @@ export function TransformationFlow({ transformationCategory }: { transformationC
           ) : (
             <button
               onClick={() => afterInputRef.current?.click()}
-              className="w-full border-2 border-dashed border-muted-foreground/30 rounded-xl p-6 flex flex-col items-center justify-center hover:border-primary/50 transition-colors aspect-[3/4]"
+              className="w-full border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center transition-colors aspect-[3/4]"
+              style={{ borderColor: "var(--lux-hairline-strong)", backgroundColor: "var(--lux-cream)" }}
             >
-              <Upload className="h-8 w-8 text-muted-foreground/50 mb-2" />
-              <span className="text-xs font-medium">Upload after photo</span>
-              <span className="text-[10px] text-muted-foreground mt-1">JPG, PNG, or WebP (max 10MB)</span>
+              <Upload className="h-8 w-8 mb-2" style={{ color: "var(--lux-ash)" }} />
+              <span className="text-xs font-medium" style={{ color: "var(--lux-ink)" }}>Upload after photo</span>
+              <span className="text-[10px] mt-1" style={{ color: "var(--lux-ash)" }}>JPG, PNG, or WebP (max 10MB)</span>
             </button>
           )}
         </div>
@@ -868,9 +886,9 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                             alignItems: "flex-start",
                             gap: "14px",
                             padding: "16px",
-                            background: buildType === b.id ? "rgba(232,197,71,0.08)" : "#111111",
-                            border: buildType === b.id ? "1px solid #E8C547" : "1px solid #222222",
-                            borderLeft: buildType === b.id ? "4px solid #E8C547" : "4px solid transparent",
+                            background: buildType === b.id ? "var(--lux-ink)" : "var(--lux-bone)",
+                            border: buildType === b.id ? "1px solid var(--lux-brass)" : "1px solid var(--lux-hairline)",
+                            borderLeft: buildType === b.id ? "4px solid var(--lux-brass)" : "4px solid transparent",
                             cursor: "pointer",
                             transition: "all 0.15s ease",
                             marginBottom: "8px",
@@ -878,21 +896,15 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                         >
                           <span style={{ fontSize: "24px", lineHeight: 1 }}>{b.icon}</span>
                           <div>
-                            <div style={{
-                              fontFamily: "Space Mono, monospace",
-                              fontSize: "12px",
-                              fontWeight: 700,
-                              letterSpacing: "1px",
-                              color: buildType === b.id ? "#E8C547" : "#F5F5F0",
+                            <div className="lux-eyebrow" style={{
+                              color: buildType === b.id ? "var(--lux-champagne)" : "var(--lux-ink)",
                               marginBottom: buildType === b.id ? "6px" : "0",
                             }}>
                               {b.label}
                             </div>
                             {buildType === b.id && (
-                              <div style={{
-                                fontFamily: "Space Mono, monospace",
-                                fontSize: "10px",
-                                color: "#AAAAAA",
+                              <div className="lux-prose text-[10px]" style={{
+                                color: buildType === b.id ? "var(--lux-smoke)" : "var(--lux-ash)",
                                 lineHeight: 1.6,
                               }}>
                                 {b.description}
@@ -916,8 +928,8 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                           key={m.id}
                           onClick={() => setMotionStyle(m.id)}
                           style={{
-                            background: motionStyle === m.id ? "rgba(232,197,71,0.08)" : "#111111",
-                            border: motionStyle === m.id ? "1px solid #E8C547" : "1px solid #222222",
+                            background: motionStyle === m.id ? "var(--lux-ink)" : "var(--lux-bone)",
+                            border: motionStyle === m.id ? "1px solid var(--lux-brass)" : "1px solid var(--lux-hairline)",
                             padding: "16px",
                             cursor: "pointer",
                             transition: "all 0.15s ease",
@@ -930,25 +942,17 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                             gap: "10px",
                             marginBottom: motionStyle === m.id ? "8px" : "0",
                           }}>
-                            <span style={{
-                              fontFamily: "Space Mono, monospace",
-                              fontSize: "12px",
-                              fontWeight: 700,
-                              letterSpacing: "1px",
-                              color: motionStyle === m.id ? "#E8C547" : "#F5F5F0",
+                            <span className="lux-eyebrow" style={{
+                              color: motionStyle === m.id ? "var(--lux-champagne)" : "var(--lux-ink)",
                             }}>
                               {m.label}
                             </span>
                             {m.badge && (
-                              <span style={{
-                                background: "rgba(232,197,71,0.12)",
-                                border: "1px solid rgba(232,197,71,0.35)",
-                                color: "#E8C547",
-                                fontFamily: "Space Mono, monospace",
-                                fontSize: "8px",
-                                letterSpacing: "1px",
+                              <span className="lux-eyebrow text-[7px]" style={{
+                                background: motionStyle === m.id ? "rgba(201, 169, 110, 0.2)" : "rgba(14, 14, 12, 0.08)",
+                                border: motionStyle === m.id ? "1px solid var(--lux-champagne)" : "1px solid var(--lux-hairline)",
+                                color: motionStyle === m.id ? "var(--lux-champagne)" : "var(--lux-ash)",
                                 padding: "2px 7px",
-                                fontWeight: 700,
                               }}>
                                 {m.badge}
                               </span>
@@ -959,10 +963,8 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                             overflow: "hidden",
                             transition: "max-height 0.2s ease",
                           }}>
-                            <p style={{
-                              fontFamily: "Space Mono, monospace",
-                              fontSize: "10px",
-                              color: "#AAAAAA",
+                            <p className="lux-prose text-[10px]" style={{
+                              color: motionStyle === m.id ? "var(--lux-smoke)" : "var(--lux-ash)",
                               margin: 0,
                               lineHeight: 1.6,
                             }}>
@@ -972,6 +974,15 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                         </div>
                       ))}
                     </div>
+                  </div>
+
+                  {/* Shot Type */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider flex items-center">
+                      Shot Type
+                      <SettingTooltip text="Choose the cinematic motion style. Each has different quality and credit costs." />
+                    </label>
+                    <ShotTypePicker value={shotType} onChange={setShotType} />
                   </div>
 
                   {/* Duration & Format */}

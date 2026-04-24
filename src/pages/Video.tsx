@@ -134,51 +134,51 @@ export default function VideoPage() {
           {videoMode === "select" && (
             <>
               <div className="text-center space-y-1">
-                <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                <h1 className="lux-display text-2xl font-bold tracking-tight">
                   CREATE A VIDEO
                 </h1>
-                <p className="text-sm text-muted-foreground">Two formats. One upload. Cinematic output.</p>
+                <p className="lux-prose text-sm" style={{ color: "var(--lux-ash)" }}>Two formats. One upload. Cinematic output.</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
                   onClick={() => setVideoMode("transform")}
-                  className="text-left p-5 rounded-none border-2 border-primary/60 transition-all hover:border-primary hover:shadow-lg"
-                  style={{ backgroundColor: "#1A1A1A" }}
+                  className="text-left p-5 rounded-none border transition-all hover:shadow-lg"
+                  style={{ backgroundColor: "var(--lux-bone)", borderColor: "var(--lux-hairline)", color: "var(--lux-ink)" }}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <span className="text-5xl">🏗️</span>
-                    <Badge className="bg-primary text-primary-foreground text-[10px] px-2 py-0.5 rounded-none">NEW</Badge>
+                    <span className="lux-eyebrow text-[9px]" style={{ color: "var(--lux-brass)" }}>NEW</span>
                   </div>
-                  <h2 className="text-lg font-bold text-white tracking-wide mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                  <h2 className="lux-display text-lg font-bold tracking-wide mb-2">
                     TRANSFORMATION VIDEO
                   </h2>
-                   <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                   <p className="lux-prose text-xs leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
                     Upload the finished shot. We recreate the before state and render a cinematic build, cleanup, or setup video. Built for TikTok and Reels.
                   </p>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-primary font-mono">from 30 credits</span>
-                    <span className="text-xs text-primary font-semibold">Start Transformation →</span>
+                    <span className="text-xs font-mono" style={{ color: "var(--lux-ash)" }}>from 30 credits</span>
+                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Start Transformation →</span>
                   </div>
                 </button>
 
                 <button
                   onClick={() => setVideoMode("listing")}
-                  className="text-left p-5 rounded-none border border-border/60 transition-all hover:border-primary/50 hover:shadow-lg"
-                  style={{ backgroundColor: "#1A1A1A" }}
+                  className="text-left p-5 rounded-none border transition-all hover:shadow-lg"
+                  style={{ backgroundColor: "var(--lux-bone)", borderColor: "var(--lux-hairline)", color: "var(--lux-ink)" }}
                 >
                   <div className="mb-3">
                     <span className="text-5xl">🏠</span>
                   </div>
-                  <h2 className="text-lg font-bold text-white tracking-wide mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                  <h2 className="lux-display text-lg font-bold tracking-wide mb-2">
                     LISTING VIDEO
                   </h2>
-                   <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                   <p className="lux-prose text-xs leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
                      One photo of a room or exterior. We render a smooth cinematic showcase — no AI hallucinations, just real camera movement. Built for MLS and social.
                    </p>
                    <div className="flex items-center justify-between">
-                     <span className="text-xs text-muted-foreground font-mono">2 credits</span>
-                     <span className="text-xs text-muted-foreground font-semibold">Create Listing Video →</span>
+                     <span className="text-xs font-mono" style={{ color: "var(--lux-ash)" }}>2 credits</span>
+                     <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Create Listing Video →</span>
                   </div>
                 </button>
               </div>
@@ -189,12 +189,12 @@ export default function VideoPage() {
           {videoMode === "transform" && !transformationCategory && (
             <>
               <div className="text-center space-y-1">
-                <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                <h1 className="lux-display text-2xl font-bold tracking-tight">
                   WHAT ARE YOU TRANSFORMING?
                 </h1>
               </div>
 
-              <p style={{ fontFamily: "'Space Mono', monospace", fontSize: "10px", color: "#555555" }}>
+              <p className="lux-eyebrow text-center">
                 Create → Transformation → Choose Type
               </p>
 
@@ -203,29 +203,22 @@ export default function VideoPage() {
                 <button
                   onClick={() => setTransformationCategory("construction")}
                   className="w-full text-left p-6 rounded-none transition-all hover:shadow-lg"
-                  style={{ backgroundColor: "#1A1A1A", border: "1px solid #E8C547" }}
+                  style={{ backgroundColor: "var(--lux-bone)", border: "1px solid var(--lux-hairline)" }}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <span className="text-5xl">🏗️</span>
-                    <span style={{
-                      background: "rgba(232,197,71,0.15)",
-                      border: "1px solid rgba(232,197,71,0.4)",
-                      color: "#E8C547",
-                      fontFamily: "'Space Mono', monospace",
-                      fontSize: "9px",
-                      padding: "3px 8px",
-                    }}>POPULAR</span>
+                    <span className="lux-eyebrow text-[8px]" style={{ color: "var(--lux-brass)" }}>POPULAR</span>
                   </div>
-                  <h2 className="text-[22px] font-bold text-white tracking-wide mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                  <h2 className="lux-display text-[22px] font-bold tracking-wide mb-2">
                     CONSTRUCTION TRANSFORMATION
                   </h2>
-                  <p style={{ fontFamily: "Inter, sans-serif", fontSize: "13px", color: "#AAAAAA", lineHeight: 1.6, marginBottom: "12px" }}>
+                  <p className="lux-prose text-xs leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
                     Upload the finished shot. We reconstruct the raw site before you broke ground and render a cinematic build arc.
                     Contractors, landscapers, pool builders, renovators.
                   </p>
                   <div className="flex items-center justify-between">
-                    <span style={{ fontFamily: "'Space Mono', monospace", fontSize: "11px", color: "#E8C547" }}>from 40 credits</span>
-                    <span style={{ fontFamily: "'Space Mono', monospace", fontSize: "12px", color: "#E8C547" }}>Start →</span>
+                    <span className="text-xs font-mono" style={{ color: "var(--lux-ash)" }}>from 40 credits</span>
+                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Start →</span>
                   </div>
                 </button>
 
@@ -233,29 +226,22 @@ export default function VideoPage() {
                 <button
                   onClick={() => setTransformationCategory("cleanup")}
                   className="w-full text-left p-6 rounded-none transition-all hover:shadow-lg"
-                  style={{ backgroundColor: "#1A1A1A", border: "1px solid #222222" }}
+                  style={{ backgroundColor: "var(--lux-bone)", border: "1px solid var(--lux-hairline)" }}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <span className="text-5xl">🧹</span>
-                    <span style={{
-                      background: "#1A1A1A",
-                      border: "1px solid #333333",
-                      color: "#F5F5F0",
-                      fontFamily: "'Space Mono', monospace",
-                      fontSize: "9px",
-                      padding: "3px 8px",
-                    }}>NEW</span>
+                    <span className="lux-eyebrow text-[8px]" style={{ color: "var(--lux-brass)" }}>NEW</span>
                   </div>
-                  <h2 className="text-[22px] font-bold text-white tracking-wide mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                  <h2 className="lux-display text-[22px] font-bold tracking-wide mb-2">
                     CLEANUP TRANSFORMATION
                   </h2>
-                  <p style={{ fontFamily: "Inter, sans-serif", fontSize: "13px", color: "#AAAAAA", lineHeight: 1.6, marginBottom: "12px" }}>
+                  <p className="lux-prose text-xs leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
                     Upload the cleaned shot. We recreate the messy before — rubbish, junk, debris — and render a dramatic cleanup reveal.
                     Rubbish removal, junk hauling, hoarding cleanouts, site clearance.
                   </p>
                   <div className="flex items-center justify-between">
-                     <span style={{ fontFamily: "'Space Mono', monospace", fontSize: "11px", color: "#E8C547" }}>from 50 credits</span>
-                    <span style={{ fontFamily: "'Space Mono', monospace", fontSize: "12px", color: "#AAAAAA" }}>Start →</span>
+                     <span className="text-xs font-mono" style={{ color: "var(--lux-ash)" }}>from 50 credits</span>
+                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Start →</span>
                    </div>
                 </button>
 
@@ -263,29 +249,22 @@ export default function VideoPage() {
                 <button
                   onClick={() => setTransformationCategory("setup")}
                   className="w-full text-left p-6 rounded-none transition-all hover:shadow-lg"
-                  style={{ backgroundColor: "#1A1A1A", border: "1px solid #222222" }}
+                  style={{ backgroundColor: "var(--lux-bone)", border: "1px solid var(--lux-hairline)" }}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <span className="text-5xl">✨</span>
-                    <span style={{
-                      background: "#1A1A1A",
-                      border: "1px solid #333333",
-                      color: "#F5F5F0",
-                      fontFamily: "'Space Mono', monospace",
-                      fontSize: "9px",
-                      padding: "3px 8px",
-                    }}>NEW</span>
+                    <span className="lux-eyebrow text-[8px]" style={{ color: "var(--lux-brass)" }}>NEW</span>
                   </div>
-                  <h2 className="text-[22px] font-bold text-white tracking-wide mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                  <h2 className="lux-display text-[22px] font-bold tracking-wide mb-2">
                     SETUP TRANSFORMATION
                   </h2>
-                  <p style={{ fontFamily: "Inter, sans-serif", fontSize: "13px", color: "#AAAAAA", lineHeight: 1.6, marginBottom: "12px" }}>
+                  <p className="lux-prose text-xs leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
                     Upload the styled shot. We recreate the empty unstyled before and render a satisfying setup reveal.
                     Event setups, catering, venue styling, hospitality.
                   </p>
                   <div className="flex items-center justify-between">
-                     <span style={{ fontFamily: "'Space Mono', monospace", fontSize: "11px", color: "#E8C547" }}>from 50 credits</span>
-                    <span style={{ fontFamily: "'Space Mono', monospace", fontSize: "12px", color: "#AAAAAA" }}>Start →</span>
+                     <span className="text-xs font-mono" style={{ color: "var(--lux-ash)" }}>from 50 credits</span>
+                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Start →</span>
                    </div>
                 </button>
               </div>
