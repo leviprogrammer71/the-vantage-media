@@ -9,6 +9,37 @@ const corsHeaders = {
 
 const REPLICATE = "https://api.replicate.com/v1"
 
+// ── Shot-type model routing ───────────────────────────────────────────────
+// Mirrors src/lib/shot-types.ts on the client. Standard shots run on Kling
+// 2.5 Turbo Pro; premium shots run on ByteDance Seedance 2.0 for higher
+// quality drone-style and architectural moves.
+type ShotType =
+  | "slow_push"
+  | "drone_orbit"
+  | "parallax_pan"
+  | "reveal_rise"
+  | "architectural"
+  | "establishing"
+
+interface ShotConfig {
+  model: "kling-2.5-turbo" | "seedance-2"
+  motionHint: string
+}
+
+const SHOT_CONFIG: Record<ShotType, ShotConfig> = {
+  slow_push:     { model: "kling-2.5-turbo", motionHint: "Slow dolly camera push-in on the subject, steady and cinematic." },
+  drone_orbit:   { model: "seedance-2",      motionHint: "Slow aerial orbit 60° around the subject at elevated angle, smooth drone motion." },
+  parallax_pan:  { model: "kling-2.5-turbo", motionHint: "Lateral parallax pan moving slowly left to right with foreground/background depth shift." },
+  reveal_rise:   { model: "kling-2.5-turbo", motionHint: "Camera rises vertically from low to eye height, revealing the composition." },
+  architectural: { model: "seedance-2",      motionHint: "Clean architectural slider pan, perfectly horizontal." },
+  establishing:  { model: "seedance-2",      motionHint: "Slow pull-back dolly from tight composition to wide establishing shot." },
+}
+
+function resolveShot(shotType?: string | null): ShotConfig {
+  if (!shotType || !(shotType in SHOT_CONFIG)) return SHOT_CONFIG.slow_push
+  return SHOT_CONFIG[shotType as ShotType]
+}
+
 /**
  * Downloads video from URL and stores it in Supabase storage.
  * Returns the storage path or null on failure.
@@ -139,10 +170,16 @@ serve(async (req) => {
       after_photo_paths,
       aspect_ratio,
       duration,
+      shot_type,
     } = body
 
-    const finalPrompt = video_prompt || generated_video_prompt
-    if (!finalPrompt) throw new Error("video prompt required")
+    const baseFinalPrompt = video_prompt || generated_video_prompt
+    if (!baseFinalPrompt) throw new Error("video prompt required")
+
+    // Inject shot-type motion hint at the front of the prompt so both Kling
+    // and Seedance respect the requested camera move.
+    const shot = resolveShot(shot_type)
+    const finalPrompt = `${shot.motionHint} ${baseFinalPrompt}`
 
     // Sign before image URL if needed (submission pipeline)
     let beforeUrl = before_image_url
@@ -173,39 +210,55 @@ serve(async (req) => {
         .eq("id", submission_id)
     }
 
-    // Build Kling 2.5 Turbo Pro input
-    const klingInput: Record<string, any> = {
-      prompt: finalPrompt,
-      aspect_ratio: aspect_ratio || "9:16",
-      duration: typeof duration === "string" ? parseInt(duration) : (duration || 5),
-      negative_prompt: "objects moving without human or machine cause, self-assembling structures, materials appearing from nowhere, floating objects with no support, water rising without inlet source, soil moving without excavation agent, concrete appearing without being poured, walls building without workers, plants growing in real time, tools moving without hands holding them, people teleporting between positions, physically impossible object trajectories, water flowing upward against gravity, shadows moving opposite to sun direction, materials passing through solid surfaces, duplicate workers or machines, artifacts, flickering, strobing, morphing faces or hands, blurry unresolved motion, ghost trails on moving objects, unrealistic collision physics, objects with no weight or mass, distorted proportions of workers or machines",
-    }
+    const negativePrompt = "objects moving without human or machine cause, self-assembling structures, materials appearing from nowhere, floating objects with no support, water rising without inlet source, soil moving without excavation agent, concrete appearing without being poured, walls building without workers, plants growing in real time, tools moving without hands holding them, people teleporting between positions, physically impossible object trajectories, water flowing upward against gravity, shadows moving opposite to sun direction, materials passing through solid surfaces, duplicate workers or machines, artifacts, flickering, strobing, morphing faces or hands, blurry unresolved motion, ghost trails on moving objects, unrealistic collision physics, objects with no weight or mass, distorted proportions of workers or machines"
 
-    if (beforeUrl) {
-      klingInput.start_image = beforeUrl
-    }
-    if (afterUrl) {
-      klingInput.end_image = afterUrl
-    }
+    const durationSeconds = typeof duration === "string" ? parseInt(duration) : (duration || 5)
 
-    // Call Kling 2.5 Turbo Pro — use Prefer: wait for up to 60s
-    const createRes = await fetch(
-      `${REPLICATE}/models/kwaivgi/kling-v2.5-turbo-pro/predictions`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Token ${Deno.env.get("REPLICATE_API_TOKEN")}`,
-          "Content-Type": "application/json",
-          Prefer: "wait=60",
-        },
-        body: JSON.stringify({ input: klingInput }),
+    // ── Route to model based on shot type ──
+    let modelEndpoint: string
+    let modelInput: Record<string, any>
+
+    if (shot.model === "seedance-2") {
+      // ByteDance Seedance Pro 1.0 on Replicate
+      modelEndpoint = `${REPLICATE}/models/bytedance/seedance-1-pro/predictions`
+      modelInput = {
+        prompt: finalPrompt,
+        duration: durationSeconds,
+        aspect_ratio: aspect_ratio || "9:16",
+        resolution: "1080p",
       }
-    )
+      // Seedance uses a single image when going from one frame
+      if (beforeUrl) modelInput.image = beforeUrl
+      else if (afterUrl) modelInput.image = afterUrl
+    } else {
+      // Kling 2.5 Turbo Pro (default for standard shots)
+      modelEndpoint = `${REPLICATE}/models/kwaivgi/kling-v2.5-turbo-pro/predictions`
+      modelInput = {
+        prompt: finalPrompt,
+        aspect_ratio: aspect_ratio || "9:16",
+        duration: durationSeconds,
+        negative_prompt: negativePrompt,
+      }
+      if (beforeUrl) modelInput.start_image = beforeUrl
+      if (afterUrl) modelInput.end_image = afterUrl
+    }
+
+    console.log(`[generate-transformation-video] shot=${shot_type || "slow_push"} model=${shot.model} endpoint=${modelEndpoint}`)
+
+    const createRes = await fetch(modelEndpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${Deno.env.get("REPLICATE_API_TOKEN")}`,
+        "Content-Type": "application/json",
+        Prefer: "wait=60",
+      },
+      body: JSON.stringify({ input: modelInput }),
+    })
 
     const prediction = await createRes.json()
     if (!prediction.id) {
       throw new Error(
-        `Kling prediction failed to start: ${JSON.stringify(prediction)}`
+        `${shot.model} prediction failed to start: ${JSON.stringify(prediction)}`
       )
     }
 

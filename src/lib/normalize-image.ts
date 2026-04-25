@@ -22,6 +22,17 @@ const HEIC_MIME_RX = /heic|heif/i;
 const isHeic = (file: File) =>
   HEIC_MIME_RX.test(file.type) || HEIC_RX.test(file.name);
 
+// Sniff first bytes — useful when iOS reports image/* but the bytes are HEIC.
+async function sniffIsHeic(file: File): Promise<boolean> {
+  try {
+    const head = new Uint8Array(await file.slice(0, 32).arrayBuffer());
+    const s = String.fromCharCode(...head);
+    return s.includes("ftyp") && (s.includes("heic") || s.includes("heix") || s.includes("mif1") || s.includes("hevc"));
+  } catch {
+    return false;
+  }
+}
+
 async function reencodeViaCanvas(file: File, quality = 0.92): Promise<File> {
   return await new Promise<File>((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -100,28 +111,40 @@ async function heic2anyConvert(file: File): Promise<File> {
  * Throws with a clear human-readable message if conversion is impossible.
  */
 export async function normalizeImageForUpload(file: File): Promise<File> {
-  // Fast path: already OK
-  if (ACCEPTED_IMAGE_TYPES.includes(file.type as any) && !isHeic(file)) {
-    return file;
-  }
+  console.log(`[normalize-image] input: name="${file.name}" type="${file.type}" size=${file.size}`);
 
-  // HEIC/HEIF path — try heic2any first (the browser often can't decode HEIC outside Safari)
-  if (isHeic(file)) {
+  // Sniff bytes — iOS sometimes reports image/jpeg but the bytes are HEIC
+  const heicByExt = isHeic(file);
+  const heicByBytes = await sniffIsHeic(file);
+  const treatAsHeic = heicByExt || heicByBytes;
+
+  if (treatAsHeic) {
+    console.log("[normalize-image] HEIC/HEIF detected — converting to JPEG");
     try {
-      return await heic2anyConvert(file);
+      const out = await heic2anyConvert(file);
+      console.log(`[normalize-image] HEIC→JPEG OK: ${out.size} bytes`);
+      return out;
     } catch (heicErr) {
-      // Some newer Chromes can decode HEIC via canvas — try as fallback
+      console.warn("[normalize-image] heic2any failed, trying canvas:", heicErr);
       try {
         return await reencodeViaCanvas(file);
-      } catch {
+      } catch (canvasErr) {
+        console.error("[normalize-image] canvas fallback failed:", canvasErr);
         throw new Error(
-          `We couldn't convert your HEIC photo. Please re-export it as JPEG from your phone's Photos app and upload again. (${(heicErr as Error).message || "unknown"})`
+          `Couldn't convert HEIC photo. Open Photos on iPhone, tap Edit → Done (this re-saves as JPEG), or change Settings → Camera → Formats → "Most Compatible", then re-upload.`
         );
       }
     }
   }
 
+  // Already OK?
+  if (ACCEPTED_IMAGE_TYPES.includes(file.type as any)) {
+    console.log("[normalize-image] format already accepted, passthrough");
+    return file;
+  }
+
   // Unknown / unusual format — try canvas re-encoding
+  console.log(`[normalize-image] unknown format "${file.type}", attempting canvas re-encode`);
   try {
     return await reencodeViaCanvas(file);
   } catch (e) {
