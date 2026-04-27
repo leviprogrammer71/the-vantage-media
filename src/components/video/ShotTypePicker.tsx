@@ -10,8 +10,8 @@ interface ShotTypePickerProps {
 
 export function ShotTypePicker({ value, onChange }: ShotTypePickerProps) {
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {SHOT_TYPES.map((shot, index) => {
           const isSelected = value === shot.id;
           const romanNumeral = ["I", "II", "III", "IV", "V", "VI"][index];
@@ -21,7 +21,7 @@ export function ShotTypePicker({ value, onChange }: ShotTypePickerProps) {
               key={shot.id}
               onClick={() => onChange(shot.id)}
               className={cn(
-                "text-left p-5 rounded-none border transition-all",
+                "text-left p-6 rounded-none border transition-all",
                 isSelected
                   ? "bg-ink border-ink text-bone"
                   : "bg-bone border-hairline hover:border-ink"

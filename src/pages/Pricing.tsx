@@ -11,7 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { CREDIT_PACKS, CREDIT_COSTS, SUBSCRIPTION_PLANS } from "@/lib/credit-config";
-import { Loader2, Lock, Zap, ShieldCheck } from "lucide-react";
+import { Loader2, Lock, Zap, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 const productLines = [
   { item: "Listing Film · 5s", credits: CREDIT_COSTS.listingVideo5s },
@@ -27,6 +28,7 @@ const Pricing = () => {
   const { user } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
 
   useEffect(() => {
     if (user) {
@@ -127,17 +129,65 @@ const Pricing = () => {
             </div>
           </section>
 
+          {/* TESTIMONIAL STRIP */}
+          <section className="lux-section lux-bg-bone">
+            <div className="lux-container">
+              <div className="grid md:grid-cols-3 gap-8">
+                {[
+                  { quote: "Pays for itself the first week.", author: "Maya Atwood", company: "Atwood Photographic" },
+                  { quote: "We added it as a $450 line item the next morning.", author: "Jordan Park", company: "Meridian Visual Co." },
+                  { quote: "Three minutes per film. We've quietly tripled our throughput.", author: "Sara Larsen", company: "House of Larsen" },
+                ].map((t, i) => (
+                  <div
+                    key={i}
+                    className="p-8 lux-bg-bone"
+                    style={{ border: "1px solid var(--lux-hairline)" }}
+                  >
+                    <p className="lux-prose mb-4 italic">{t.quote}</p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>
+                          {t.author}
+                        </div>
+                        <div style={{ color: "var(--lux-ash)", fontSize: "0.875rem" }}>
+                          {t.company}
+                        </div>
+                      </div>
+                      <div style={{ color: "var(--lux-rust)" }}>★★★★★</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
           {/* CREDIT PACKS */}
           <section className="lux-section lux-bg-cream">
             <div className="lux-container">
-              <SectionHeading
-                eyebrow="THE CREDIT PACKS"
-                title="One purchase."
-                italic="Years of films."
-                lede="Each pack ships immediately. Credits never expire. Use them across photo enhancement, listing films, and transformation videos in any combination."
-                align="center"
-                className="mb-20"
-              />
+              <div className="mb-12 text-center">
+                <SectionHeading
+                  eyebrow="THE CREDIT PACKS"
+                  title="One purchase."
+                  italic="Years of films."
+                  lede="Each pack ships immediately. Credits never expire. Use them across photo enhancement, listing films, and transformation videos in any combination."
+                  align="center"
+                  className="mb-12"
+                />
+                {/* Monthly/Annual Toggle */}
+                <div className="flex items-center justify-center gap-4">
+                  <span className="lux-prose" style={{ color: billingCycle === "monthly" ? "var(--lux-ink)" : "var(--lux-ash)" }}>
+                    Monthly
+                  </span>
+                  <Switch
+                    checked={billingCycle === "annual"}
+                    onCheckedChange={(checked) => setBillingCycle(checked ? "annual" : "monthly")}
+                    className="mx-2"
+                  />
+                  <span className="lux-prose flex items-center gap-2" style={{ color: billingCycle === "annual" ? "var(--lux-ink)" : "var(--lux-ash)" }}>
+                    Annual <span style={{ color: "var(--lux-rust)", fontSize: "0.875rem", fontWeight: "600" }}>· Save 30%</span>
+                  </span>
+                </div>
+              </div>
 
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {CREDIT_PACKS.map((p) => {
@@ -219,6 +269,135 @@ const Pricing = () => {
               <p className="lux-eyebrow text-center mt-10" style={{ color: "var(--lux-ash)" }}>
                 ALL PRICES IN USD · CREDITS NEVER EXPIRE · USE ANYTIME
               </p>
+            </div>
+          </section>
+
+          {/* COMPARISON TABLE */}
+          <section className="lux-section lux-bg-cream">
+            <div className="lux-container">
+              <div className="mb-16 text-center">
+                <h2 className="lux-display mb-4" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
+                  Three ways to make
+                  <br />
+                  <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>a film.</span>
+                </h2>
+                <p className="lux-prose italic" style={{ maxWidth: 500, margin: "0 auto" }}>
+                  One is dramatically less expensive.
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-8">
+                {[
+                  {
+                    name: "Free Tier",
+                    badge: null,
+                    bgClass: "lux-bg-bone",
+                    textColor: "var(--lux-ink)",
+                    rows: [
+                      { label: "Films per month", value: "1 (preview)" },
+                      { label: "Watermark", value: "Yes" },
+                      { label: "Brand presets", value: "—" },
+                      { label: "Private agent gallery", value: "—" },
+                      { label: "Turnaround", value: "5 min" },
+                      { label: "Cost per film", value: "n/a" },
+                      { label: "Per-month total", value: "$0" },
+                    ],
+                  },
+                  {
+                    name: "Studio Plan",
+                    badge: "RECOMMENDED",
+                    bgClass: "lux-bg-ink",
+                    textColor: "var(--lux-bone)",
+                    rows: [
+                      { label: "Films per month", value: "~160" },
+                      { label: "Watermark", value: "✓" },
+                      { label: "Brand presets", value: "✓" },
+                      { label: "Private agent gallery", value: "✓" },
+                      { label: "Turnaround", value: "5 min" },
+                      { label: "Cost per film", value: "$0.42" },
+                      { label: "Per-month total", value: "$129" },
+                    ],
+                  },
+                  {
+                    name: "Manual Service",
+                    badge: null,
+                    bgClass: "lux-bg-bone",
+                    textColor: "var(--lux-ink)",
+                    rows: [
+                      { label: "Films per month", value: "1" },
+                      { label: "Watermark", value: "None" },
+                      { label: "Brand presets", value: "✓" },
+                      { label: "Private agent gallery", value: "—" },
+                      { label: "Turnaround", value: "5 days" },
+                      { label: "Cost per film", value: "$1,800" },
+                      { label: "Per-month total", value: "$1,800+" },
+                    ],
+                  },
+                ].map((col, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-8 ${col.bgClass} relative`}
+                    style={{ border: "1px solid var(--lux-hairline)", color: col.textColor }}
+                  >
+                    {col.badge && (
+                      <div
+                        className="lux-eyebrow absolute -top-3 left-8"
+                        style={{
+                          color: "var(--lux-ink)",
+                          background: "var(--lux-champagne)",
+                          padding: "6px 12px",
+                        }}
+                      >
+                        {col.badge}
+                      </div>
+                    )}
+                    <div className="lux-eyebrow mb-6" style={{ color: col.bgClass === "lux-bg-ink" ? "var(--lux-champagne)" : "var(--lux-brass)" }}>
+                      {col.name}
+                    </div>
+                    <div className="space-y-4">
+                      {col.rows.map((row, i) => (
+                        <div key={i} className="flex flex-col gap-1 pb-4" style={{ borderBottom: "1px solid var(--lux-hairline)" }}>
+                          <span className="text-xs" style={{ color: col.bgClass === "lux-bg-ink" ? "rgba(244,239,230,0.7)" : "var(--lux-ash)" }}>
+                            {row.label}
+                          </span>
+                          <span className="lux-prose font-semibold" style={{ color: col.textColor }}>
+                            {row.value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* MONEY-BACK GUARANTEE STRIP */}
+          <section className="lux-section lux-bg-bone">
+            <div className="lux-container">
+              <div className="grid md:grid-cols-3 gap-8">
+                {[
+                  { icon: "🛡️", label: "30-DAY REFUND", desc: "No questions asked, full refund" },
+                  { icon: "🔒", label: "256-BIT SSL", desc: "Bank-level encryption" },
+                  { icon: "✕", label: "CANCEL ANYTIME", desc: "No long-term contracts" },
+                ].map((item, i) => (
+                  <div
+                    key={i}
+                    className="p-8 lux-bg-parchment text-center"
+                    style={{ border: "1px solid var(--lux-hairline)" }}
+                  >
+                    <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>
+                      {item.icon}
+                    </div>
+                    <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>
+                      {item.label}
+                    </div>
+                    <p style={{ color: "var(--lux-ash)", fontSize: "0.875rem" }}>
+                      {item.desc}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
 

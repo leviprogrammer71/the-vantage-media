@@ -237,7 +237,7 @@ export function ListingVideoFlow() {
                   setCategory(card.id);
                   setStep(2);
                 }}
-                className="group text-left p-8 lux-bg-cream"
+                className="group text-left p-8 lux-bg-cream flex flex-col min-h-80"
                 style={{
                   border: "1px solid var(--lux-hairline)",
                   transition: "all 0.3s var(--lux-ease)",
@@ -249,21 +249,21 @@ export function ListingVideoFlow() {
                   e.currentTarget.style.borderColor = "var(--lux-hairline)";
                 }}
               >
-                <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-brass)" }}>
+                <div className="lux-eyebrow mb-4" style={{ color: "var(--lux-brass)" }}>
                   {card.eyebrow}
                 </div>
                 <h3
-                  className="lux-display mb-3"
-                  style={{ fontSize: "clamp(1.5rem, 4vw, 2.5rem)" }}
+                  className="lux-display mb-4"
+                  style={{ fontSize: "clamp(1.6rem, 4vw, 2.2rem)", lineHeight: 0.96 }}
                 >
                   {card.title}
                 </h3>
-                <p className="lux-prose mb-6">{card.description}</p>
-                <div className="flex items-center justify-between mt-8">
-                  <span className="text-sm" style={{ color: "var(--lux-ash)" }}>
+                <p className="lux-prose mb-6 flex-1">{card.description}</p>
+                <div className="flex items-center justify-between mt-auto pt-4" style={{ borderTop: "1px solid var(--lux-hairline)" }}>
+                  <span className="text-xs" style={{ color: "var(--lux-ash)" }}>
                     {card.details}
                   </span>
-                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition" />
+                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition text-lux-brass" style={{ color: "var(--lux-brass)" }} />
                 </div>
               </button>
             ))}
@@ -297,7 +297,7 @@ export function ListingVideoFlow() {
           </h2>
 
           <div
-            className="border-2 border-dashed p-12 text-center cursor-pointer transition"
+            className="border border-dashed p-16 text-center cursor-pointer transition rounded-sm"
             style={{
               borderColor: "var(--lux-hairline-strong)",
               background: "var(--lux-parchment)",
@@ -305,9 +305,11 @@ export function ListingVideoFlow() {
             onDragOver={(e) => {
               e.preventDefault();
               e.currentTarget.style.borderColor = "var(--lux-ink)";
+              e.currentTarget.style.background = "rgba(14, 14, 12, 0.02)";
             }}
             onDragLeave={(e) => {
               e.currentTarget.style.borderColor = "var(--lux-hairline-strong)";
+              e.currentTarget.style.background = "var(--lux-parchment)";
             }}
             onDrop={(e) => {
               e.preventDefault();
@@ -315,8 +317,8 @@ export function ListingVideoFlow() {
             }}
             onClick={() => fileInputRef.current?.click()}
           >
-            <Upload className="w-8 h-8 mx-auto mb-4" style={{ color: "var(--lux-brass)" }} />
-            <p className="lux-prose mb-2">Drag photos here or click to select</p>
+            <Upload className="w-10 h-10 mx-auto mb-6" style={{ color: "var(--lux-brass)" }} />
+            <p className="lux-prose mb-3 font-semibold">Drag photos here or click to select</p>
             <p style={{ color: "var(--lux-ash)", fontSize: "0.875rem" }}>
               JPEG, PNG, WebP · Max 50MB · {maxPhotos === 1 ? "1 photo" : `${minPhotos}-${maxPhotos} photos`}
             </p>
@@ -332,19 +334,20 @@ export function ListingVideoFlow() {
           />
 
           {photos.length > 0 && (
-            <div className="mt-8">
-              <p className="lux-eyebrow mb-4" style={{ color: "var(--lux-brass)" }}>
+            <div className="mt-10">
+              <p className="lux-eyebrow mb-6" style={{ color: "var(--lux-brass)" }}>
                 {photos.length} PHOTO{photos.length !== 1 ? "S" : ""} SELECTED
               </p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                 {photos.map((photo, i) => (
-                  <div key={i} className="relative">
-                    <img src={photo.preview} alt={`Photo ${i + 1}`} className="w-full h-24 object-cover" />
+                  <div key={i} className="relative group">
+                    <img src={photo.preview} alt={`Photo ${i + 1}`} className="w-full h-40 object-cover" style={{ border: "1px solid var(--lux-hairline)" }} />
                     <button
                       onClick={() => setPhotos(photos.filter((_, j) => j !== i))}
-                      className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded"
+                      className="absolute top-2 right-2 p-1 bg-lux-ink rounded opacity-0 group-hover:opacity-100 transition"
+                      style={{ background: "var(--lux-ink)" }}
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-4 h-4" style={{ color: "var(--lux-bone)" }} />
                     </button>
                   </div>
                 ))}
@@ -355,8 +358,8 @@ export function ListingVideoFlow() {
           {isComplete && (
             <button
               onClick={() => setStep(3)}
-              className="lux-btn mt-8 w-full"
-              style={{ background: "var(--lux-ink)", color: "var(--lux-bone)" }}
+              className="lux-btn mt-12 w-full"
+              style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "18px 24px" }}
             >
               Continue to Details →
             </button>
@@ -386,10 +389,10 @@ export function ListingVideoFlow() {
             Property details
           </h2>
 
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Realtor Name */}
             <div>
-              <label className="lux-eyebrow block mb-2" style={{ color: "var(--lux-brass)" }}>
+              <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-brass)" }}>
                 REALTOR / AGENT NAME
               </label>
               <input
@@ -397,14 +400,14 @@ export function ListingVideoFlow() {
                 value={realtorName}
                 onChange={(e) => setRealtorName(e.target.value)}
                 placeholder="Maya Atwood, The Atwood Group"
-                className="w-full px-4 py-3 lux-prose"
+                className="w-full px-5 py-4 lux-prose"
                 style={{ border: "1px solid var(--lux-hairline)", background: "var(--lux-parchment)" }}
               />
             </div>
 
             {/* Location */}
             <div>
-              <label className="lux-eyebrow block mb-2" style={{ color: "var(--lux-brass)" }}>
+              <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-brass)" }}>
                 LOCATION
               </label>
               <input
@@ -412,7 +415,7 @@ export function ListingVideoFlow() {
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="Beacon Hill · Boston"
-                className="w-full px-4 py-3 lux-prose"
+                className="w-full px-5 py-4 lux-prose"
                 style={{ border: "1px solid var(--lux-hairline)", background: "var(--lux-parchment)" }}
               />
             </div>
@@ -434,11 +437,11 @@ export function ListingVideoFlow() {
             {/* Price Input */}
             {showPrice && (
               <div>
-                <label className="lux-eyebrow block mb-2" style={{ color: "var(--lux-brass)" }}>
+                <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-brass)" }}>
                   LISTING PRICE
                 </label>
-                <div className="flex items-center">
-                  <span style={{ color: "var(--lux-ink)" }} className="mr-2">
+                <div className="flex items-center gap-2">
+                  <span style={{ color: "var(--lux-ink)" }} className="lux-prose font-semibold">
                     $
                   </span>
                   <input
@@ -446,7 +449,7 @@ export function ListingVideoFlow() {
                     value={price || ""}
                     onChange={(e) => setPrice(e.target.value ? parseInt(e.target.value) : null)}
                     placeholder="1250000"
-                    className="w-full px-4 py-3 lux-prose"
+                    className="flex-1 px-5 py-4 lux-prose"
                     style={{ border: "1px solid var(--lux-hairline)", background: "var(--lux-parchment)" }}
                   />
                 </div>
@@ -455,7 +458,7 @@ export function ListingVideoFlow() {
 
             {/* Brokerage */}
             <div>
-              <label className="lux-eyebrow block mb-2" style={{ color: "var(--lux-brass)" }}>
+              <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-brass)" }}>
                 BROKERAGE (OPTIONAL)
               </label>
               <input
@@ -463,20 +466,20 @@ export function ListingVideoFlow() {
                 value={brokerage}
                 onChange={(e) => setBrokerage(e.target.value)}
                 placeholder="Compass · Sotheby's · The Agency"
-                className="w-full px-4 py-3 lux-prose"
+                className="w-full px-5 py-4 lux-prose"
                 style={{ border: "1px solid var(--lux-hairline)", background: "var(--lux-parchment)" }}
               />
             </div>
 
             {/* Music Vibe */}
             <div>
-              <label className="lux-eyebrow block mb-2" style={{ color: "var(--lux-brass)" }}>
+              <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-brass)" }}>
                 MUSIC SUGGESTION
               </label>
               <select
                 value={musicVibe}
                 onChange={(e) => setMusicVibe(e.target.value)}
-                className="w-full px-4 py-3 lux-prose"
+                className="w-full px-5 py-4 lux-prose"
                 style={{ border: "1px solid var(--lux-hairline)", background: "var(--lux-parchment)" }}
               >
                 {MUSIC_OPTIONS.map((m) => (
@@ -485,25 +488,25 @@ export function ListingVideoFlow() {
                   </option>
                 ))}
               </select>
-              <p style={{ fontSize: "0.875rem", color: "var(--lux-ash)", marginTop: "0.5rem" }}>
+              <p style={{ fontSize: "0.875rem", color: "var(--lux-ash)", marginTop: "0.75rem" }}>
                 We'll suggest royalty-free tracks for you to add in your editor.
               </p>
             </div>
 
             {/* Caption */}
             <div>
-              <label className="lux-eyebrow block mb-2" style={{ color: "var(--lux-brass)" }}>
+              <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-brass)" }}>
                 CAPTION PREVIEW
               </label>
               <textarea
                 value={caption || generatedCaption}
                 onChange={(e) => setCaption(e.target.value)}
-                className="w-full px-4 py-3 lux-prose"
-                rows={3}
-                style={{ border: "1px solid var(--lux-hairline)", background: "var(--lux-parchment)" }}
+                className="w-full px-5 py-4 lux-prose"
+                rows={4}
+                style={{ border: "1px solid var(--lux-hairline)", background: "var(--lux-parchment)", fontFamily: "Inter, sans-serif" }}
               />
               {!caption && (
-                <p style={{ fontSize: "0.875rem", color: "var(--lux-ash)", marginTop: "0.5rem" }}>
+                <p style={{ fontSize: "0.875rem", color: "var(--lux-ash)", marginTop: "0.75rem" }}>
                   Auto-generated from property details
                 </p>
               )}
@@ -522,18 +525,18 @@ export function ListingVideoFlow() {
             {/* Effect Picker */}
             {showEffectPicker && (
               <div className="mt-8 pt-6" style={{ borderTop: "1px solid var(--lux-hairline)" }}>
-                <h3 className="lux-eyebrow mb-4" style={{ color: "var(--lux-brass)" }}>
+                <h3 className="lux-eyebrow mb-6" style={{ color: "var(--lux-brass)" }}>
                   LISTING BADGE (OPTIONAL)
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {(Object.entries(EFFECT_OPTIONS) as [EffectId, string][]).map(([id, label]) => (
                     <button
                       key={id}
                       onClick={() => setEffectId(id)}
-                      className="px-4 py-2 lux-prose transition"
+                      className="px-5 py-3 lux-prose transition rounded-sm"
                       style={{
-                        border: `2px solid ${effectId === id ? "var(--lux-ink)" : "var(--lux-hairline)"}`,
-                        background: effectId === id ? "var(--lux-ink)" : "transparent",
+                        border: `1px solid ${effectId === id ? "var(--lux-ink)" : "var(--lux-hairline)"}`,
+                        background: effectId === id ? "var(--lux-ink)" : "var(--lux-parchment)",
                         color: effectId === id ? "var(--lux-bone)" : "var(--lux-ink)",
                       }}
                     >
@@ -548,14 +551,15 @@ export function ListingVideoFlow() {
           <div className="flex gap-4 mt-12">
             <button
               onClick={() => setStep(2)}
-              className="lux-btn-ghost flex-1"
+              className="lux-btn-ghost flex-1 py-4"
+              style={{ padding: "16px 24px" }}
             >
               ← Back
             </button>
             <button
               onClick={() => setStep(4)}
               className="lux-btn flex-1"
-              style={{ background: "var(--lux-ink)", color: "var(--lux-bone)" }}
+              style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "16px 24px" }}
             >
               Review & Generate →
             </button>
@@ -567,53 +571,74 @@ export function ListingVideoFlow() {
 
   // STEP 4: Review + Generate
   if (step === 4 && category) {
+    const photoThumbnail = photos[0]?.preview;
     return (
       <div className="lux-section lux-bg-bone">
-        <div className="lux-container max-w-2xl">
-          <h2 className="lux-display mb-8" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
+        <div className="lux-container max-w-4xl">
+          <h2 className="lux-display mb-12" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
             Review your film
           </h2>
 
-          <div
-            className="p-8 mb-8"
-            style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline)" }}
-          >
-            <div className="space-y-4 text-sm">
-              <div className="flex justify-between">
-                <span style={{ color: "var(--lux-ash)" }}>CATEGORY</span>
-                <span className="lux-display" style={{ fontSize: "1rem" }}>
-                  {CATEGORY_CARDS.find((c) => c.id === category)?.title}
-                </span>
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
+            {/* Left: Thumbnail + metadata */}
+            <div className="space-y-6">
+              {photoThumbnail && (
+                <div
+                  className="w-full aspect-video bg-cover bg-center"
+                  style={{
+                    backgroundImage: `url(${photoThumbnail})`,
+                    border: "1px solid var(--lux-hairline)",
+                    borderRadius: "2px",
+                  }}
+                />
+              )}
+              <div
+                className="p-6 space-y-3"
+                style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline)" }}
+              >
+                <div className="flex justify-between items-start">
+                  <span className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>CATEGORY</span>
+                  <span className="lux-display text-lg" style={{ textAlign: "right" }}>
+                    {CATEGORY_CARDS.find((c) => c.id === category)?.title}
+                  </span>
+                </div>
+                <div style={{ borderBottom: "1px solid var(--lux-hairline)", paddingBottom: "0.75rem" }} />
+                <div className="flex justify-between items-start">
+                  <span className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>PHOTOS</span>
+                  <span className="lux-display text-lg">
+                    {photos.length}
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span style={{ color: "var(--lux-ash)" }}>PHOTOS</span>
-                <span className="lux-display" style={{ fontSize: "1rem" }}>
-                  {photos.length}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span style={{ color: "var(--lux-ash)" }}>REALTOR</span>
-                <span className="lux-display" style={{ fontSize: "1rem" }}>
-                  {realtorName}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span style={{ color: "var(--lux-ash)" }}>LOCATION</span>
-                <span className="lux-display" style={{ fontSize: "1rem" }}>
-                  {location}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span style={{ color: "var(--lux-ash)" }}>EFFECT</span>
-                <span className="lux-display" style={{ fontSize: "1rem" }}>
-                  {EFFECT_OPTIONS[effectId]}
-                </span>
-              </div>
-              <div className="border-t border-lux-hairline pt-4 mt-4 flex justify-between font-bold">
-                <span style={{ color: "var(--lux-ash)" }}>TOTAL COST</span>
-                <span className="lux-display" style={{ fontSize: "1.25rem", color: "var(--lux-rust)" }}>
-                  {creditCost} credits
-                </span>
+            </div>
+
+            {/* Right: Full details */}
+            <div
+              className="p-8"
+              style={{ background: "var(--lux-parchment)", border: "1px solid var(--lux-hairline)" }}
+            >
+              <div className="space-y-6">
+                <div>
+                  <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>REALTOR</div>
+                  <p className="lux-prose">{realtorName}</p>
+                </div>
+                <div>
+                  <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>LOCATION</div>
+                  <p className="lux-prose">{location}</p>
+                </div>
+                <div>
+                  <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>LISTING BADGE</div>
+                  <p className="lux-prose">{EFFECT_OPTIONS[effectId]}</p>
+                </div>
+                <div style={{ borderTop: "1px solid var(--lux-hairline)", paddingTop: "1rem" }}>
+                  <div className="flex justify-between items-baseline">
+                    <span className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>TOTAL COST</span>
+                    <span className="lux-display" style={{ fontSize: "2rem", color: "var(--lux-rust)", lineHeight: 1 }}>
+                      {creditCost}
+                    </span>
+                  </div>
+                  <span className="text-sm" style={{ color: "var(--lux-ash)" }}>credits</span>
+                </div>
               </div>
             </div>
           </div>
@@ -629,10 +654,11 @@ export function ListingVideoFlow() {
             </div>
           )}
 
-          <div className="flex gap-4">
+          <div className="flex gap-4 mt-12">
             <button
               onClick={() => setStep(3)}
               className="lux-btn-ghost flex-1"
+              style={{ padding: "16px 24px" }}
             >
               ← Back
             </button>
@@ -644,6 +670,7 @@ export function ListingVideoFlow() {
                 background: hasEnoughCredits && !isGenerating ? "var(--lux-ink)" : "var(--lux-ash)",
                 color: "var(--lux-bone)",
                 cursor: hasEnoughCredits && !isGenerating ? "pointer" : "not-allowed",
+                padding: "16px 24px",
               }}
             >
               {isGenerating ? (
@@ -681,27 +708,28 @@ export function ListingVideoFlow() {
             />
           </div>
 
-          <div className="p-6 mb-8" style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline)" }}>
-            <p className="lux-prose text-sm">{caption || generatedCaption}</p>
+          <div className="p-8 mb-12" style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline)" }}>
+            <p className="lux-prose">{caption || generatedCaption}</p>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(caption || generatedCaption);
                 toast.success("Caption copied");
               }}
-              className="lux-btn-ghost mt-4 text-xs"
+              className="lux-btn-ghost mt-6"
+              style={{ padding: "12px 16px", fontSize: "0.875rem" }}
             >
               Copy Caption
             </button>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-3 gap-6">
             <a
               href={videoUrl}
               download
-              className="lux-btn text-center w-full"
-              style={{ background: "var(--lux-ink)", color: "var(--lux-bone)" }}
+              className="lux-btn text-center w-full inline-flex items-center justify-center"
+              style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "16px 20px" }}
             >
-              <Download className="inline mr-2 w-4 h-4" />
+              <Download className="mr-2 w-5 h-5" />
               Download
             </a>
             <button
@@ -712,10 +740,10 @@ export function ListingVideoFlow() {
                   url: videoUrl,
                 });
               }}
-              className="lux-btn text-center w-full"
-              style={{ background: "var(--lux-cream)", color: "var(--lux-ink)", border: "1px solid var(--lux-ink)" }}
+              className="lux-btn-ghost text-center w-full inline-flex items-center justify-center"
+              style={{ padding: "16px 20px" }}
             >
-              <Share2 className="inline mr-2 w-4 h-4" />
+              <Share2 className="mr-2 w-5 h-5" />
               Share
             </button>
             <button
@@ -724,10 +752,10 @@ export function ListingVideoFlow() {
                 setPhotos([]);
                 setCategory(null);
               }}
-              className="lux-btn text-center w-full"
-              style={{ background: "var(--lux-cream)", color: "var(--lux-ink)", border: "1px solid var(--lux-ink)" }}
+              className="lux-btn-ghost text-center w-full inline-flex items-center justify-center"
+              style={{ padding: "16px 20px" }}
             >
-              <RefreshCw className="inline mr-2 w-4 h-4" />
+              <RefreshCw className="mr-2 w-5 h-5" />
               Create Another
             </button>
           </div>
