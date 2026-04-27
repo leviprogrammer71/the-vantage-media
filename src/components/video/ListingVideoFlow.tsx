@@ -192,7 +192,6 @@ export function ListingVideoFlow() {
 
       // Surface the actual server error message, not just "non-2xx"
       if (response.error) {
-        // Try to read the body of the failed response if FunctionsHttpError has it
         let detailedMsg = response.error.message || "Generation failed";
         try {
           const errCtx: any = (response.error as any).context;
@@ -206,16 +205,51 @@ export function ListingVideoFlow() {
         } catch (parseErr) {
           console.warn("Could not parse error body:", parseErr);
         }
-        // Also try the data field — Supabase sometimes puts errors there too
         if (response.data?.error) detailedMsg = response.data.error;
         throw new Error(detailedMsg);
       }
 
-      if (!response.data?.video_url) {
+      // ── Async path: edge function returned prediction_id, poll until ready ──
+      let finalVideoUrl: string | null = response.data?.video_url || null;
+      if (response.data?.status === "processing" && response.data?.prediction_id) {
+        const predId = response.data.prediction_id;
+        const quickEff = response.data.quick_effect;
+        const maxAttempts = 90; // 90 × 4s = 6 min max
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          await new Promise((r) => setTimeout(r, 4000));
+          const pollRes = await supabase.functions.invoke("generate-listing-video", {
+            body: { prediction_id: predId, quick_effect: quickEff },
+          });
+          if (pollRes.error) {
+            let pollMsg = pollRes.error.message;
+            try {
+              const ctx: any = (pollRes.error as any).context;
+              if (ctx?.body) {
+                const parsed = typeof ctx.body === "string" ? JSON.parse(ctx.body) : ctx.body;
+                if (parsed?.error) pollMsg = parsed.error;
+              }
+            } catch {}
+            throw new Error(`Polling failed: ${pollMsg}`);
+          }
+          if (pollRes.data?.status === "complete" && pollRes.data?.video_url) {
+            finalVideoUrl = pollRes.data.video_url;
+            break;
+          }
+          if (pollRes.data?.status === "failed") {
+            throw new Error(pollRes.data.error || "Generation failed during processing");
+          }
+          // Status is "processing" — continue polling
+        }
+        if (!finalVideoUrl) {
+          throw new Error("Generation took longer than 6 minutes. Try again or contact support.");
+        }
+      }
+
+      if (!finalVideoUrl) {
         throw new Error("No video URL returned from generation");
       }
 
-      setVideoUrl(response.data.video_url);
+      setVideoUrl(finalVideoUrl);
       await deductCredits(creditCost);
       await refreshCredits();
       setStep(7);

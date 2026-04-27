@@ -111,12 +111,14 @@ async function generateWithGptImage(
   return await pollReplicate(prediction.id)
 }
 
-async function generateVideo(
+// Returns either { videoUrl } if Replicate finished within wait window,
+// or { predictionId } if still processing — caller can poll.
+async function startVideoGeneration(
   imageUrl: string,
   shotType: string,
   duration: number,
   token: string
-): Promise<string> {
+): Promise<{ videoUrl?: string; predictionId?: string }> {
   const config = SHOT_CONFIG[shotType]
   if (!config) throw new Error(`Unknown shot type: ${shotType}`)
 
@@ -165,13 +167,14 @@ async function generateVideo(
     throw new Error(`${config.model} rejected the request (HTTP ${res.status}): ${detail}`)
   }
 
-  if (prediction.status === "succeeded") {
-    return typeof prediction.output === "string"
-      ? prediction.output
-      : prediction.output?.[0]
+  if (prediction.status === "succeeded" && prediction.output) {
+    const out = prediction.output
+    const url = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : null)
+    if (url) return { videoUrl: url }
   }
 
-  return await pollReplicate(prediction.id)
+  // Not yet ready — return prediction_id for client polling
+  return { predictionId: prediction.id }
 }
 
 serve(async (req) => {
@@ -196,14 +199,64 @@ serve(async (req) => {
   try {
     body = await req.json()
     console.log("[generate-listing-video] payload:", JSON.stringify({
+      mode: body.prediction_id ? "poll" : "start",
+      prediction_id: body.prediction_id,
       category: body.category,
       photo_count: body.photo_urls?.length,
       shot_type: body.shot_type,
       effect_id: body.effect_id,
       effect_mode: body.effect_mode,
-      duration: body.duration,
-      has_listing: !!body.listing,
     }))
+
+    // ── POLL MODE: client checks status of an existing prediction ──
+    if (body.prediction_id && !body.category) {
+      const TOKEN = Deno.env.get("REPLICATE_API_TOKEN")!
+      const pollRes = await fetch(`${REPLICATE}/predictions/${body.prediction_id}`, {
+        headers: { Authorization: `Token ${TOKEN}` },
+      })
+      const pollData = await pollRes.json()
+
+      if (pollData.status === "succeeded") {
+        const out = pollData.output
+        const videoUrl = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : null)
+        if (!videoUrl) {
+          throw new Error(`Replicate succeeded but returned no URL: ${JSON.stringify(out).slice(0, 200)}`)
+        }
+
+        // Persist
+        let outputVideoPath: string | null = null
+        try {
+          const videoFetch = await fetch(videoUrl)
+          const videoBuffer = await videoFetch.arrayBuffer()
+          const videoPath = `listing-videos/${Date.now()}/video.mp4`
+          await supabase.storage.from("project-submissions").upload(videoPath, videoBuffer, {
+            contentType: "video/mp4",
+            upsert: true,
+          })
+          outputVideoPath = videoPath
+        } catch (storageErr) {
+          console.error("[poll] storage failed:", storageErr)
+        }
+
+        return new Response(JSON.stringify({
+          status: "complete",
+          video_url: videoUrl,
+          clip_urls: [videoUrl],
+          output_video_path: outputVideoPath,
+          quick_effect: body.quick_effect || null,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+      }
+
+      if (pollData.status === "failed" || pollData.status === "canceled") {
+        throw new Error(pollData.error || "Replicate prediction failed")
+      }
+
+      // Still processing
+      return new Response(JSON.stringify({
+        status: "processing",
+        prediction_id: body.prediction_id,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    }
 
     const {
       category,
@@ -245,52 +298,62 @@ serve(async (req) => {
     if (category === "animate_single") {
       let sourceImageUrl = photo_urls[0]
 
-      // Apply effect if realistic
+      // Apply effect if realistic (gpt-image-2 — typically 20-30s)
       if (effect_id !== "none" && effect_mode === "realistic") {
         const effectPrompt = EFFECT_PROMPTS[effect_id]
         if (!effectPrompt) throw new Error(`Unknown effect: ${effect_id}`)
-        sourceImageUrl = await generateWithGptImage(
-          sourceImageUrl,
-          effectPrompt,
-          REPLICATE_TOKEN
-        )
+        sourceImageUrl = await generateWithGptImage(sourceImageUrl, effectPrompt, REPLICATE_TOKEN)
       }
 
-      // Generate single video
-      const videoUrl = await generateVideo(
+      // Kick off video generation. If it completes within wait window, return URL.
+      // Otherwise return prediction_id so the client can poll without hitting edge timeout.
+      const result = await startVideoGeneration(
         sourceImageUrl,
         shot_type,
-        duration || 8,
+        duration || 5,
         REPLICATE_TOKEN
       )
 
-      // Store permanently
-      let outputVideoPath: string | null = null
-      try {
-        const videoFetch = await fetch(videoUrl)
-        const videoBuffer = await videoFetch.arrayBuffer()
-        const videoPath = `listing-videos/${Date.now()}/video.mp4`
-        await supabase.storage
-          .from("project-submissions")
-          .upload(videoPath, videoBuffer, { contentType: "video/mp4", upsert: true })
-        outputVideoPath = videoPath
-      } catch (storageErr) {
-        console.error("Failed to store video:", storageErr)
+      // Synchronous success
+      if (result.videoUrl) {
+        let outputVideoPath: string | null = null
+        try {
+          const videoFetch = await fetch(result.videoUrl)
+          const videoBuffer = await videoFetch.arrayBuffer()
+          const videoPath = `listing-videos/${Date.now()}/video.mp4`
+          await supabase.storage.from("project-submissions").upload(videoPath, videoBuffer, {
+            contentType: "video/mp4",
+            upsert: true,
+          })
+          outputVideoPath = videoPath
+        } catch (storageErr) {
+          console.error("[animate_single] storage failed:", storageErr)
+        }
+
+        const response: any = {
+          status: "complete",
+          category,
+          video_url: result.videoUrl,
+          clip_urls: [result.videoUrl],
+          output_video_path: outputVideoPath,
+          listing,
+        }
+        if (effect_id !== "none" && effect_mode === "quick") {
+          response.quick_effect = QUICK_EFFECT_BADGES[effect_id]
+        }
+        return new Response(JSON.stringify(response), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
       }
 
-      const response: any = {
+      // Async path — client polls
+      return new Response(JSON.stringify({
+        status: "processing",
+        prediction_id: result.predictionId,
         category,
-        video_url: videoUrl,
-        clip_urls: [videoUrl],
-        output_video_path: outputVideoPath,
         listing,
-      }
-      if (effect_id !== "none" && effect_mode === "quick") {
-        response.quick_effect = QUICK_EFFECT_BADGES[effect_id]
-      }
-      return new Response(JSON.stringify(response), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      })
+        quick_effect: (effect_id !== "none" && effect_mode === "quick") ? QUICK_EFFECT_BADGES[effect_id] : null,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
     // Category: sun_to_sun
