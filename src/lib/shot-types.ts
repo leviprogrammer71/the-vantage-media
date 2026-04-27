@@ -94,3 +94,57 @@ export function getShotConfig(id: ShotType): ShotTypeConfig {
   if (!config) throw new Error(`Unknown shot type: ${id}`);
   return config;
 }
+
+export type StagingStyle = "modern" | "mid_century" | "coastal" | "farmhouse" | "luxury_modern" | "scandinavian";
+
+export interface StagingStyleConfig {
+  id: StagingStyle;
+  label: string;
+  description: string;
+  promptSuffix: string;
+}
+
+export const STAGING_STYLES: StagingStyleConfig[] = [
+  {
+    id: "modern",
+    label: "Modern",
+    description: "Clean lines, neutral palette, brushed metal accents, mid-tone wood floors.",
+    promptSuffix: "Clean lines, neutral palette, brushed metal accents, mid-tone wood floors.",
+  },
+  {
+    id: "mid_century",
+    label: "Mid-Century",
+    description: "Walnut tones, low-profile furniture, atomic-era accents, mustard and teal.",
+    promptSuffix: "Walnut tones, low-profile furniture, atomic-era accents, mustard and teal.",
+  },
+  {
+    id: "coastal",
+    label: "Coastal",
+    description: "White linen, weathered wood, soft blues and sandy beiges, woven textures.",
+    promptSuffix: "White linen, weathered wood, soft blues and sandy beiges, woven textures.",
+  },
+  {
+    id: "farmhouse",
+    label: "Farmhouse",
+    description: "Shiplap accents, distressed wood furniture, vintage iron fixtures, cream and forest green.",
+    promptSuffix: "Shiplap accents, distressed wood furniture, vintage iron fixtures, cream and forest green.",
+  },
+  {
+    id: "luxury_modern",
+    label: "Luxury Modern",
+    description: "Marble and brass, velvet sofa, sculptural lighting, deep navy and gold.",
+    promptSuffix: "Marble and brass, velvet sofa, sculptural lighting, deep navy and gold.",
+  },
+  {
+    id: "scandinavian",
+    label: "Scandinavian",
+    description: "White walls, blonde wood, layered wool throws, minimal furniture, lots of light.",
+    promptSuffix: "White walls, blonde wood, layered wool throws, minimal furniture, lots of light.",
+  },
+];
+
+export function getStagingStyleConfig(id: StagingStyle): StagingStyleConfig {
+  const style = STAGING_STYLES.find((s) => s.id === id);
+  if (!style) throw new Error(`Unknown staging style: ${id}`);
+  return style;
+}

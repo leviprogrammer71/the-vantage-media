@@ -51,6 +51,15 @@ const QUICK_EFFECT_BADGES: Record<string, { label: string; color: string }> = {
   sold: { label: "SOLD", color: "#0E0E0C" },
 }
 
+const STAGING_STYLES: Record<string, string> = {
+  modern: "Clean lines, neutral palette, brushed metal accents, mid-tone wood floors.",
+  mid_century: "Walnut tones, low-profile furniture, atomic-era accents, mustard and teal.",
+  coastal: "White linen, weathered wood, soft blues and sandy beiges, woven textures.",
+  farmhouse: "Shiplap accents, distressed wood furniture, vintage iron fixtures, cream and forest green.",
+  luxury_modern: "Marble and brass, velvet sofa, sculptural lighting, deep navy and gold.",
+  scandinavian: "White walls, blonde wood, layered wool throws, minimal furniture, lots of light.",
+}
+
 async function pollReplicate(predictionId: string, maxAttempts = 120): Promise<string> {
   const TOKEN = Deno.env.get("REPLICATE_API_TOKEN")!
   for (let i = 0; i < maxAttempts; i++) {
@@ -394,8 +403,10 @@ serve(async (req) => {
       category,
       photo_urls,
       shot_type,
+      staging_style,
       effect_id,
       effect_mode,
+      vibe,
       listing,
       duration,
       credits_cost,
@@ -406,8 +417,8 @@ serve(async (req) => {
       throw new Error(`category and photo_urls required. Received: category="${category}", photo_urls.length=${photo_urls?.length}`)
     }
 
-    if (!["animate_single", "sun_to_sun", "listing_bundle"].includes(category)) {
-      throw new Error(`category must be animate_single, sun_to_sun, or listing_bundle. Received: "${category}"`)
+    if (!["animate_single", "sun_to_sun", "listing_bundle", "virtual_staging", "sketch_to_real", "floor_plan_pan"].includes(category)) {
+      throw new Error(`category must be animate_single, sun_to_sun, listing_bundle, virtual_staging, sketch_to_real, or floor_plan_pan. Received: "${category}"`)
     }
 
     if (category === "animate_single" && !shot_type) {
@@ -618,6 +629,225 @@ serve(async (req) => {
         prediction_ids: successful.map((r) => ({ index: r.index, prediction_id: r.predictionId, video_url: r.videoUrl || null })),
         listing,
         quick_effect: (effect_id !== "none" && effect_mode === "quick") ? QUICK_EFFECT_BADGES[effect_id] : null,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    }
+
+    // Category: virtual_staging
+    if (category === "virtual_staging") {
+      const { staging_style, vibe } = body
+
+      if (!staging_style || !STAGING_STYLES[staging_style]) {
+        throw new Error(`virtual_staging requires valid staging_style. Received: "${staging_style}"`)
+      }
+
+      if (!vibe) {
+        throw new Error(`All categories require vibe. Received: "${vibe}"`)
+      }
+
+      const emptyRoomUrl = photo_urls[0]
+
+      // Build furnishing prompt
+      const stylePrompt = STAGING_STYLES[staging_style]
+      const furnishingPrompt = `Furnish this empty room in a ${staging_style} style. Add appropriately scaled furniture: sectional sofa in neutral fabric, low-profile coffee table, area rug, floor lamp, wall art, indoor plant. Match the existing room's lighting and architectural style. Keep walls, windows, doors, floors, and ceiling identical. Photorealistic. ${stylePrompt}`
+
+      // Generate staged version with gpt-image-2
+      const stagedImageUrl = await generateWithNanoBanana(
+        emptyRoomUrl,
+        furnishingPrompt,
+        REPLICATE_TOKEN
+      )
+
+      // Kick off video from staged image using slow_push + vibe
+      const vibePromptSuffix = vibe === "luxury" ? "Luxury aesthetic, golden hour warm light, shallow depth of field, slow deliberate motion, editorial magazine cinematic quality."
+        : vibe === "cozy" ? "Cozy intimate atmosphere, warm interior tungsten light, soft shadows, lived-in feel, gentle camera movement."
+        : vibe === "modern" ? "Modern minimalist aesthetic, cool daylight, crisp architectural lines, contemporary design language, clean motion."
+        : vibe === "family" ? "Bright friendly atmosphere, midday natural light, family-oriented warmth, welcoming, approachable cinematic feel."
+        : vibe === "investment" ? "Practical real-estate showcase, neutral even lighting, emphasis on layout and space, professional documentary style."
+        : "Vacation resort aesthetic, sunset warm palette, light breeze in foliage, escapist holiday mood, smooth gimbal-style motion."
+
+      const result = await startVideoGeneration(
+        stagedImageUrl,
+        "slow_push",
+        8,
+        REPLICATE_TOKEN
+      )
+
+      // Synchronous success
+      if (result.videoUrl) {
+        let outputVideoPath: string | null = null
+        try {
+          const videoFetch = await fetch(result.videoUrl)
+          const videoBuffer = await videoFetch.arrayBuffer()
+          const videoPath = `listing-videos/${Date.now()}/video.mp4`
+          await supabase.storage.from("project-submissions").upload(videoPath, videoBuffer, {
+            contentType: "video/mp4",
+            upsert: true,
+          })
+          outputVideoPath = videoPath
+        } catch (storageErr) {
+          console.error("[virtual_staging] storage failed:", storageErr)
+        }
+
+        return new Response(JSON.stringify({
+          status: "complete",
+          category,
+          video_url: result.videoUrl,
+          clip_urls: [result.videoUrl],
+          output_video_path: outputVideoPath,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
+      }
+
+      // Async path — client polls
+      return new Response(JSON.stringify({
+        status: "processing",
+        prediction_id: result.predictionId,
+        category,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    }
+
+    // Category: sketch_to_real
+    if (category === "sketch_to_real") {
+      const { sketch_intent, vibe: selectedVibe } = body
+
+      if (!sketch_intent || !["interior", "exterior"].includes(sketch_intent)) {
+        throw new Error(`sketch_to_real requires sketch_intent: "interior" | "exterior". Received: "${sketch_intent}"`)
+      }
+
+      if (!selectedVibe) {
+        throw new Error(`sketch_to_real requires vibe. Received: "${selectedVibe}"`)
+      }
+
+      const sketchImageUrl = photo_urls[0]
+
+      // Build rendering prompt based on intent
+      const vibePromptSuffix = selectedVibe === "luxury" ? "Luxury aesthetic, golden hour warm light, shallow depth of field, slow deliberate motion, editorial magazine cinematic quality."
+        : selectedVibe === "cozy" ? "Cozy intimate atmosphere, warm interior tungsten light, soft shadows, lived-in feel, gentle camera movement."
+        : selectedVibe === "modern" ? "Modern minimalist aesthetic, cool daylight, crisp architectural lines, contemporary design language, clean motion."
+        : selectedVibe === "family" ? "Bright friendly atmosphere, midday natural light, family-oriented warmth, welcoming, approachable cinematic feel."
+        : selectedVibe === "investment" ? "Practical real-estate showcase, neutral even lighting, emphasis on layout and space, professional documentary style."
+        : "Vacation resort aesthetic, sunset warm palette, light breeze in foliage, escapist holiday mood, smooth gimbal-style motion."
+
+      const renderPrompt = sketch_intent === "interior"
+        ? `Transform this architectural or designer sketch into a photorealistic interior render. Match the room layout, dimensions, and architectural intent of the drawing. Apply ${selectedVibe} aesthetic with appropriate furniture, materials, lighting, and finishes. Photorealistic 8K render quality, golden hour or warm interior light, magazine-grade composition. ${vibePromptSuffix}`
+        : `Transform this architectural sketch into a photorealistic exterior render of the building. Match the building's form, proportions, and architectural intent. Apply ${selectedVibe} aesthetic with appropriate landscaping, materials, time-of-day lighting, and surroundings. Photorealistic 8K render quality, magazine-grade composition. ${vibePromptSuffix}`
+
+      // Step 1: Render sketch to photoreal with gpt-image-2
+      const photorealImageUrl = await generateWithNanoBanana(
+        sketchImageUrl,
+        renderPrompt,
+        REPLICATE_TOKEN
+      )
+
+      // Step 2: Animate the photoreal with Kling slow_push
+      const result = await startVideoGeneration(
+        photorealImageUrl,
+        "slow_push",
+        8,
+        REPLICATE_TOKEN
+      )
+
+      // Synchronous success
+      if (result.videoUrl) {
+        let outputVideoPath: string | null = null
+        try {
+          const videoFetch = await fetch(result.videoUrl)
+          const videoBuffer = await videoFetch.arrayBuffer()
+          const videoPath = `listing-videos/${Date.now()}/video.mp4`
+          await supabase.storage.from("project-submissions").upload(videoPath, videoBuffer, {
+            contentType: "video/mp4",
+            upsert: true,
+          })
+          outputVideoPath = videoPath
+        } catch (storageErr) {
+          console.error("[sketch_to_real] storage failed:", storageErr)
+        }
+
+        return new Response(JSON.stringify({
+          status: "complete",
+          category,
+          video_url: result.videoUrl,
+          clip_urls: [result.videoUrl],
+          output_video_path: outputVideoPath,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
+      }
+
+      // Async path
+      return new Response(JSON.stringify({
+        status: "processing",
+        prediction_id: result.predictionId,
+        category,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    }
+
+    // Category: floor_plan_pan
+    if (category === "floor_plan_pan") {
+      const { shot_type: selectedShotType, vibe: selectedVibe } = body
+
+      if (!selectedShotType || !SHOT_CONFIG[selectedShotType]) {
+        throw new Error(`floor_plan_pan requires valid shot_type. Received: "${selectedShotType}"`)
+      }
+
+      if (!selectedVibe) {
+        throw new Error(`floor_plan_pan requires vibe. Received: "${selectedVibe}"`)
+      }
+
+      const floorPlanUrl = photo_urls[0]
+      const shotConfig = SHOT_CONFIG[selectedShotType]
+
+      // Build vibe suffix
+      const vibePromptSuffix = selectedVibe === "luxury" ? "Luxury aesthetic, golden hour warm light, shallow depth of field, slow deliberate motion, editorial magazine cinematic quality."
+        : selectedVibe === "cozy" ? "Cozy intimate atmosphere, warm interior tungsten light, soft shadows, lived-in feel, gentle camera movement."
+        : selectedVibe === "modern" ? "Modern minimalist aesthetic, cool daylight, crisp architectural lines, contemporary design language, clean motion."
+        : selectedVibe === "family" ? "Bright friendly atmosphere, midday natural light, family-oriented warmth, welcoming, approachable cinematic feel."
+        : selectedVibe === "investment" ? "Practical real-estate showcase, neutral even lighting, emphasis on layout and space, professional documentary style."
+        : "Vacation resort aesthetic, sunset warm palette, light breeze in foliage, escapist holiday mood, smooth gimbal-style motion."
+
+      const panPrompt = `Cinematic camera move across this 2D architectural floor plan. ${shotConfig.motionHint}. Maintain the floor plan's clarity and 2D drafting aesthetic — do not transform it into 3D or photoreal. Slow, deliberate, magazine-grade animation suitable for a luxury real estate listing. ${vibePromptSuffix}`
+
+      // Kick off video directly (no image generation)
+      const result = await startVideoGeneration(
+        floorPlanUrl,
+        selectedShotType,
+        5,
+        REPLICATE_TOKEN
+      )
+
+      // Synchronous success
+      if (result.videoUrl) {
+        let outputVideoPath: string | null = null
+        try {
+          const videoFetch = await fetch(result.videoUrl)
+          const videoBuffer = await videoFetch.arrayBuffer()
+          const videoPath = `listing-videos/${Date.now()}/video.mp4`
+          await supabase.storage.from("project-submissions").upload(videoPath, videoBuffer, {
+            contentType: "video/mp4",
+            upsert: true,
+          })
+          outputVideoPath = videoPath
+        } catch (storageErr) {
+          console.error("[floor_plan_pan] storage failed:", storageErr)
+        }
+
+        return new Response(JSON.stringify({
+          status: "complete",
+          category,
+          video_url: result.videoUrl,
+          clip_urls: [result.videoUrl],
+          output_video_path: outputVideoPath,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
+      }
+
+      // Async path
+      return new Response(JSON.stringify({
+        status: "processing",
+        prediction_id: result.predictionId,
+        category,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
