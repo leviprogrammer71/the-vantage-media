@@ -209,17 +209,28 @@ export function ListingVideoFlow() {
         throw new Error(detailedMsg);
       }
 
-      // ── Async path: edge function returned prediction_id, poll until ready ──
+      // ── Async path: edge function returned prediction_id(s), poll until ready ──
       let finalVideoUrl: string | null = response.data?.video_url || null;
-      if (response.data?.status === "processing" && response.data?.prediction_id) {
-        const predId = response.data.prediction_id;
+      const isBundleAsync =
+        response.data?.status === "processing" &&
+        Array.isArray(response.data?.prediction_ids);
+      const isSingleAsync =
+        response.data?.status === "processing" &&
+        !!response.data?.prediction_id;
+
+      if (isBundleAsync || isSingleAsync) {
         const quickEff = response.data.quick_effect;
         const maxAttempts = 90; // 90 × 4s = 6 min max
+        let predictionIds = response.data.prediction_ids; // bundle case
+        const singlePredId = response.data.prediction_id; // single case
+
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
           await new Promise((r) => setTimeout(r, 4000));
-          const pollRes = await supabase.functions.invoke("generate-listing-video", {
-            body: { prediction_id: predId, quick_effect: quickEff },
-          });
+          const pollBody: any = isBundleAsync
+            ? { prediction_ids: predictionIds, quick_effect: quickEff }
+            : { prediction_id: singlePredId, quick_effect: quickEff };
+
+          const pollRes = await supabase.functions.invoke("generate-listing-video", { body: pollBody });
           if (pollRes.error) {
             let pollMsg = pollRes.error.message;
             try {
@@ -238,7 +249,11 @@ export function ListingVideoFlow() {
           if (pollRes.data?.status === "failed") {
             throw new Error(pollRes.data.error || "Generation failed during processing");
           }
-          // Status is "processing" — continue polling
+          // Status is "processing"
+          // Update bundle prediction_ids with progress for next poll
+          if (isBundleAsync && Array.isArray(pollRes.data?.prediction_ids)) {
+            predictionIds = pollRes.data.prediction_ids;
+          }
         }
         if (!finalVideoUrl) {
           throw new Error("Generation took longer than 6 minutes. Try again or contact support.");

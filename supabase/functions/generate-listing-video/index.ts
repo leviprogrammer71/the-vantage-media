@@ -72,13 +72,14 @@ async function pollReplicate(predictionId: string, maxAttempts = 120): Promise<s
   throw new Error("Replicate prediction timed out")
 }
 
-async function generateWithGptImage(
+async function generateWithNanoBanana(
   imageUrl: string,
   effectPrompt: string,
   token: string
 ): Promise<string> {
+  // google/nano-banana = Gemini 2.5 Flash Image. Faster than gpt-image-2, cleaner edits, accepts any aspect ratio.
   const res = await fetch(
-    `${REPLICATE}/models/openai/gpt-image-2/predictions`,
+    `${REPLICATE}/models/google/nano-banana/predictions`,
     {
       method: "POST",
       headers: {
@@ -88,9 +89,9 @@ async function generateWithGptImage(
       },
       body: JSON.stringify({
         input: {
-          input_images: [imageUrl],
           prompt: effectPrompt,
-          aspect_ratio: "2:3", // 9:16 mapped to 2:3 for gpt-image-2
+          image_input: [imageUrl],
+          output_format: "jpg",
         },
       }),
     }
@@ -99,16 +100,33 @@ async function generateWithGptImage(
   const prediction = await res.json()
   if (!res.ok || !prediction.id) {
     const detail = prediction?.detail || prediction?.error?.message || JSON.stringify(prediction).slice(0, 400)
-    throw new Error(`gpt-image-2 rejected the request (HTTP ${res.status}): ${detail}`)
+    throw new Error(`nano-banana rejected the request (HTTP ${res.status}): ${detail}`)
   }
 
   if (prediction.status === "succeeded") {
-    return typeof prediction.output === "string"
-      ? prediction.output
-      : prediction.output?.[0]
+    const out = prediction.output
+    return typeof out === "string" ? out : (Array.isArray(out) ? out[0] : "")
   }
 
-  return await pollReplicate(prediction.id)
+  // Bounded poll — nano-banana usually finishes in 5-15s.
+  const TOKEN = Deno.env.get("REPLICATE_API_TOKEN")!
+  for (let i = 0; i < 12; i++) {
+    await new Promise((r) => setTimeout(r, 4000))
+    const pollRes = await fetch(`${REPLICATE}/predictions/${prediction.id}`, {
+      headers: { Authorization: `Token ${TOKEN}` },
+    })
+    const pollData = await pollRes.json()
+    if (pollData.status === "succeeded") {
+      const out = pollData.output
+      const url = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : "")
+      if (url) return url
+      throw new Error("nano-banana succeeded but returned no URL")
+    }
+    if (pollData.status === "failed" || pollData.status === "canceled") {
+      throw new Error(`nano-banana failed: ${pollData.error || "unknown"}`)
+    }
+  }
+  throw new Error("nano-banana took longer than expected — try again or skip the realistic sign effect")
 }
 
 // Returns either { videoUrl } if Replicate finished within wait window,
@@ -208,7 +226,72 @@ serve(async (req) => {
       effect_mode: body.effect_mode,
     }))
 
-    // ── POLL MODE: client checks status of an existing prediction ──
+    // ── POLL MODE B: bundle (array of prediction_ids) ──
+    if (Array.isArray(body.prediction_ids) && body.prediction_ids.length > 0) {
+      const TOKEN = Deno.env.get("REPLICATE_API_TOKEN")!
+      const updated = await Promise.all(
+        body.prediction_ids.map(async (entry: any) => {
+          if (entry.video_url) return entry // already done
+          if (!entry.prediction_id) return { ...entry, video_url: null, error: "missing prediction_id" }
+          try {
+            const r = await fetch(`${REPLICATE}/predictions/${entry.prediction_id}`, {
+              headers: { Authorization: `Token ${TOKEN}` },
+            })
+            const d = await r.json()
+            if (d.status === "succeeded") {
+              const out = d.output
+              const url = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : null)
+              return { ...entry, video_url: url }
+            }
+            if (d.status === "failed" || d.status === "canceled") {
+              return { ...entry, video_url: null, error: d.error || "failed" }
+            }
+            return entry // still processing
+          } catch (e) {
+            return { ...entry, error: (e as Error).message }
+          }
+        })
+      )
+
+      const allDone = updated.every((e: any) => e.video_url || e.error)
+      if (allDone) {
+        const clipUrls = updated.filter((e: any) => e.video_url).map((e: any) => e.video_url)
+        if (clipUrls.length === 0) {
+          throw new Error("All bundle clips failed: " + updated.map((e: any) => e.error).join("; "))
+        }
+        // Persist
+        const clipPaths: string[] = []
+        for (let i = 0; i < clipUrls.length; i++) {
+          try {
+            const clipFetch = await fetch(clipUrls[i])
+            const clipBuffer = await clipFetch.arrayBuffer()
+            const clipPath = `listing-videos/${Date.now()}/clip-${i}.mp4`
+            await supabase.storage.from("project-submissions").upload(clipPath, clipBuffer, {
+              contentType: "video/mp4", upsert: true,
+            })
+            clipPaths.push(clipPath)
+          } catch (storageErr) {
+            console.error(`[bundle-poll] storage clip ${i} failed:`, storageErr)
+          }
+        }
+        return new Response(JSON.stringify({
+          status: "complete",
+          video_url: clipUrls[0],
+          clip_urls: clipUrls,
+          output_clip_paths: clipPaths,
+          quick_effect: body.quick_effect || null,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+      }
+
+      const remaining = updated.filter((e: any) => !e.video_url && !e.error).length
+      return new Response(JSON.stringify({
+        status: "processing",
+        prediction_ids: updated,
+        remaining,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    }
+
+    // ── POLL MODE A: single prediction_id ──
     if (body.prediction_id && !body.category) {
       const TOKEN = Deno.env.get("REPLICATE_API_TOKEN")!
       const pollRes = await fetch(`${REPLICATE}/predictions/${body.prediction_id}`, {
@@ -302,7 +385,7 @@ serve(async (req) => {
       if (effect_id !== "none" && effect_mode === "realistic") {
         const effectPrompt = EFFECT_PROMPTS[effect_id]
         if (!effectPrompt) throw new Error(`Unknown effect: ${effect_id}`)
-        sourceImageUrl = await generateWithGptImage(sourceImageUrl, effectPrompt, REPLICATE_TOKEN)
+        sourceImageUrl = await generateWithNanoBanana(sourceImageUrl, effectPrompt, REPLICATE_TOKEN)
       }
 
       // Kick off video generation. If it completes within wait window, return URL.
@@ -363,7 +446,7 @@ serve(async (req) => {
       // Generate 4 time-of-day variants with gpt-image-2
       const sunsetPrompt = `Render this same scene at golden hour magic light, the late afternoon sun low on the horizon, warm orange glow on the building, long shadows cast across the lawn, sky in soft amber and pink. Keep all building geometry and landscaping identical.`
 
-      const goldenUrl = await generateWithGptImage(
+      const goldenUrl = await generateWithNanoBanana(
         firstPhotoUrl,
         sunsetPrompt,
         REPLICATE_TOKEN
@@ -404,81 +487,89 @@ serve(async (req) => {
       )
     }
 
-    // Category: listing_bundle
+    // Category: listing_bundle — fire N Seedance predictions in parallel, return prediction_ids
     if (category === "listing_bundle") {
-      const clipUrls: string[] = []
       const shotRotation = ["slow_push", "parallax_pan", "reveal_rise", "architectural", "establishing", "drone_orbit"]
-      const clipPrompts = [
-        "Slow dolly camera push-in, cinematic listing video, photorealistic, smooth motion",
-        "Lateral parallax pan with depth shift, cinematic real estate property, smooth motion",
-        "Camera rises vertically revealing the space, listing video, photorealistic",
-        "Clean architectural slider pan, horizontal precision, real estate, cinematic",
-        "Slow pull-back establishing shot, wide reveal, property listing, cinematic",
-        "Slow aerial orbit around the subject, drone motion, listing property, cinematic",
-      ]
+      const photos = photo_urls.slice(0, 6)
 
-      // Generate one video per photo
-      for (let i = 0; i < photo_urls.length && i < 6; i++) {
-        let photoUrl = photo_urls[i]
+      // Apply realistic effect to first photo only (nano-banana, ~10s)
+      let firstPhoto = photos[0]
+      if (effect_id !== "none" && effect_mode === "realistic") {
+        const effectPrompt = EFFECT_PROMPTS[effect_id]
+        if (effectPrompt) {
+          firstPhoto = await generateWithNanoBanana(firstPhoto, effectPrompt, REPLICATE_TOKEN)
+          photos[0] = firstPhoto
+        }
+      }
 
-        // Apply effect to first photo only
-        if (i === 0 && effect_id !== "none" && effect_mode === "realistic") {
-          const effectPrompt = EFFECT_PROMPTS[effect_id]
-          if (effectPrompt) {
-            photoUrl = await generateWithGptImage(photoUrl, effectPrompt, REPLICATE_TOKEN)
+      // Kick off ALL clip predictions in parallel (don't await individual completions)
+      console.log(`[listing_bundle] kicking off ${photos.length} parallel Seedance predictions`)
+      const startResults = await Promise.all(
+        photos.map(async (url, i) => {
+          try {
+            const result = await startVideoGeneration(
+              url,
+              shotRotation[i % shotRotation.length],
+              3,
+              REPLICATE_TOKEN
+            )
+            return { index: i, ...result }
+          } catch (err) {
+            return { index: i, error: (err as Error).message }
+          }
+        })
+      )
+
+      const successful = startResults.filter((r) => !r.error)
+      const failed = startResults.filter((r) => r.error)
+
+      if (successful.length === 0) {
+        throw new Error(`All ${photos.length} clips failed to start: ${failed[0]?.error}`)
+      }
+
+      // If ALL clips happened to complete during the wait window, return immediately
+      const allDone = successful.every((r) => r.videoUrl)
+      if (allDone) {
+        const clipUrls = successful.map((r) => r.videoUrl!)
+        // Store
+        const clipPaths: string[] = []
+        for (let i = 0; i < clipUrls.length; i++) {
+          try {
+            const clipFetch = await fetch(clipUrls[i])
+            const clipBuffer = await clipFetch.arrayBuffer()
+            const clipPath = `listing-videos/${Date.now()}/clip-${i}.mp4`
+            await supabase.storage
+              .from("project-submissions")
+              .upload(clipPath, clipBuffer, { contentType: "video/mp4", upsert: true })
+            clipPaths.push(clipPath)
+          } catch (storageErr) {
+            console.error(`Failed to store clip ${i}:`, storageErr)
           }
         }
-
-        const shotIdx = i % shotRotation.length
-        const clipPrompt = clipPrompts[shotIdx]
-
-        try {
-          const clipUrl = await generateVideo(
-            photoUrl,
-            shotRotation[shotIdx] as any,
-            3,
-            REPLICATE_TOKEN
-          )
-          clipUrls.push(clipUrl)
-        } catch (clipErr) {
-          console.error(`Clip ${i} failed:`, clipErr)
+        const response: any = {
+          status: "complete",
+          category,
+          video_url: clipUrls[0],
+          clip_urls: clipUrls,
+          output_clip_paths: clipPaths,
+          listing,
         }
-      }
-
-      if (clipUrls.length === 0) {
-        throw new Error("Failed to generate any video clips")
-      }
-
-      // Store all clips
-      const clipPaths: string[] = []
-      for (let i = 0; i < clipUrls.length; i++) {
-        try {
-          const clipFetch = await fetch(clipUrls[i])
-          const clipBuffer = await clipFetch.arrayBuffer()
-          const clipPath = `listing-videos/${Date.now()}/clip-${i}.mp4`
-          await supabase.storage
-            .from("project-submissions")
-            .upload(clipPath, clipBuffer, { contentType: "video/mp4", upsert: true })
-          clipPaths.push(clipPath)
-        } catch (storageErr) {
-          console.error(`Failed to store clip ${i}:`, storageErr)
+        if (effect_id !== "none" && effect_mode === "quick") {
+          response.quick_effect = QUICK_EFFECT_BADGES[effect_id]
         }
+        return new Response(JSON.stringify(response), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
       }
 
-      // Return first clip as primary video URL for UI
-      const response: any = {
+      // Async path — return prediction_ids array, client polls
+      return new Response(JSON.stringify({
+        status: "processing",
         category,
-        video_url: clipUrls[0],
-        clip_urls: clipUrls,
-        output_clip_paths: clipPaths,
+        prediction_ids: successful.map((r) => ({ index: r.index, prediction_id: r.predictionId, video_url: r.videoUrl || null })),
         listing,
-      }
-      if (effect_id !== "none" && effect_mode === "quick") {
-        response.quick_effect = QUICK_EFFECT_BADGES[effect_id]
-      }
-      return new Response(JSON.stringify(response), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      })
+        quick_effect: (effect_id !== "none" && effect_mode === "quick") ? QUICK_EFFECT_BADGES[effect_id] : null,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
     throw new Error("Unknown category")
