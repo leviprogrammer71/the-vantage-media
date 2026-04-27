@@ -144,32 +144,34 @@ async function runGptImage2(
   return extractFirstUrl(output)
 }
 
-// ── Templated BEFORE prompts (deterministic, no GPT-4o needed) ────────────
+// ── Templated BEFORE prompts (tight, decisive, model-friendly) ────────────
+// Rule of thumb: <120 words, one core directive, one preservation directive,
+// one lighting directive. Let the model interpret rather than over-describing.
 function buildBeforePrompt(category: string, transformationType: string): string {
-  const baseClose = ` Pull perspective back 10–15% to show more sky and surrounding context. Keep the camera angle, neighbouring permanent structures, sky, and lighting direction identical. Photorealistic. Harsh flat midday light. Slightly desaturated. Output a single still image.`
+  const lock = `Lock the camera angle, the framing, the sky, neighbouring structures, and lighting direction to match the source photo. Photorealistic. Slightly desaturated. Flat midday light. Output a single still image.`
 
   if (category === "cleanup") {
-    return `Transform this finished after photo to show the same exact space BEFORE the cleanup. The space is heavily neglected and cluttered.
-Add naturally distributed signs of long neglect across the entire scene: dead and dying patchy grass spread across all ground; weeds growing along every fence line, wall edge, and hard-surface seam; fallen leaves and small debris scattered across roughly 60–70% of the ground with slight accumulation in corners and against boundaries; dirt, mud and grime built into all paving joints; oil staining where vehicles or equipment sat; moss on shaded hard surfaces; cobwebs in upper corners; dust on every horizontal surface.
-Add a few authentic abandoned items distributed across the space — never piled in one spot: a broken terracotta pot against one fence, a rusted tool leaning at the edge, scattered fasteners, broken bricks. Keep ALL permanent structures (buildings, fences, neighbouring walls, established trees) exactly the same. Remove only the cleanliness and finish.
-The before must feel hopelessly neglected so the after feels miraculous.${baseClose}`
+    return `Show this exact same space BEFORE the cleanup — heavily neglected. Add patchy dead grass, weeds along every edge, leaves and debris drifting across 60% of the ground, dirt in paving joints, moss on shaded surfaces, cobwebs in corners, and a few abandoned objects (a broken pot against the fence, a rusted tool, scattered bricks) — distributed naturally, never piled. Keep all permanent structures, fences, established trees, and the building shell exactly as they appear. Remove only the finish and cleanliness. The before must read as hopeless, so the after lands as a miracle. ${lock}
+
+Project type: ${transformationType}.`
   }
 
   if (category === "setup") {
-    return `Transform this finished after photo to show the same exact space BEFORE the setup project. Remove every single placed element: all furniture (tables, chairs, lounges, umbrellas), all decor and styling, all centerpieces, all linens and table settings, all decorative plants in pots, all installed lighting fixtures, all hung artwork, all curtains/draping, all serveware. Show the empty raw space — bare floors or ground, empty walls, no decoration whatsoever.
-Keep ALL permanent structural elements: walls, ceilings, floors, doors, windows, built-in joinery, fixed cabinetry, the building shell itself, and any neighbouring structures. The space should feel completely unfurnished and unstyled — exactly as it was before any setup arrived.
-The before must feel utterly empty so the dressed after feels transformed.${baseClose}`
+    return `Show this exact same space BEFORE the setup — completely empty. Remove every placed element: furniture, tables, chairs, linens, centrepieces, decor, styling props, hung artwork, draping, planters, candles, serveware, and any added lighting. Show bare floors, bare walls, and the raw architectural shell. Keep all permanent structure: walls, ceilings, floors, fixed cabinetry, doors, windows, the building itself, and any neighbouring structures. The before must read as utterly empty so the dressed after feels transformed. ${lock}
+
+Project type: ${transformationType}.`
   }
 
   // Default: construction
-  return `Transform this finished after photo to show the same exact location BEFORE any construction began. Remove EVERY built or finished element: all structures, walls, decking, paving, retaining walls, fencing built by this project, pools, water features, outdoor kitchens, sheds, all landscaping (plants, lawn, mulch, garden beds), all installed lighting, all hardscape.
-Replace with raw pre-construction ground state: bare compacted earth, cracked dry clay soil, churned mud, patchy dead grass tufts, scattered builder's rubble, and demolition debris. Add a few authentic pre-construction details — a survey peg, a pile of broken concrete, a portaloo in the corner, temporary site fencing.
-Keep ONLY the camera angle, the surrounding background structures (neighbouring buildings, trees on adjacent properties, sky), and the basic spatial proportions. The before must look like an empty hopeless lot before anything was built.${baseClose}
+  return `Show this exact location BEFORE any construction. Remove every built or finished element installed by this project: walls, decking, paving, retaining walls, fences, pools, outdoor kitchens, sheds, landscaping, plants, lawn, mulch, lighting, hardscape. Replace with the raw pre-build ground: bare earth, cracked clay, churned mud, dead grass tufts, scattered rubble, demolition debris, and one or two authentic site details (a survey peg, a pile of broken concrete, a portaloo in the corner, temporary fencing). Keep only the camera angle, neighbouring background structures, trees on adjacent properties, and the sky. ${lock}
 
-Transformation type: ${transformationType}`
+Project type: ${transformationType}.`
 }
 
-// ── Templated VIDEO prompts (deterministic, but GPT-4o can refine if available) ────
+// ── Templated VIDEO prompts (tight, decisive) ────────────────────────────
+// Goal: ~90 words, three beats: (1) what physically happens, (2) how the
+// camera moves, (3) the final landing. Avoid stacked adjectives; the video
+// model gets confused when the prompt over-prescribes.
 function buildVideoPrompt(opts: {
   category: string
   transformationType: string
@@ -180,43 +182,43 @@ function buildVideoPrompt(opts: {
 }): string {
   const { category, transformationType, buildType, motionStyle, shotType, description } = opts
 
-  const shotHint: Record<string, string> = {
-    slow_push: "The camera dollies slowly forward into the scene at constant speed, framing widens to fully reveal the finished composition.",
-    drone_orbit: "An aerial drone orbits 60° around the subject in a slow smooth arc at elevated angle, showing depth and scale.",
-    parallax_pan: "The camera pans laterally left to right at a slow constant rate, foreground elements drift faster than background, producing cinematic depth.",
-    reveal_rise: "The camera rises vertically from low ground level to eye height in one smooth move, gradually revealing the finished space.",
-    architectural: "The camera moves on a perfectly horizontal slider, no rotation, showcasing the linear architecture of the space.",
-    establishing: "The camera pulls back smoothly from a tight composition to a wide establishing shot, revealing context and surroundings.",
+  const camera: Record<string, string> = {
+    slow_push: "Camera dollies forward slowly at constant speed, framing widens to reveal the finished space.",
+    drone_orbit: "Aerial drone orbits 60° around the subject in a smooth arc at elevated angle.",
+    parallax_pan: "Camera slides left to right at a constant rate; foreground drifts faster than background for depth.",
+    reveal_rise: "Camera rises from low to eye height in one smooth move, revealing the space.",
+    architectural: "Camera moves on a perfectly horizontal slider, no rotation, showcasing architectural lines.",
+    establishing: "Camera pulls back smoothly from a tight composition to a wide establishing shot.",
   }
 
-  const camera = shotHint[shotType] || shotHint.slow_push
-
-  const intros: Record<string, string> = {
-    cleanup: `Named cleanup workers physically clear and bag every piece of mess and debris in the start frame, dragging full bags out the door, sweeping the floor, revealing the clean finished space of the end frame. Each removed item is carried by a named worker — nothing disappears on its own.`,
-    setup: `Named event stylists physically place every piece of the finished setup — carrying tables and locking the legs into place, billowing fresh linen down over surfaces, placing centrepieces stem by stem, lighting candles, threading string lights overhead. Each placed item is positioned by a named worker — nothing appears on its own.`,
-    construction: `Named ${buildType === "diy" ? "owner-builder" : buildType === "full_build" ? "construction crew with a lead operator and named excavator" : "trade workers in named roles"} physically build the transformation between the start and end frames. ${buildType === "diy" ? "Hands always in frame, close shots of one person measuring, cutting, fixing." : "Workers lean into heavy work, boots leave prints, machines rock as buckets bite ground, materials settle under gravity."}`,
+  const action: Record<string, string> = {
+    cleanup: `Named cleanup workers physically remove every piece of mess from the start frame — bagging debris, dragging it out, sweeping. Nothing vanishes on its own; each item is carried by a worker until the space is clean.`,
+    setup: `Named stylists physically place every element of the finished setup — carrying tables, billowing linen down, setting centrepieces stem by stem, lighting candles, hanging string lights. Each item arrives in a worker's hands.`,
+    construction: buildType === "diy"
+      ? `Owner-builder hands always in frame — measuring, cutting, fastening, assembling. The build happens in their hands, one motion at a time.`
+      : buildType === "full_build"
+      ? `Named construction crew with a lead operator and named excavator physically build the transformation. Workers brace before lifts, machines rock as buckets bite ground, materials settle under gravity.`
+      : `Named trade workers physically build the transformation. They lean into heavy work, boots leave prints, materials fall and stack with weight.`,
   }
 
-  const intro = intros[category] || intros.construction
-
-  const motionLabel: Record<string, string> = {
-    dramatic_push: "Cuts feel urgent and energetic with quick rhythmic edits.",
-    slow_reveal: "The take is long and confident, the camera moves at half speed, deliberate and calm.",
-    fast_progression: "Cuts compress time aggressively every 1.5–2 seconds.",
+  const tempo: Record<string, string> = {
+    dramatic_push: "Energy is urgent. Quick rhythmic cuts every 1.5s.",
+    fast_progression: "Time-compressed. Aggressive cuts every 1.5–2s.",
+    slow_reveal: "Half-speed, long takes, deliberate and calm.",
     cinematic_orbit: "Slow arc with shallow depth of field and premium energy.",
   }
 
-  const motion = motionLabel[motionStyle] || motionLabel.slow_reveal
+  const move = camera[shotType] || camera.slow_push
+  const phys = action[category] || action.construction
+  const pace = tempo[motionStyle] || tempo.slow_reveal
 
-  return `${intro}
+  return `${phys}
 
-${camera} ${motion}
+${move} ${pace}
 
-The transformation feels physically caused — every change in the scene is the visible result of a named worker, machine, tool, or hand. Water flows downward from a clear source. Loose materials fall and spread on impact. Workers brace before lifts. Shadows stay consistent with sun direction.
+Every change is physically caused — water flows downward from a visible source, loose materials fall and settle on impact, shadows track the sun. Final beat: workers step back, camera settles on warm light over the finished composition.
 
-Final beat: workers step back. Camera settles. Warm light on the finished composition.
-
-Transformation type: ${transformationType}. ${description ? `Project context: ${description}.` : ""}`.trim()
+Type: ${transformationType}.${description ? ` Context: ${description}.` : ""}`.trim()
 }
 
 // ── Optional: GPT-4o text-only refinement (no images sent) ────────────────

@@ -218,8 +218,11 @@ serve(async (req) => {
     let modelEndpoint: string
     let modelInput: Record<string, any>
 
-    if (shot.model === "seedance-2") {
-      // ByteDance Seedance Pro 1.0 on Replicate
+    // Auto-promote long-form (≥6s) work to Seedance 2.0 for cleaner physics + sharper architectural moves
+    const useSeedance = shot.model === "seedance-2" || durationSeconds >= 6
+
+    if (useSeedance) {
+      // ByteDance Seedance 2.0 (slug: seedance-1-pro) on Replicate
       modelEndpoint = `${REPLICATE}/models/bytedance/seedance-1-pro/predictions`
       modelInput = {
         prompt: finalPrompt,
@@ -243,7 +246,7 @@ serve(async (req) => {
       if (afterUrl) modelInput.end_image = afterUrl
     }
 
-    console.log(`[generate-transformation-video] shot=${shot_type || "slow_push"} model=${shot.model} endpoint=${modelEndpoint}`)
+    console.log(`[generate-transformation-video] shot=${shot_type || "slow_push"} model=${useSeedance ? "seedance-2" : "kling-2.5"} endpoint=${modelEndpoint} duration=${durationSeconds}s`)
 
     const createRes = await fetch(modelEndpoint, {
       method: "POST",

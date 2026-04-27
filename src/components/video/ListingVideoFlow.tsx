@@ -66,10 +66,10 @@ const CATEGORY_CARDS = [
   },
   {
     id: "floor_plan_pan" as const,
-    title: "Floor Plan Pan",
-    eyebrow: "2D PLAN · CINEMATIC CAMERA MOVE",
-    description: "Upload a floor plan PDF or image. We animate a slow cinematic camera move across it. Choose any of six camera styles.",
-    details: "5 seconds · 30 credits · Kling-only",
+    title: "Floor Plan to Walkthrough",
+    eyebrow: "FLOOR PLAN · PHOTOREAL WALK-THROUGH",
+    description: "Upload a floor plan or axonometric drawing. We render it into a photoreal interior, then animate a cinematic camera move through the space.",
+    details: "5 seconds · From 30 credits · flux-kontext + Kling",
   },
 ];
 
@@ -592,14 +592,14 @@ export function ListingVideoFlow() {
               {category === "sun_to_sun" && "Upload exterior photo"}
               {category === "listing_bundle" && "Upload 3-6 property photos"}
               {category === "sketch_to_real" && "Upload your architectural sketch"}
-              {category === "floor_plan_pan" && "Upload your floor plan"}
+              {category === "floor_plan_pan" && "Upload your floor plan or axonometric drawing"}
             </h2>
             <p className="lux-prose" style={{ color: "var(--lux-ash)" }}>
               {category === "animate_single" && "High-res horizontal or vertical photos work best."}
               {category === "sun_to_sun" && "A bright daytime exterior. We'll render it at sunrise, golden hour, and dusk."}
               {category === "listing_bundle" && "Mix of exterior, interior, and detail shots. We'll stitch them into one reel."}
               {category === "sketch_to_real" && "Cleanest results with: digital architectural drawings, clear elevations, or designer renders. Hand-drawn sketches work but proportions may vary."}
-              {category === "floor_plan_pan" && "Works best with: clean black-and-white floor plans, architect's drawings, or MLS plan images. Avoid hand-drawn or photographed-from-paper plans."}
+              {category === "floor_plan_pan" && "Floor plans, axonometric drawings, or 3D-isometric room views all work. We'll render the plan as a photoreal interior, then move the camera through it."}
             </p>
           </div>
 
@@ -925,21 +925,20 @@ export function ListingVideoFlow() {
                 />
               )}
               <div
-                className="p-6 space-y-3"
+                className="p-6"
                 style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline)" }}
               >
-                <div className="flex justify-between items-start">
-                  <span className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>CATEGORY</span>
-                  <span className="lux-display text-lg" style={{ textAlign: "right" }}>
+                <div className="mb-5">
+                  <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>CATEGORY</div>
+                  <div className="lux-display" style={{ fontSize: "clamp(1.4rem, 3.2vw, 1.9rem)", lineHeight: 1.05 }}>
                     {CATEGORY_CARDS.find((c) => c.id === category)?.title}
-                  </span>
+                  </div>
                 </div>
-                <div style={{ borderBottom: "1px solid var(--lux-hairline)", paddingBottom: "0.75rem" }} />
-                <div className="flex justify-between items-start">
-                  <span className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>PHOTOS</span>
-                  <span className="lux-display text-lg">
-                    {photos.length}
-                  </span>
+                <div style={{ borderTop: "1px solid var(--lux-hairline)", paddingTop: "1.25rem" }}>
+                  <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>PHOTOS</div>
+                  <div className="lux-display" style={{ fontSize: "clamp(1.4rem, 3.2vw, 1.9rem)", lineHeight: 1.05 }}>
+                    {photos.length} {photos.length === 1 ? "photo" : "photos"}
+                  </div>
                 </div>
               </div>
             </div>
@@ -954,11 +953,11 @@ export function ListingVideoFlow() {
                   <>
                     <div>
                       <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>REALTOR</div>
-                      <p className="lux-prose">{realtorName}</p>
+                      <p className="lux-prose break-words">{realtorName}</p>
                     </div>
                     <div>
                       <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>LOCATION</div>
-                      <p className="lux-prose">{location}</p>
+                      <p className="lux-prose break-words">{location}</p>
                     </div>
                     <div>
                       <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>LISTING BADGE</div>
@@ -1002,14 +1001,16 @@ export function ListingVideoFlow() {
                     </div>
                   </>
                 )}
-                <div style={{ borderTop: "1px solid var(--lux-hairline)", paddingTop: "1rem" }}>
-                  <div className="flex justify-between items-baseline">
-                    <span className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>TOTAL COST</span>
-                    <span className="lux-display" style={{ fontSize: "2rem", color: "var(--lux-rust)", lineHeight: 1 }}>
+                <div style={{ borderTop: "1px solid var(--lux-hairline)", paddingTop: "1.25rem" }}>
+                  <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>TOTAL COST</div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="lux-display" style={{ fontSize: "2.4rem", color: "var(--lux-rust)", lineHeight: 1 }}>
                       {creditCost}
                     </span>
+                    <span className="lux-prose" style={{ color: "var(--lux-ash)", fontSize: "0.95rem" }}>
+                      credits
+                    </span>
                   </div>
-                  <span className="text-sm" style={{ color: "var(--lux-ash)" }}>credits</span>
                 </div>
               </div>
             </div>
@@ -1167,7 +1168,7 @@ export function ListingVideoFlow() {
 
           {clipUrls.length > 1 && (
             <div className="mb-8 lux-eyebrow text-center" style={{ color: "var(--lux-ash)" }}>
-              ✦ {clipUrls.length}-CLIP REEL · TOTAL {clipUrls.length * 3}s · STITCH IN YOUR EDITOR FOR FINAL CUT
+              ✦ {clipUrls.length}-CLIP REEL · TOTAL {clipUrls.length * 5}s · STITCH IN YOUR EDITOR FOR FINAL CUT
             </div>
           )}
 

@@ -7,9 +7,6 @@ import { SettingTooltip } from "./SettingTooltip";
 import { ShotTypePicker } from "./ShotTypePicker";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "motion/react";
 import type { ShotType } from "@/lib/shot-types";
@@ -548,44 +545,49 @@ export function TransformationFlow({ transformationCategory }: { transformationC
   if (videoUrl) {
     const displayBeforeUrl = generatedBeforeUrl || beforeImage;
     return (
-      <div className="space-y-5">
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
-            <Check className="h-6 w-6 text-green-500" />
-          </div>
-          <h2 className="text-lg font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>✅ YOUR VIDEO IS READY</h2>
-        </div>
-
-        {displayBeforeUrl && afterImage && (
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">Before</span>
-              <img src={displayBeforeUrl} alt="Before" className="w-full rounded-lg object-cover aspect-[3/4]" />
+      <div className="lux-section lux-bg-bone" style={{ paddingBottom: "80px" }}>
+        <div className="lux-container max-w-2xl space-y-8">
+          <div className="text-center space-y-2">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto" style={{ backgroundColor: "rgba(140, 63, 46, 0.1)" }}>
+              <Check className="h-6 w-6" style={{ color: "var(--lux-rust)" }} />
             </div>
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">After</span>
-              <img src={afterImage} alt="After" className="w-full rounded-lg object-cover aspect-[3/4]" />
-            </div>
+            <h2 className="lux-display" style={{ fontSize: "clamp(1.8rem, 5vw, 3rem)" }}>Your video is ready</h2>
           </div>
-        )}
 
-        <video src={videoUrl} controls autoPlay loop muted playsInline className="w-full rounded-xl max-h-[60vh] object-contain bg-black" />
+          {displayBeforeUrl && afterImage && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <span className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>BEFORE</span>
+                <img src={displayBeforeUrl} alt="Before" className="w-full object-cover aspect-[3/4]" style={{ border: "1px solid var(--lux-hairline)" }} />
+              </div>
+              <div className="space-y-2">
+                <span className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>AFTER</span>
+                <img src={afterImage} alt="After" className="w-full object-cover aspect-[3/4]" style={{ border: "1px solid var(--lux-hairline)" }} />
+              </div>
+            </div>
+          )}
 
-        <div className="flex gap-3">
-          <Button onClick={() => window.open(videoUrl, "_blank")} className="flex-1 gap-2">
-            <Download className="h-4 w-4" />
-            Download Video
-          </Button>
-          <Button variant="outline" asChild className="flex-1 gap-2">
-            <Link to="/gallery">
+          <div style={{ background: "var(--lux-ink)" }} className="p-4">
+            <video src={videoUrl} controls autoPlay loop muted playsInline className="w-full max-h-[60vh] object-contain" />
+          </div>
+
+          <div className="space-y-3">
+            <button onClick={() => window.open(videoUrl, "_blank")} className="lux-btn w-full gap-2 flex items-center justify-center" style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "16px 24px" }}>
+              <Download className="h-4 w-4" />
+              Download Video
+            </button>
+            <Link to="/gallery" className="lux-btn-ghost w-full gap-2 flex items-center justify-center" style={{ padding: "16px 24px", border: "1px solid var(--lux-hairline)", color: "var(--lux-ink)", textDecoration: "none" }}>
               <FolderOpen className="h-4 w-4" />
               View in Gallery
             </Link>
-          </Button>
+          </div>
+
+          <div className="text-center" style={{ borderTop: "1px solid var(--lux-hairline)", paddingTop: "16px" }}>
+            <p className="lux-prose text-sm" style={{ color: "var(--lux-ash)" }}>
+              {creditCost} credits used · {(credits ?? 0)} credits remaining
+            </p>
+          </div>
         </div>
-        <p className="text-xs text-center text-muted-foreground">
-          {creditCost} credits used · {(credits ?? 0)} credits remaining
-        </p>
       </div>
     );
   }
@@ -593,24 +595,28 @@ export function TransformationFlow({ transformationCategory }: { transformationC
   // Error screen with retry
   if (error && !isGenerating) {
     return (
-      <Card className="p-5 space-y-4 border-destructive/50">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-destructive">Generation Failed</p>
-            <p className="text-xs text-muted-foreground mt-1 break-words">{error}</p>
+      <div className="lux-section lux-bg-bone" style={{ paddingBottom: "80px" }}>
+        <div className="lux-container max-w-2xl">
+          <div className="p-6 space-y-4" style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline)" }}>
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" style={{ color: "var(--lux-rust)" }} />
+              <div className="flex-1 min-w-0">
+                <p className="lux-eyebrow" style={{ color: "var(--lux-rust)" }}>GENERATION FAILED</p>
+                <p className="lux-prose text-sm mt-2 break-words" style={{ color: "var(--lux-ash)" }}>{error}</p>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-3">
+              <button onClick={handleGenerate} className="lux-btn flex-1 gap-2 flex items-center justify-center" style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "14px 20px" }}>
+                <RefreshCw className="h-4 w-4" />
+                Retry
+              </button>
+              <button onClick={() => setError(null)} className="lux-btn-ghost flex-1" style={{ padding: "14px 20px", border: "1px solid var(--lux-hairline)", color: "var(--lux-ink)" }}>
+                Back to Settings
+              </button>
+            </div>
           </div>
         </div>
-        <div className="flex gap-3">
-          <Button onClick={handleGenerate} className="flex-1 gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Retry
-          </Button>
-          <Button variant="outline" onClick={() => setError(null)} className="flex-1">
-            Back to Settings
-          </Button>
-        </div>
-      </Card>
+      </div>
     );
   }
 
@@ -662,11 +668,11 @@ export function TransformationFlow({ transformationCategory }: { transformationC
       )}
 
       {/* Upload Zones */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {/* Before Photo */}
-        <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wider">Before Photo</label>
-          <p className="text-xs text-muted-foreground">Upload the before state, or we'll generate it from your after photo</p>
+        <div className="space-y-3">
+          <label className="lux-eyebrow block" style={{ color: "var(--lux-brass)" }}>BEFORE PHOTO</label>
+          <p className="lux-prose text-sm" style={{ color: "var(--lux-ash)" }}>Upload the before state, or we'll generate it from your after photo</p>
           
           <input
             ref={beforeInputRef}
@@ -678,54 +684,61 @@ export function TransformationFlow({ transformationCategory }: { transformationC
 
           {beforeMode === "upload" && beforeImage ? (
             <div className="relative">
-              <img src={beforeImage} alt="Before" className="w-full rounded-lg object-cover aspect-[3/4]" />
+              <img src={beforeImage} alt="Before" className="w-full object-cover aspect-[3/4]" style={{ border: "1px solid var(--lux-hairline)" }} />
               {isUploadingBefore && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                   <Loader2 className="h-8 w-8 animate-spin text-white" />
                 </div>
               )}
-              <Button
-                size="icon"
-                variant="secondary"
-                className="absolute top-2 right-2 h-7 w-7"
+              <button
+                className="absolute top-2 right-2 p-2 transition-opacity"
+                style={{ background: "var(--lux-ink)", color: "var(--lux-bone)" }}
                 onClick={() => { setBeforeImage(null); setBeforeImageUrl(null); setBeforeFile(null); }}
               >
                 <X className="h-3 w-3" />
-              </Button>
+              </button>
             </div>
           ) : beforeMode === "upload" ? (
             <button
               onClick={() => beforeInputRef.current?.click()}
-              className="w-full border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center transition-colors"
+              className="w-full border-2 border-dashed p-6 flex flex-col items-center justify-center transition-colors"
               style={{ borderColor: "var(--lux-hairline-strong)", backgroundColor: "var(--lux-cream)" }}
             >
               <Upload className="h-8 w-8 mb-2" style={{ color: "var(--lux-ash)" }} />
-              <span className="text-xs font-medium" style={{ color: "var(--lux-ink)" }}>Upload before photo</span>
+              <span className="lux-prose text-xs font-medium" style={{ color: "var(--lux-ink)" }}>Upload before photo</span>
             </button>
           ) : (
-            <div className="w-full border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center" style={{ borderColor: "var(--lux-hairline-strong)", backgroundColor: "var(--lux-cream)" }}>
+            <div className="w-full border-2 border-dashed p-6 flex flex-col items-center justify-center" style={{ borderColor: "var(--lux-hairline-strong)", backgroundColor: "var(--lux-cream)" }}>
               <Sparkles className="h-8 w-8 mb-2" style={{ color: "var(--lux-ash)" }} />
-              <span className="text-xs" style={{ color: "var(--lux-ash)" }}>We'll reconstruct the before state using AI</span>
+              <span className="lux-prose text-xs" style={{ color: "var(--lux-ash)" }}>We'll reconstruct the before state using AI</span>
             </div>
           )}
 
           {/* Toggle */}
-          <div className="flex rounded-lg border border-border overflow-hidden">
+          <div className="flex gap-0 border" style={{ borderColor: "var(--lux-hairline)" }}>
             <button
               onClick={() => setBeforeMode("upload")}
-              className={cn(
-                "flex-1 py-1.5 text-xs font-medium transition-all",
-                beforeMode === "upload" ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-              )}
+              className="flex-1 py-2 text-xs font-medium transition-all lux-eyebrow"
+              style={beforeMode === "upload" ? {
+                background: "var(--lux-ink)",
+                color: "var(--lux-bone)",
+              } : {
+                background: "var(--lux-cream)",
+                color: "var(--lux-ink)",
+              }}
             >
               Upload my own
             </button>
             <button
               onClick={() => { setBeforeMode("ai"); setBeforeImage(null); setBeforeImageUrl(null); setBeforeFile(null); }}
-              className={cn(
-                "flex-1 py-1.5 text-xs font-medium transition-all",
-                beforeMode === "ai" ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-              )}
+              className="flex-1 py-2 text-xs font-medium transition-all lux-eyebrow"
+              style={beforeMode === "ai" ? {
+                background: "var(--lux-ink)",
+                color: "var(--lux-bone)",
+              } : {
+                background: "var(--lux-cream)",
+                color: "var(--lux-ink)",
+              }}
             >
               AI Generate it
             </button>
@@ -733,9 +746,9 @@ export function TransformationFlow({ transformationCategory }: { transformationC
         </div>
 
       {/* After Photo */}
-        <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wider">After Photo</label>
-          <p className="text-xs text-muted-foreground">Upload your finished project photo. We reconstruct the before state using AI.</p>
+        <div className="space-y-3">
+          <label className="lux-eyebrow block" style={{ color: "var(--lux-brass)" }}>AFTER PHOTO</label>
+          <p className="lux-prose text-sm" style={{ color: "var(--lux-ash)" }}>Upload your finished project photo. We reconstruct the before state using AI.</p>
 
           <input
             ref={afterInputRef}
@@ -747,30 +760,29 @@ export function TransformationFlow({ transformationCategory }: { transformationC
 
           {afterImage ? (
             <div className="relative">
-              <img src={afterImage} alt="After" className="w-full rounded-lg object-cover aspect-[3/4]" />
+              <img src={afterImage} alt="After" className="w-full object-cover aspect-[3/4]" style={{ border: "1px solid var(--lux-hairline)" }} />
               {isUploadingAfter && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                   <Loader2 className="h-8 w-8 animate-spin text-white" />
                 </div>
               )}
-              <Button
-                size="icon"
-                variant="secondary"
-                className="absolute top-2 right-2 h-7 w-7"
+              <button
+                className="absolute top-2 right-2 p-2 transition-opacity"
+                style={{ background: "var(--lux-ink)", color: "var(--lux-bone)" }}
                 onClick={() => { setAfterImage(null); setAfterImageUrl(null); setAfterFile(null); }}
               >
                 <X className="h-3 w-3" />
-              </Button>
+              </button>
             </div>
           ) : (
             <button
               onClick={() => afterInputRef.current?.click()}
-              className="w-full border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center transition-colors aspect-[3/4]"
+              className="w-full border-2 border-dashed p-6 flex flex-col items-center justify-center transition-colors aspect-[3/4]"
               style={{ borderColor: "var(--lux-hairline-strong)", backgroundColor: "var(--lux-cream)" }}
             >
               <Upload className="h-8 w-8 mb-2" style={{ color: "var(--lux-ash)" }} />
-              <span className="text-xs font-medium" style={{ color: "var(--lux-ink)" }}>Upload after photo</span>
-              <span className="text-[10px] mt-1" style={{ color: "var(--lux-ash)" }}>JPG, PNG, or WebP (max 10MB)</span>
+              <span className="lux-prose text-xs font-medium" style={{ color: "var(--lux-ink)" }}>Upload after photo</span>
+              <span className="lux-prose text-[10px] mt-1" style={{ color: "var(--lux-ash)" }}>JPG, PNG, or WebP (max 50MB)</span>
             </button>
           )}
         </div>
@@ -781,39 +793,44 @@ export function TransformationFlow({ transformationCategory }: { transformationC
         /* Simplified mode for first-timers */
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <Zap className="h-4 w-4 text-primary" />
-            <span className="text-xs font-bold uppercase tracking-wider text-primary" style={{ fontFamily: "'Space Mono', monospace" }}>
+            <Zap className="h-4 w-4" style={{ color: "var(--lux-brass)" }} />
+            <span className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>
               QUICK START — best settings chosen for you
             </span>
           </div>
 
           {/* Only Transformation Type */}
-          <Card className="p-4 space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wider flex items-center">
-              Transformation Type
+          <div className="p-6" style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline)" }}>
+            <label className="lux-eyebrow flex items-center mb-3" style={{ color: "var(--lux-brass)" }}>
+              TRANSFORMATION TYPE
               <SettingTooltip text="What kind of project did you complete? This helps our AI write the right construction story for your video." />
             </label>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-2 gap-2">
               {TRANSFORMATION_TYPES.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => setTransformationType(t.id)}
-                  className={cn(
-                    "py-2 px-3 rounded-lg border text-xs font-medium transition-all text-left",
-                    transformationType === t.id
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border hover:border-primary/50"
-                  )}
+                  className="py-2 px-3 border text-xs font-medium transition-all text-left lux-prose"
+                  style={transformationType === t.id ? {
+                    background: "var(--lux-ink)",
+                    borderColor: "var(--lux-brass)",
+                    color: "var(--lux-bone)",
+                  } : {
+                    background: "var(--lux-bone)",
+                    borderColor: "var(--lux-hairline)",
+                    color: "var(--lux-ink)",
+                  }}
                 >
                   {t.label}
                 </button>
               ))}
             </div>
-          </Card>
+          </div>
 
           <button
             onClick={handleExpandAdvanced}
-            className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
+            className="lux-prose text-xs transition-colors"
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--lux-brass)", textDecoration: "underline" }}
           >
             Advanced options +
           </button>
@@ -823,7 +840,7 @@ export function TransformationFlow({ transformationCategory }: { transformationC
         <>
           {isFirstTimer && showAdvanced && (
             <div className="flex items-center gap-2 px-1">
-              <span className="text-xs text-muted-foreground" style={{ fontFamily: "'Space Mono', monospace" }}>
+              <span className="lux-prose text-xs" style={{ color: "var(--lux-ash)" }}>
                 All settings unlocked
               </span>
             </div>
@@ -836,30 +853,34 @@ export function TransformationFlow({ transformationCategory }: { transformationC
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
               <details className="group" open={showAdvanced || !isFirstTimer ? true : undefined}>
-                <summary className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors py-2">
+                <summary className="flex items-center gap-2 cursor-pointer lux-eyebrow hover:opacity-75 transition-opacity py-2" style={{ color: "var(--lux-brass)" }}>
                   <span className="text-xs">▶</span>
                   <span className="group-open:hidden">Customize +</span>
                   <span className="hidden group-open:inline">Customize −</span>
                 </summary>
 
-                <Card className="p-4 space-y-4 mt-2">
+                <div className="p-6 space-y-6 mt-2" style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline)" }}>
                   {/* Transformation Type */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider flex items-center">
-                      Transformation Type
+                  <div className="space-y-3">
+                    <label className="lux-eyebrow flex items-center" style={{ color: "var(--lux-brass)" }}>
+                      TRANSFORMATION TYPE
                       <SettingTooltip text="What kind of project did you complete? This helps our AI write the right construction story for your video." />
                     </label>
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-2 gap-2">
                       {TRANSFORMATION_TYPES.map((t) => (
                         <button
                           key={t.id}
                           onClick={() => setTransformationType(t.id)}
-                          className={cn(
-                            "py-2 px-3 rounded-lg border text-xs font-medium transition-all text-left",
-                            transformationType === t.id
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border hover:border-primary/50"
-                          )}
+                          className="py-2 px-3 border text-xs font-medium transition-all text-left lux-prose"
+                          style={transformationType === t.id ? {
+                            background: "var(--lux-ink)",
+                            borderColor: "var(--lux-brass)",
+                            color: "var(--lux-bone)",
+                          } : {
+                            background: "var(--lux-bone)",
+                            borderColor: "var(--lux-hairline)",
+                            color: "var(--lux-ink)",
+                          }}
                         >
                           {t.label}
                         </button>
@@ -868,12 +889,12 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                   </div>
 
                   {/* Build Type */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold uppercase tracking-wider flex items-center">
-                      Build Type
+                  <div className="space-y-2">
+                    <label className="lux-eyebrow flex items-center" style={{ color: "var(--lux-brass)" }}>
+                      BUILD TYPE
                       <SettingTooltip text="Full Build = excavators and heavy machinery. Team Build = 2-4 workers building together. DIY = solo project by one person." />
                     </label>
-                    <p style={{ fontFamily: "Space Mono, monospace", fontSize: "10px", color: "#555555", margin: "4px 0 12px" }}>
+                    <p className="lux-prose text-xs" style={{ color: "var(--lux-ash)", margin: "0 0 12px" }}>
                       Tells the AI what kind of crew to show in your video
                     </p>
                     <div className="space-y-0">
@@ -917,9 +938,9 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                   </div>
 
                   {/* Motion Style */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider flex items-center">
-                      Motion Style
+                  <div className="space-y-3">
+                    <label className="lux-eyebrow flex items-center" style={{ color: "var(--lux-brass)" }}>
+                      MOTION STYLE
                       <SettingTooltip text="Controls the energy, pacing, and camera behaviour of the entire video." />
                     </label>
                     <div className="space-y-0">
@@ -953,13 +974,14 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                                 border: motionStyle === m.id ? "1px solid var(--lux-champagne)" : "1px solid var(--lux-hairline)",
                                 color: motionStyle === m.id ? "var(--lux-champagne)" : "var(--lux-ash)",
                                 padding: "2px 7px",
+                                borderRadius: "2px",
                               }}>
                                 {m.badge}
                               </span>
                             )}
                           </div>
                           <div style={{
-                            maxHeight: motionStyle === m.id ? "60px" : "0",
+                            maxHeight: motionStyle === m.id ? "80px" : "0",
                             overflow: "hidden",
                             transition: "max-height 0.2s ease",
                           }}>
@@ -977,53 +999,61 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                   </div>
 
                   {/* Shot Type */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider flex items-center">
-                      Shot Type
+                  <div className="space-y-3">
+                    <label className="lux-eyebrow flex items-center" style={{ color: "var(--lux-brass)" }}>
+                      SHOT TYPE
                       <SettingTooltip text="Choose the cinematic motion style. Each has different quality and credit costs." />
                     </label>
                     <ShotTypePicker value={shotType} onChange={setShotType} />
                   </div>
 
                   {/* Duration & Format */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold uppercase tracking-wider flex items-center">
-                        Duration
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <label className="lux-eyebrow flex items-center" style={{ color: "var(--lux-brass)" }}>
+                        DURATION
                         <SettingTooltip text="5s = snappy and punchy, great for TikTok. 10s = more story, better for Instagram." />
                       </label>
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-2">
                         {(["5s", "10s"] as Duration[]).map((d) => (
                           <button
                             key={d}
                             onClick={() => setDuration(d)}
-                            className={cn(
-                              "flex-1 py-2 rounded-lg border-2 text-xs font-medium transition-all",
-                              duration === d
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "border-border hover:border-primary/50"
-                            )}
+                            className="flex-1 py-2 border text-xs font-medium transition-all lux-prose"
+                            style={duration === d ? {
+                              background: "var(--lux-ink)",
+                              borderColor: "var(--lux-brass)",
+                              color: "var(--lux-bone)",
+                            } : {
+                              background: "var(--lux-bone)",
+                              borderColor: "var(--lux-hairline)",
+                              color: "var(--lux-ink)",
+                            }}
                           >
                             {d}
                           </button>
                         ))}
                       </div>
-                      <p className="text-[10px] text-muted-foreground">Longer = more story = more saves</p>
+                      <p className="lux-prose text-[10px]" style={{ color: "var(--lux-ash)" }}>Longer = more story = more saves</p>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold uppercase tracking-wider">Format</label>
-                      <div className="flex flex-col gap-1.5">
+                    <div className="space-y-3">
+                      <label className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>FORMAT</label>
+                      <div className="flex flex-col gap-2">
                         {FORMAT_OPTIONS.map((f) => (
                           <button
                             key={f.id}
                             onClick={() => setFormat(f.id)}
-                            className={cn(
-                              "py-1.5 px-2 rounded-lg border text-xs font-medium transition-all text-left",
-                              format === f.id
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "border-border hover:border-primary/50"
-                            )}
+                            className="py-2 px-2 border text-xs font-medium transition-all text-left lux-prose"
+                            style={format === f.id ? {
+                              background: "var(--lux-ink)",
+                              borderColor: "var(--lux-brass)",
+                              color: "var(--lux-bone)",
+                            } : {
+                              background: "var(--lux-bone)",
+                              borderColor: "var(--lux-hairline)",
+                              color: "var(--lux-ink)",
+                            }}
                           >
                             {f.label}
                           </button>
@@ -1031,16 +1061,13 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                       </div>
                     </div>
                   </div>
-                  <p style={{
-                    fontFamily: "Space Mono, monospace",
-                    fontSize: "10px",
-                    color: "#444444",
-                    textAlign: "center",
+                  <p className="lux-prose text-[10px] text-center" style={{
+                    color: "var(--lux-ash)",
                     marginTop: "16px",
                   }}>
                     Defaults set to the most popular settings for viral TikTok content
                   </p>
-                </Card>
+                </div>
               </details>
             </motion.div>
           </AnimatePresence>
@@ -1048,32 +1075,32 @@ export function TransformationFlow({ transformationCategory }: { transformationC
       )}
 
       {/* Project Description */}
-      <Card className="p-4 space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-wider">Describe the Transformation <span className="text-muted-foreground font-normal normal-case">(Optional)</span></label>
+      <div className="p-6 space-y-3" style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline)" }}>
+        <label className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>DESCRIBE THE TRANSFORMATION <span className="lux-prose text-xs" style={{ color: "var(--lux-ash)", fontWeight: "normal", textTransform: "none", letterSpacing: "0" }}>(Optional)</span></label>
         <Textarea
           value={description}
           onChange={(e) => setDescription(e.target.value.slice(0, 300))}
           placeholder="Tell us about the project — what was built, any special details. (Optional but helps the AI write a better prompt)"
-          className="resize-none text-sm"
+          className="resize-none text-sm lux-prose"
           rows={3}
+          style={{ borderColor: "var(--lux-hairline)", background: "var(--lux-bone)" }}
         />
-        <p className="text-[10px] text-muted-foreground text-right">{description.length}/300</p>
-      </Card>
+        <p className="lux-prose text-[10px] text-right" style={{ color: "var(--lux-ash)" }}>{description.length}/300</p>
+      </div>
 
       {/* Prompt Preview (Advanced) */}
       <details className="group">
-        <summary className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors py-2">
+        <summary className="flex items-center gap-2 cursor-pointer lux-eyebrow hover:opacity-75 transition-opacity py-2" style={{ color: "var(--lux-brass)" }}>
           <span className="text-xs">▶</span>
-          <span className="group-open:hidden">Advanced: Preview prompt +</span>
-          <span className="hidden group-open:inline">Advanced: Preview prompt −</span>
+          <span className="group-open:hidden">ADVANCED: PREVIEW PROMPT +</span>
+          <span className="hidden group-open:inline">ADVANCED: PREVIEW PROMPT −</span>
         </summary>
 
-        <Card className="p-4 space-y-3 mt-2">
-          <p className="text-xs text-muted-foreground">Preview and edit the AI-generated Kling prompt before spending credits.</p>
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full gap-2"
+        <div className="p-6 space-y-3 mt-2" style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline)" }}>
+          <p className="lux-prose text-xs" style={{ color: "var(--lux-ash)" }}>Preview and edit the AI-generated Kling prompt before spending credits.</p>
+          <button
+            className="lux-btn-ghost w-full gap-2 flex items-center justify-center"
+            style={{ padding: "12px 16px", border: "1px solid var(--lux-hairline)", color: "var(--lux-ink)", opacity: !afterImageUrl || isLoadingPrompt ? 0.5 : 1 }}
             disabled={!afterImageUrl || isLoadingPrompt}
             onClick={async () => {
               if (!afterImageUrl) return;
@@ -1106,38 +1133,38 @@ export function TransformationFlow({ transformationCategory }: { transformationC
             ) : (
               <><Sparkles className="h-4 w-4" /> Preview Prompt</>
             )}
-          </Button>
+          </button>
 
           {showPromptPreview && previewPrompt && (
             <div className="space-y-2">
               <Textarea
                 value={editedPrompt}
                 onChange={(e) => setEditedPrompt(e.target.value)}
-                className="resize-none text-xs font-mono"
+                className="resize-none text-xs font-mono lux-prose"
                 rows={6}
+                style={{ borderColor: "var(--lux-hairline)", background: "var(--lux-bone)" }}
               />
-              <p className="text-[10px] text-muted-foreground">
+              <p className="lux-prose text-[10px]" style={{ color: "var(--lux-ash)" }}>
                 Edit the prompt above to customize the video. Changes will be used during generation.
               </p>
             </div>
           )}
-        </Card>
+        </div>
       </details>
 
       {/* Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border p-4 pb-safe">
-        <div className="max-w-lg mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Coins className={cn("h-5 w-5", hasEnoughCredits ? "text-amber-500" : "text-destructive")} />
+      <div className="fixed bottom-0 left-0 right-0 z-50" style={{ background: "var(--lux-bone)", borderTop: "1px solid var(--lux-hairline)" }}>
+        <div className="max-w-lg mx-auto flex items-center justify-between gap-4 p-4" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}>
+          <div className="flex items-center gap-3">
+            <Coins className="h-5 w-5" style={{ color: hasEnoughCredits ? "var(--lux-brass)" : "var(--lux-rust)" }} />
             <div className="flex flex-col">
-              <span className={cn(
-                "font-bold text-lg leading-tight",
-                hasEnoughCredits ? "text-amber-600 dark:text-amber-400" : "text-destructive"
-              )}>
+              <span className="lux-prose text-sm font-semibold leading-tight" style={{
+                color: hasEnoughCredits ? "var(--lux-ink)" : "var(--lux-rust)"
+              }}>
                 {creditCost} credit{creditCost > 1 ? "s" : ""}
               </span>
               {!hasEnoughCredits && credits !== null && (
-                <span className="text-xs text-destructive">
+                <span className="lux-prose text-xs" style={{ color: "var(--lux-rust)" }}>
                   Need {creditCost - credits} more
                 </span>
               )}
@@ -1145,18 +1172,24 @@ export function TransformationFlow({ transformationCategory }: { transformationC
           </div>
 
           {!hasEnoughCredits && credits !== null ? (
-            <Button asChild className="h-12 px-6 text-base">
-              <Link to="/pricing">Get Credits</Link>
-            </Button>
+            <Link to="/pricing" className="lux-btn px-6 py-3 gap-2 flex items-center" style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", textDecoration: "none" }}>
+              Get Credits
+            </Link>
           ) : (
-            <Button
+            <button
               onClick={handleGenerate}
               disabled={!canGenerate}
-              className="h-12 px-6 text-base gap-2"
+              className="lux-btn px-6 py-3 gap-2 flex items-center"
+              style={{
+                background: canGenerate ? "var(--lux-ink)" : "var(--lux-ash)",
+                color: "var(--lux-bone)",
+                opacity: canGenerate ? 1 : 0.5,
+                cursor: canGenerate ? "pointer" : "not-allowed",
+              }}
             >
               <Sparkles className="h-5 w-5" />
               {isFirstTimer ? "Generate My First Video →" : "Generate Transformation Video"}
-            </Button>
+            </button>
           )}
         </div>
       </div>

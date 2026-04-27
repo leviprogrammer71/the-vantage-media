@@ -9,6 +9,17 @@ const corsHeaders = {
 
 const REPLICATE = "https://api.replicate.com/v1"
 
+// ── Model registry ──
+// Replicate model slugs. Centralised so we can swap a model in one place.
+// Seedance 2.0 ("seedance-1-pro" is ByteDance's current Seedance Pro release on
+// Replicate; the marketing name is Seedance 2.0).
+const MODEL_KLING = "kwaivgi/kling-v2.5-turbo-pro"
+const MODEL_SEEDANCE = "bytedance/seedance-1-pro"
+
+// Long-form (≥6s) clips always route to Seedance for cleaner physics + sharper
+// architectural pans. Short clips (3s bundle clips) can use Kling for snap.
+const LONG_FORM_THRESHOLD_SECONDS = 6
+
 const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: string }> = {
   slow_push: {
     model: "kling",
@@ -79,6 +90,93 @@ async function pollReplicate(predictionId: string, maxAttempts = 120): Promise<s
     }
   }
   throw new Error("Replicate prediction timed out")
+}
+
+// ── Vibe → cinematic suffix mapping (single source of truth) ──
+function vibeSuffix(vibe: string): string {
+  switch (vibe) {
+    case "luxury":
+      return "Luxury aesthetic, golden-hour warm light, shallow depth of field, slow deliberate motion, editorial magazine cinematic quality."
+    case "cozy":
+      return "Cozy intimate atmosphere, warm interior tungsten light, soft shadows, lived-in feel, gentle camera movement."
+    case "modern":
+      return "Modern minimalist aesthetic, cool daylight, crisp architectural lines, contemporary design language, clean motion."
+    case "family":
+      return "Bright friendly atmosphere, midday natural light, family-oriented warmth, welcoming, approachable cinematic feel."
+    case "investment":
+      return "Practical real-estate showcase, neutral even lighting, emphasis on layout and space, professional documentary style."
+    case "vacation":
+      return "Vacation resort aesthetic, sunset warm palette, light breeze in foliage, escapist holiday mood, smooth gimbal-style motion."
+    default:
+      return "Editorial magazine cinematic quality, warm natural light, slow deliberate motion."
+  }
+}
+
+// ── Sketch / Floor Plan → Photoreal renderer ──
+// Uses flux-kontext-pro which is purpose-built for image-to-image style
+// transformation (sketch → photoreal, line drawing → render). Falls back to
+// gpt-image-2 if flux-kontext fails.
+async function renderSketchToPhotoreal(
+  sourceImageUrl: string,
+  prompt: string,
+  token: string
+): Promise<string> {
+  // PRIMARY: black-forest-labs/flux-kontext-pro — designed for transformations
+  try {
+    const res = await fetch(
+      `${REPLICATE}/models/black-forest-labs/flux-kontext-pro/predictions`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${token}`,
+          "Content-Type": "application/json",
+          Prefer: "wait=60",
+        },
+        body: JSON.stringify({
+          input: {
+            prompt,
+            input_image: sourceImageUrl,
+            aspect_ratio: "match_input_image",
+            output_format: "jpg",
+            safety_tolerance: 2,
+            prompt_upsampling: false,
+          },
+        }),
+      }
+    )
+    const prediction = await res.json()
+    if (!res.ok || !prediction.id) {
+      const detail = prediction?.detail || prediction?.error?.message || JSON.stringify(prediction).slice(0, 400)
+      throw new Error(`flux-kontext-pro rejected (HTTP ${res.status}): ${detail}`)
+    }
+    if (prediction.status === "succeeded") {
+      const out = prediction.output
+      const url = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : (out?.url || ""))
+      if (url) return url
+    }
+    const TOKEN = Deno.env.get("REPLICATE_API_TOKEN")!
+    for (let i = 0; i < 18; i++) {
+      await new Promise((r) => setTimeout(r, 4000))
+      const pollRes = await fetch(`${REPLICATE}/predictions/${prediction.id}`, {
+        headers: { Authorization: `Token ${TOKEN}` },
+      })
+      const pollData = await pollRes.json()
+      if (pollData.status === "succeeded") {
+        const out = pollData.output
+        const url = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : (out?.url || ""))
+        if (url) return url
+        throw new Error("flux-kontext-pro succeeded but returned no URL")
+      }
+      if (pollData.status === "failed" || pollData.status === "canceled") {
+        throw new Error(`flux-kontext-pro failed: ${pollData.error || "unknown"}`)
+      }
+    }
+    throw new Error("flux-kontext-pro polling timed out")
+  } catch (kontextErr) {
+    console.error("[renderSketchToPhotoreal] flux-kontext-pro failed, trying gpt-image-2:", kontextErr)
+    // Fallback: gpt-image-2
+    return await generateWithNanoBanana(sourceImageUrl, prompt, token)
+  }
 }
 
 async function generateWithNanoBanana(
@@ -198,34 +296,35 @@ async function startVideoGeneration(
   const config = SHOT_CONFIG[shotType]
   if (!config) throw new Error(`Unknown shot type: ${shotType}`)
 
+  // Auto-promote long-form clips to Seedance 2.0 even when the shot type defaults to Kling
+  const useSeedance = config.model === "seedance" || duration >= LONG_FORM_THRESHOLD_SECONDS
+
   const prompt = `${config.motionHint} Listing video for a real estate property. Cinematic, photorealistic, smooth motion, no flicker, no morphing.`
   const negativePrompt = "No hallucinations, no invented rooms, no new objects, no people, no animals, no weather, no morphing, no warping, no flickering, no artifacts, no blurry motion, no floating objects, no distortion, no changes to lighting, no added reflections, no ghost trails, no duplicate surfaces."
 
-  const endpoint =
-    config.model === "kling"
-      ? `${REPLICATE}/models/kwaivgi/kling-v2.5-turbo-pro/predictions`
-      : `${REPLICATE}/models/bytedance/seedance-1-pro/predictions`
+  const endpoint = useSeedance
+    ? `${REPLICATE}/models/${MODEL_SEEDANCE}/predictions`
+    : `${REPLICATE}/models/${MODEL_KLING}/predictions`
 
   // Kling accepts start_image/end_image + negative_prompt.
   // Seedance Pro accepts `image` only.
-  const modelInput: Record<string, unknown> =
-    config.model === "kling"
-      ? {
-          prompt,
-          start_image: imageUrl,
-          duration,
-          aspect_ratio: "9:16",
-          negative_prompt: negativePrompt,
-        }
-      : {
-          prompt,
-          image: imageUrl,
-          duration,
-          aspect_ratio: "9:16",
-          resolution: "1080p",
-        }
+  const modelInput: Record<string, unknown> = useSeedance
+    ? {
+        prompt,
+        image: imageUrl,
+        duration,
+        aspect_ratio: "9:16",
+        resolution: "1080p",
+      }
+    : {
+        prompt,
+        start_image: imageUrl,
+        duration,
+        aspect_ratio: "9:16",
+        negative_prompt: negativePrompt,
+      }
 
-  console.log(`[generateVideo] model=${config.model} endpoint=${endpoint}`)
+  console.log(`[generateVideo] model=${useSeedance ? "seedance-2" : "kling"} endpoint=${endpoint} duration=${duration}s`)
 
   const res = await fetch(endpoint, {
     method: "POST",
@@ -563,14 +662,15 @@ serve(async (req) => {
       }
 
       // Kick off ALL clip predictions in parallel (don't await individual completions)
-      console.log(`[listing_bundle] kicking off ${photos.length} parallel Seedance predictions`)
+      // 5s per clip × 3-6 clips = 15-30s reel — enough Seedance 2.0 runtime for clean motion
+      console.log(`[listing_bundle] kicking off ${photos.length} parallel Seedance 2.0 predictions @ 5s each`)
       const startResults = await Promise.all(
         photos.map(async (url, i) => {
           try {
             const result = await startVideoGeneration(
               url,
               shotRotation[i % shotRotation.length],
-              3,
+              5,
               REPLICATE_TOKEN
             )
             return { index: i, ...result }
@@ -658,12 +758,7 @@ serve(async (req) => {
       )
 
       // Kick off video from staged image using slow_push + vibe
-      const vibePromptSuffix = vibe === "luxury" ? "Luxury aesthetic, golden hour warm light, shallow depth of field, slow deliberate motion, editorial magazine cinematic quality."
-        : vibe === "cozy" ? "Cozy intimate atmosphere, warm interior tungsten light, soft shadows, lived-in feel, gentle camera movement."
-        : vibe === "modern" ? "Modern minimalist aesthetic, cool daylight, crisp architectural lines, contemporary design language, clean motion."
-        : vibe === "family" ? "Bright friendly atmosphere, midday natural light, family-oriented warmth, welcoming, approachable cinematic feel."
-        : vibe === "investment" ? "Practical real-estate showcase, neutral even lighting, emphasis on layout and space, professional documentary style."
-        : "Vacation resort aesthetic, sunset warm palette, light breeze in foliage, escapist holiday mood, smooth gimbal-style motion."
+      const vibePromptSuffix = vibeSuffix(vibe)
 
       const result = await startVideoGeneration(
         stagedImageUrl,
@@ -720,21 +815,15 @@ serve(async (req) => {
       }
 
       const sketchImageUrl = photo_urls[0]
+      const vibeLine = vibeSuffix(selectedVibe)
 
-      // Build rendering prompt based on intent
-      const vibePromptSuffix = selectedVibe === "luxury" ? "Luxury aesthetic, golden hour warm light, shallow depth of field, slow deliberate motion, editorial magazine cinematic quality."
-        : selectedVibe === "cozy" ? "Cozy intimate atmosphere, warm interior tungsten light, soft shadows, lived-in feel, gentle camera movement."
-        : selectedVibe === "modern" ? "Modern minimalist aesthetic, cool daylight, crisp architectural lines, contemporary design language, clean motion."
-        : selectedVibe === "family" ? "Bright friendly atmosphere, midday natural light, family-oriented warmth, welcoming, approachable cinematic feel."
-        : selectedVibe === "investment" ? "Practical real-estate showcase, neutral even lighting, emphasis on layout and space, professional documentary style."
-        : "Vacation resort aesthetic, sunset warm palette, light breeze in foliage, escapist holiday mood, smooth gimbal-style motion."
-
+      // Tighter, more decisive transformation prompt — flux-kontext responds better to short instructions
       const renderPrompt = sketch_intent === "interior"
-        ? `Transform this architectural or designer sketch into a photorealistic interior render. Match the room layout, dimensions, and architectural intent of the drawing. Apply ${selectedVibe} aesthetic with appropriate furniture, materials, lighting, and finishes. Photorealistic 8K render quality, golden hour or warm interior light, magazine-grade composition. ${vibePromptSuffix}`
-        : `Transform this architectural sketch into a photorealistic exterior render of the building. Match the building's form, proportions, and architectural intent. Apply ${selectedVibe} aesthetic with appropriate landscaping, materials, time-of-day lighting, and surroundings. Photorealistic 8K render quality, magazine-grade composition. ${vibePromptSuffix}`
+        ? `Render this sketch as a photorealistic interior. Preserve the exact room geometry, walls, windows, doors, ceiling lines, and key architectural features from the drawing. Add realistic furniture, finishes, materials, soft natural light, and lived-in props in a ${selectedVibe} aesthetic. Magazine-quality interior photography. ${vibeLine}`
+        : `Render this sketch as a photorealistic exterior of the same building. Preserve the exact massing, façade composition, window placements, and rooflines from the drawing. Add realistic materials, landscaping, sky, and natural lighting in a ${selectedVibe} aesthetic. Magazine-quality architectural photography. ${vibeLine}`
 
-      // Step 1: Render sketch to photoreal with gpt-image-2
-      const photorealImageUrl = await generateWithNanoBanana(
+      // Step 1: Render sketch to photoreal with flux-kontext-pro (purpose-built for transforms)
+      const photorealImageUrl = await renderSketchToPhotoreal(
         sketchImageUrl,
         renderPrompt,
         REPLICATE_TOKEN
@@ -783,7 +872,8 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
-    // Category: floor_plan_pan
+    // Category: floor_plan_pan — Floor plan / axonometric → photoreal walkthrough
+    // (Match user's reference flow: drawing → animated photoreal interior)
     if (category === "floor_plan_pan") {
       const { shot_type: selectedShotType, vibe: selectedVibe } = body
 
@@ -796,21 +886,21 @@ serve(async (req) => {
       }
 
       const floorPlanUrl = photo_urls[0]
-      const shotConfig = SHOT_CONFIG[selectedShotType]
+      const vibeLine = vibeSuffix(selectedVibe)
 
-      // Build vibe suffix
-      const vibePromptSuffix = selectedVibe === "luxury" ? "Luxury aesthetic, golden hour warm light, shallow depth of field, slow deliberate motion, editorial magazine cinematic quality."
-        : selectedVibe === "cozy" ? "Cozy intimate atmosphere, warm interior tungsten light, soft shadows, lived-in feel, gentle camera movement."
-        : selectedVibe === "modern" ? "Modern minimalist aesthetic, cool daylight, crisp architectural lines, contemporary design language, clean motion."
-        : selectedVibe === "family" ? "Bright friendly atmosphere, midday natural light, family-oriented warmth, welcoming, approachable cinematic feel."
-        : selectedVibe === "investment" ? "Practical real-estate showcase, neutral even lighting, emphasis on layout and space, professional documentary style."
-        : "Vacation resort aesthetic, sunset warm palette, light breeze in foliage, escapist holiday mood, smooth gimbal-style motion."
+      // Step 1: Render the floor plan / axonometric drawing into a photorealistic
+      // interior scene. flux-kontext preserves the layout while adding light + materials.
+      const renderPrompt = `Render this floor plan or axonometric architectural drawing as a photorealistic interior scene from a natural eye-level perspective. Preserve the exact room geometry, wall placements, window and door positions, and circulation. Furnish the space appropriately, add realistic materials and finishes, and natural daylight in a ${selectedVibe} aesthetic. Magazine-quality interior photography, soft shadows, depth of field. ${vibeLine}`
 
-      const panPrompt = `Cinematic camera move across this 2D architectural floor plan. ${shotConfig.motionHint}. Maintain the floor plan's clarity and 2D drafting aesthetic — do not transform it into 3D or photoreal. Slow, deliberate, magazine-grade animation suitable for a luxury real estate listing. ${vibePromptSuffix}`
-
-      // Kick off video directly (no image generation)
-      const result = await startVideoGeneration(
+      const photorealUrl = await renderSketchToPhotoreal(
         floorPlanUrl,
+        renderPrompt,
+        REPLICATE_TOKEN
+      )
+
+      // Step 2: Animate the photoreal render with the user's chosen camera move.
+      const result = await startVideoGeneration(
+        photorealUrl,
         selectedShotType,
         5,
         REPLICATE_TOKEN
