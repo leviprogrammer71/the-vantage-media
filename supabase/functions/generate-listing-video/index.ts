@@ -77,56 +77,105 @@ async function generateWithNanoBanana(
   effectPrompt: string,
   token: string
 ): Promise<string> {
-  // google/nano-banana = Gemini 2.5 Flash Image. Faster than gpt-image-2, cleaner edits, accepts any aspect ratio.
-  const res = await fetch(
-    `${REPLICATE}/models/google/nano-banana/predictions`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Token ${token}`,
-        "Content-Type": "application/json",
-        Prefer: "wait=60",
-      },
-      body: JSON.stringify({
-        input: {
-          prompt: effectPrompt,
-          image_input: [imageUrl],
-          output_format: "jpg",
+  // PRIMARY: openai/gpt-image-2 — best at rendering text-on-signs (real estate signage)
+  // FALLBACK: google/nano-banana for non-text edits if gpt-image-2 fails
+  // Function name kept for backwards compatibility.
+
+  // gpt-image-2 only accepts 1:1, 3:2, 2:3 — listing photos are vertical so use 2:3
+  try {
+    const res = await fetch(
+      `${REPLICATE}/models/openai/gpt-image-2/predictions`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${token}`,
+          "Content-Type": "application/json",
+          Prefer: "wait=60",
         },
-      }),
+        body: JSON.stringify({
+          input: {
+            prompt: effectPrompt,
+            input_images: [imageUrl],
+            aspect_ratio: "2:3",
+          },
+        }),
+      }
+    )
+
+    const prediction = await res.json()
+    if (!res.ok || !prediction.id) {
+      const detail = prediction?.detail || prediction?.error?.message || JSON.stringify(prediction).slice(0, 400)
+      throw new Error(`gpt-image-2 rejected (HTTP ${res.status}): ${detail}`)
     }
-  )
 
-  const prediction = await res.json()
-  if (!res.ok || !prediction.id) {
-    const detail = prediction?.detail || prediction?.error?.message || JSON.stringify(prediction).slice(0, 400)
-    throw new Error(`nano-banana rejected the request (HTTP ${res.status}): ${detail}`)
-  }
-
-  if (prediction.status === "succeeded") {
-    const out = prediction.output
-    return typeof out === "string" ? out : (Array.isArray(out) ? out[0] : "")
-  }
-
-  // Bounded poll — nano-banana usually finishes in 5-15s.
-  const TOKEN = Deno.env.get("REPLICATE_API_TOKEN")!
-  for (let i = 0; i < 12; i++) {
-    await new Promise((r) => setTimeout(r, 4000))
-    const pollRes = await fetch(`${REPLICATE}/predictions/${prediction.id}`, {
-      headers: { Authorization: `Token ${TOKEN}` },
-    })
-    const pollData = await pollRes.json()
-    if (pollData.status === "succeeded") {
-      const out = pollData.output
-      const url = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : "")
+    if (prediction.status === "succeeded") {
+      const out = prediction.output
+      const url = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : (out?.url || ""))
       if (url) return url
-      throw new Error("nano-banana succeeded but returned no URL")
     }
-    if (pollData.status === "failed" || pollData.status === "canceled") {
-      throw new Error(`nano-banana failed: ${pollData.error || "unknown"}`)
+
+    // Bounded poll — gpt-image-2 usually finishes in 20-30s.
+    const TOKEN = Deno.env.get("REPLICATE_API_TOKEN")!
+    for (let i = 0; i < 12; i++) {
+      await new Promise((r) => setTimeout(r, 4000))
+      const pollRes = await fetch(`${REPLICATE}/predictions/${prediction.id}`, {
+        headers: { Authorization: `Token ${TOKEN}` },
+      })
+      const pollData = await pollRes.json()
+      if (pollData.status === "succeeded") {
+        const out = pollData.output
+        const url = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : (out?.url || ""))
+        if (url) return url
+        throw new Error("gpt-image-2 succeeded but returned no URL")
+      }
+      if (pollData.status === "failed" || pollData.status === "canceled") {
+        throw new Error(`gpt-image-2 failed: ${pollData.error || "unknown"}`)
+      }
     }
+    throw new Error("gpt-image-2 took longer than expected")
+  } catch (gptErr) {
+    console.error("[generateWithNanoBanana] gpt-image-2 failed, trying nano-banana fallback:", gptErr)
+    // Fallback to nano-banana for non-text edits
+    const res = await fetch(
+      `${REPLICATE}/models/google/nano-banana/predictions`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${token}`,
+          "Content-Type": "application/json",
+          Prefer: "wait=60",
+        },
+        body: JSON.stringify({
+          input: { prompt: effectPrompt, image_input: [imageUrl], output_format: "jpg" },
+        }),
+      }
+    )
+    const prediction = await res.json()
+    if (!res.ok || !prediction.id) {
+      throw new Error(`Both gpt-image-2 and nano-banana failed. Last error: ${(gptErr as Error).message}`)
+    }
+    if (prediction.status === "succeeded") {
+      const out = prediction.output
+      return typeof out === "string" ? out : (Array.isArray(out) ? out[0] : "")
+    }
+    const TOKEN = Deno.env.get("REPLICATE_API_TOKEN")!
+    for (let i = 0; i < 12; i++) {
+      await new Promise((r) => setTimeout(r, 4000))
+      const pollRes = await fetch(`${REPLICATE}/predictions/${prediction.id}`, {
+        headers: { Authorization: `Token ${TOKEN}` },
+      })
+      const pollData = await pollRes.json()
+      if (pollData.status === "succeeded") {
+        const out = pollData.output
+        const url = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : "")
+        if (url) return url
+      }
+      if (pollData.status === "failed" || pollData.status === "canceled") {
+        throw new Error(`Both image models failed. gpt-image-2: ${(gptErr as Error).message}. nano-banana: ${pollData.error || "unknown"}`)
+      }
+    }
+    throw new Error("Image generation timed out on both models")
   }
-  throw new Error("nano-banana took longer than expected — try again or skip the realistic sign effect")
 }
 
 // Returns either { videoUrl } if Replicate finished within wait window,
