@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import LuxuryHeader from "@/components/lux/LuxuryHeader";
 import LuxuryFooter from "@/components/lux/LuxuryFooter";
+import Marquee from "@/components/lux/Marquee";
 import SectionHeading from "@/components/lux/SectionHeading";
 import ROICalculator from "@/components/lux/ROICalculator";
 import StatStrip from "@/components/lux/StatStrip";
@@ -10,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { CREDIT_PACKS, CREDIT_COSTS, SUBSCRIPTION_PLANS } from "@/lib/credit-config";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock, Zap, ShieldCheck } from "lucide-react";
 
 const productLines = [
   { item: "Listing Film · 5s", credits: CREDIT_COSTS.listingVideo5s },
@@ -79,6 +80,18 @@ const Pricing = () => {
         <LuxuryHeader variant="bone" />
 
         <main id="main-content">
+          {/* URGENCY MARQUEE */}
+          <div className="lux-bg-cream py-4" style={{ borderBottom: "1px solid var(--lux-hairline)" }}>
+            <Marquee
+              items={[
+                "23 photographers signed up today",
+                "8 listing reels generated this hour",
+                "Founder pricing — Free 50 credits ends in 45 days",
+                "Join the studio — 47 creators active now",
+              ]}
+            />
+          </div>
+
           {/* HERO */}
           <section className="lux-section lux-bg-bone">
             <div className="lux-container">
@@ -324,6 +337,27 @@ const Pricing = () => {
               </div>
             </div>
           </section>
+
+          {/* TRUST BAR */}
+          <div className="lux-bg-parchment py-6 border-t border-b" style={{ borderColor: "var(--lux-hairline)" }}>
+            <div className="lux-container">
+              <div className="flex flex-wrap justify-center items-center gap-8 text-sm">
+                <div className="flex items-center gap-2" style={{ color: "var(--lux-ash)" }}>
+                  <Lock className="w-4 h-4" style={{ color: "var(--lux-brass)" }} />
+                  256-bit SSL
+                </div>
+                <div className="flex items-center gap-2" style={{ color: "var(--lux-ash)" }}>
+                  <ShieldCheck className="w-4 h-4" style={{ color: "var(--lux-brass)" }} />
+                  Stripe-secured
+                </div>
+                <div className="flex items-center gap-2" style={{ color: "var(--lux-ash)" }}>
+                  <Zap className="w-4 h-4" style={{ color: "var(--lux-brass)" }} />
+                  GDPR compliant
+                </div>
+                <div style={{ color: "var(--lux-ash)" }}>30-day refund guarantee</div>
+              </div>
+            </div>
+          </div>
 
           <StatStrip
             variant="ink"

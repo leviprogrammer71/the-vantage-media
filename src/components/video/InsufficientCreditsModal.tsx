@@ -26,40 +26,42 @@ export function InsufficientCreditsModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-sm rounded-none" style={{ background: "#1A1A1A", border: "1px solid #333" }}>
+      <DialogContent className="sm:max-w-sm rounded-none lux-bg-ink" style={{ border: "1px solid var(--lux-hairline-strong)" }}>
         <DialogHeader className="text-center items-center">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center mb-2" style={{ background: "rgba(232,197,71,0.15)" }}>
-            <AlertCircle className="h-6 w-6" style={{ color: "#E8C547" }} />
+          <div className="w-12 h-12 rounded-full flex items-center justify-center mb-2" style={{ background: "rgba(201, 169, 110, 0.15)" }}>
+            <AlertCircle className="h-6 w-6" style={{ color: "var(--lux-champagne)" }} />
           </div>
-          <DialogTitle className="text-lg font-bold tracking-tight" style={{ color: "#ffffff" }}>
+          <DialogTitle className="lux-display text-lg" style={{ color: "var(--lux-bone)" }}>
             NOT ENOUGH CREDITS
           </DialogTitle>
-          <DialogDescription className="text-sm space-y-1" style={{ color: "#AAAAAA" }}>
+          <DialogDescription className="lux-prose text-sm space-y-1 mt-3" style={{ color: "var(--lux-smoke)" }}>
             <span className="block">
-              This video needs <span className="font-semibold" style={{ color: "#ffffff" }}>{required} credits</span>.
+              This video needs <span className="font-semibold" style={{ color: "var(--lux-champagne)" }}>{required} credits</span>.
             </span>
             <span className="block">
-              You have <span className="font-semibold" style={{ color: "#ffffff" }}>{available} credits</span> remaining.
+              You have <span className="font-semibold" style={{ color: "var(--lux-champagne)" }}>{available} credits</span> remaining.
             </span>
-            <span className="block font-semibold" style={{ color: "#E8C547" }}>
+            <span className="block font-semibold" style={{ color: "var(--lux-rust)" }}>
               You're {short} credits short.
             </span>
           </DialogDescription>
         </DialogHeader>
-        <div className="flex gap-3 mt-4">
-          <Button
-            variant="outline"
+        <div className="flex gap-3 mt-6">
+          <button
             onClick={onClose}
-            className="flex-1 rounded-none"
-            style={{ borderColor: "#333", color: "#AAAAAA" }}
+            className="lux-btn-ghost flex-1"
+            style={{ borderColor: "var(--lux-hairline-strong)", color: "var(--lux-bone)" }}
           >
             Cancel
-          </Button>
-          <Button asChild className="flex-1 rounded-none" style={{ background: "#E8C547", color: "#0A0A0A" }}>
-            <Link to="/pricing" onClick={onClose}>
-              GET MORE CREDITS →
-            </Link>
-          </Button>
+          </button>
+          <Link
+            to="/pricing"
+            onClick={onClose}
+            className="lux-btn flex-1 text-center"
+            style={{ background: "var(--lux-rust)", color: "var(--lux-bone)", border: "1px solid var(--lux-rust)" }}
+          >
+            GET MORE CREDITS →
+          </Link>
         </div>
       </DialogContent>
     </Dialog>

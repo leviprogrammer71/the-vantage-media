@@ -1,5 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import LuxuryHeader from "@/components/lux/LuxuryHeader";
 import LuxuryFooter from "@/components/lux/LuxuryFooter";
 import EditorialHero from "@/components/lux/EditorialHero";
@@ -34,6 +35,15 @@ const ux = {
 
 const Index = () => {
   const { destination, isLoggedIn } = useSmartCTA();
+
+  // Live counter: base 47 + 3 per hour since midnight
+  const [liveCount, setLiveCount] = useState(47);
+  useEffect(() => {
+    const now = new Date();
+    const hoursSinceMidnight = now.getHours() + now.getMinutes() / 60;
+    const count = 47 + Math.floor(hoursSinceMidnight * 3);
+    setLiveCount(count);
+  }, []);
 
   return (
     <>
@@ -158,11 +168,15 @@ const Index = () => {
                 <Link
                   to={destination}
                   className="lux-btn"
+                  style={{ background: "var(--lux-ink)", color: "var(--lux-bone)" }}
                 >
                   {isLoggedIn ? "ENTER THE STUDIO →" : "BEGIN A FILM — FREE →"}
                 </Link>
                 <p className="lux-eyebrow mt-6" style={{ color: "var(--lux-ash)" }}>
                   50 CREDITS GRATIS · NO CARD · INSTANT ACCESS
+                </p>
+                <p className="lux-prose text-sm mt-3" style={{ color: "var(--lux-brass)" }}>
+                  ✦ {liveCount} studios began a film today
                 </p>
               </div>
             </div>

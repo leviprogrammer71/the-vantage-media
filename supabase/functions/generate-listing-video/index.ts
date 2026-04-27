@@ -127,6 +127,27 @@ async function generateVideo(
       ? `${REPLICATE}/models/kwaivgi/kling-v2.5-turbo-pro/predictions`
       : `${REPLICATE}/models/bytedance/seedance-1-pro/predictions`
 
+  // Kling accepts start_image/end_image + negative_prompt.
+  // Seedance Pro accepts `image` only.
+  const modelInput: Record<string, unknown> =
+    config.model === "kling"
+      ? {
+          prompt,
+          start_image: imageUrl,
+          duration,
+          aspect_ratio: "9:16",
+          negative_prompt: negativePrompt,
+        }
+      : {
+          prompt,
+          image: imageUrl,
+          duration,
+          aspect_ratio: "9:16",
+          resolution: "1080p",
+        }
+
+  console.log(`[generateVideo] model=${config.model} endpoint=${endpoint}`)
+
   const res = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -134,15 +155,7 @@ async function generateVideo(
       "Content-Type": "application/json",
       Prefer: "wait=60",
     },
-    body: JSON.stringify({
-      input: {
-        prompt,
-        start_image: imageUrl,
-        duration,
-        aspect_ratio: "9:16",
-        negative_prompt: negativePrompt,
-      },
-    }),
+    body: JSON.stringify({ input: modelInput }),
   })
 
   const prediction = await res.json()
@@ -179,90 +192,207 @@ serve(async (req) => {
 
   try {
     const {
-      mode,
+      category,
       photo_urls,
       shot_type,
       effect_id,
       effect_mode,
+      listing,
       duration,
       credits_cost,
     } = await req.json()
 
     // Validate
-    if (!mode || !photo_urls || photo_urls.length === 0) {
-      throw new Error("mode and photo_urls required")
+    if (!category || !photo_urls || photo_urls.length === 0) {
+      throw new Error("category and photo_urls required")
     }
 
-    if (mode !== "single" && mode !== "compilation") {
-      throw new Error("mode must be 'single' or 'compilation'")
+    if (!["animate_single", "sun_to_sun", "listing_bundle"].includes(category)) {
+      throw new Error("category must be animate_single, sun_to_sun, or listing_bundle")
     }
 
-    if (mode === "single" && photo_urls.length !== 1) {
-      throw new Error("single mode requires exactly 1 photo")
+    if (category === "animate_single" && !shot_type) {
+      throw new Error("animate_single requires shot_type")
     }
 
-    if (mode === "compilation" && (photo_urls.length < 3 || photo_urls.length > 6)) {
-      throw new Error("compilation mode requires 3-6 photos")
-    }
+    // Category: animate_single
+    if (category === "animate_single") {
+      let sourceImageUrl = photo_urls[0]
 
-    // Start with the first photo
-    let sourceImageUrl = photo_urls[0]
+      // Apply effect if realistic
+      if (effect_id !== "none" && effect_mode === "realistic") {
+        const effectPrompt = EFFECT_PROMPTS[effect_id]
+        if (!effectPrompt) throw new Error(`Unknown effect: ${effect_id}`)
+        sourceImageUrl = await generateWithGptImage(
+          sourceImageUrl,
+          effectPrompt,
+          REPLICATE_TOKEN
+        )
+      }
 
-    // Step 1: Apply effect with GPT-Image-2 if realistic mode
-    if (effect_id !== "none" && effect_mode === "realistic") {
-      const effectPrompt = EFFECT_PROMPTS[effect_id]
-      if (!effectPrompt) throw new Error(`Unknown effect: ${effect_id}`)
-      sourceImageUrl = await generateWithGptImage(
+      // Generate single video
+      const videoUrl = await generateVideo(
         sourceImageUrl,
-        effectPrompt,
+        shot_type,
+        duration || 8,
         REPLICATE_TOKEN
+      )
+
+      // Store permanently
+      let outputVideoPath: string | null = null
+      try {
+        const videoFetch = await fetch(videoUrl)
+        const videoBuffer = await videoFetch.arrayBuffer()
+        const videoPath = `listing-videos/${Date.now()}/video.mp4`
+        await supabase.storage
+          .from("project-submissions")
+          .upload(videoPath, videoBuffer, { contentType: "video/mp4", upsert: true })
+        outputVideoPath = videoPath
+      } catch (storageErr) {
+        console.error("Failed to store video:", storageErr)
+      }
+
+      const response: any = {
+        category,
+        video_url: videoUrl,
+        clip_urls: [videoUrl],
+        output_video_path: outputVideoPath,
+        listing,
+      }
+      if (effect_id !== "none" && effect_mode === "quick") {
+        response.quick_effect = QUICK_EFFECT_BADGES[effect_id]
+      }
+      return new Response(JSON.stringify(response), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
+    // Category: sun_to_sun
+    if (category === "sun_to_sun") {
+      const firstPhotoUrl = photo_urls[0]
+
+      // Generate 4 time-of-day variants with gpt-image-2
+      const sunsetPrompt = `Render this same scene at golden hour magic light, the late afternoon sun low on the horizon, warm orange glow on the building, long shadows cast across the lawn, sky in soft amber and pink. Keep all building geometry and landscaping identical.`
+
+      const goldenUrl = await generateWithGptImage(
+        firstPhotoUrl,
+        sunsetPrompt,
+        REPLICATE_TOKEN
+      )
+
+      // Use Kling 2.5 Turbo Pro to animate from original to golden hour
+      const videoUrl = await animatePhotoTransition(
+        firstPhotoUrl,
+        goldenUrl,
+        "slow drift, cinematic lighting transition, 12 seconds",
+        12,
+        REPLICATE_TOKEN
+      )
+
+      // Store
+      let outputVideoPath: string | null = null
+      try {
+        const videoFetch = await fetch(videoUrl)
+        const videoBuffer = await videoFetch.arrayBuffer()
+        const videoPath = `listing-videos/${Date.now()}/video.mp4`
+        await supabase.storage
+          .from("project-submissions")
+          .upload(videoPath, videoBuffer, { contentType: "video/mp4", upsert: true })
+        outputVideoPath = videoPath
+      } catch (storageErr) {
+        console.error("Failed to store video:", storageErr)
+      }
+
+      return new Response(
+        JSON.stringify({
+          category,
+          video_url: videoUrl,
+          clip_urls: [videoUrl],
+          output_video_path: outputVideoPath,
+          listing,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       )
     }
 
-    // Step 2: Generate video
-    const videoUrl = await generateVideo(
-      sourceImageUrl,
-      shot_type,
-      duration,
-      REPLICATE_TOKEN
-    )
+    // Category: listing_bundle
+    if (category === "listing_bundle") {
+      const clipUrls: string[] = []
+      const shotRotation = ["slow_push", "parallax_pan", "reveal_rise", "architectural", "establishing", "drone_orbit"]
+      const clipPrompts = [
+        "Slow dolly camera push-in, cinematic listing video, photorealistic, smooth motion",
+        "Lateral parallax pan with depth shift, cinematic real estate property, smooth motion",
+        "Camera rises vertically revealing the space, listing video, photorealistic",
+        "Clean architectural slider pan, horizontal precision, real estate, cinematic",
+        "Slow pull-back establishing shot, wide reveal, property listing, cinematic",
+        "Slow aerial orbit around the subject, drone motion, listing property, cinematic",
+      ]
 
-    // Step 3: Download and store video permanently
-    let outputVideoPath: string | null = null
-    try {
-      const videoFetch = await fetch(videoUrl)
-      const videoBuffer = await videoFetch.arrayBuffer()
-      const videoPath = `listing-videos/${Date.now()}/video.mp4`
+      // Generate one video per photo
+      for (let i = 0; i < photo_urls.length && i < 6; i++) {
+        let photoUrl = photo_urls[i]
 
-      await supabase.storage
-        .from("project-submissions")
-        .upload(videoPath, videoBuffer, {
-          contentType: "video/mp4",
-          upsert: true,
-        })
+        // Apply effect to first photo only
+        if (i === 0 && effect_id !== "none" && effect_mode === "realistic") {
+          const effectPrompt = EFFECT_PROMPTS[effect_id]
+          if (effectPrompt) {
+            photoUrl = await generateWithGptImage(photoUrl, effectPrompt, REPLICATE_TOKEN)
+          }
+        }
 
-      outputVideoPath = videoPath
-    } catch (storageErr) {
-      console.error("Failed to store video permanently:", storageErr)
+        const shotIdx = i % shotRotation.length
+        const clipPrompt = clipPrompts[shotIdx]
+
+        try {
+          const clipUrl = await generateVideo(
+            photoUrl,
+            shotRotation[shotIdx] as any,
+            3,
+            REPLICATE_TOKEN
+          )
+          clipUrls.push(clipUrl)
+        } catch (clipErr) {
+          console.error(`Clip ${i} failed:`, clipErr)
+        }
+      }
+
+      if (clipUrls.length === 0) {
+        throw new Error("Failed to generate any video clips")
+      }
+
+      // Store all clips
+      const clipPaths: string[] = []
+      for (let i = 0; i < clipUrls.length; i++) {
+        try {
+          const clipFetch = await fetch(clipUrls[i])
+          const clipBuffer = await clipFetch.arrayBuffer()
+          const clipPath = `listing-videos/${Date.now()}/clip-${i}.mp4`
+          await supabase.storage
+            .from("project-submissions")
+            .upload(clipPath, clipBuffer, { contentType: "video/mp4", upsert: true })
+          clipPaths.push(clipPath)
+        } catch (storageErr) {
+          console.error(`Failed to store clip ${i}:`, storageErr)
+        }
+      }
+
+      // Return first clip as primary video URL for UI
+      const response: any = {
+        category,
+        video_url: clipUrls[0],
+        clip_urls: clipUrls,
+        output_clip_paths: clipPaths,
+        listing,
+      }
+      if (effect_id !== "none" && effect_mode === "quick") {
+        response.quick_effect = QUICK_EFFECT_BADGES[effect_id]
+      }
+      return new Response(JSON.stringify(response), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
-    // Build response
-    const response: any = {
-      video_url: videoUrl,
-      output_video_path: outputVideoPath,
-      mode,
-      shot_type,
-      effect_id,
-      effect_mode,
-    }
-
-    if (effect_id !== "none" && effect_mode === "quick") {
-      response.quick_effect = QUICK_EFFECT_BADGES[effect_id]
-    }
-
-    return new Response(JSON.stringify(response), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    })
+    throw new Error("Unknown category")
   } catch (err) {
     console.error("Error:", err)
     return new Response(
@@ -271,3 +401,50 @@ serve(async (req) => {
     )
   }
 })
+
+// Helper: Animate transition between two photos using Kling
+async function animatePhotoTransition(
+  startImageUrl: string,
+  endImageUrl: string,
+  motionPrompt: string,
+  duration: number,
+  token: string
+): Promise<string> {
+  const prompt = `${motionPrompt} Cinematic real estate listing video. Photorealistic. Smooth transition.`
+  const negativePrompt = "No hallucinations, no invented objects, no people, no animals, no morphing, no flicker"
+
+  const res = await fetch(
+    "https://api.replicate.com/v1/models/kwaivgi/kling-v2.5-turbo-pro/predictions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${token}`,
+        "Content-Type": "application/json",
+        Prefer: "wait=60",
+      },
+      body: JSON.stringify({
+        input: {
+          prompt,
+          start_image: startImageUrl,
+          end_image: endImageUrl,
+          duration,
+          aspect_ratio: "9:16",
+          negative_prompt: negativePrompt,
+        },
+      }),
+    }
+  )
+
+  const prediction = await res.json()
+  if (!res.ok || !prediction.id) {
+    throw new Error(`Kling failed: ${JSON.stringify(prediction)}`)
+  }
+
+  if (prediction.status === "succeeded") {
+    return typeof prediction.output === "string"
+      ? prediction.output
+      : prediction.output?.[0]
+  }
+
+  return await pollReplicate(prediction.id)
+}
