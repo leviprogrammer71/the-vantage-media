@@ -8,50 +8,47 @@ const corsHeaders = {
 }
 
 const REPLICATE = "https://api.replicate.com/v1"
-const OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
 
-async function callAI(
-  apiKey: string,
-  systemPrompt: string,
-  userText: string,
-  imageUrls: string[] = []
-): Promise<string> {
-  let userContent: any
-  if (imageUrls.length > 0) {
-    const parts: any[] = []
-    for (const url of imageUrls) {
-      parts.push({ type: "image_url", image_url: { url } })
-    }
-    parts.push({ type: "text", text: userText })
-    userContent = parts
-  } else {
-    userContent = userText
-  }
+const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: string }> = {
+  slow_push: {
+    model: "kling",
+    motionHint: "Slow dolly camera push-in on the subject, steady and cinematic.",
+  },
+  drone_orbit: {
+    model: "seedance",
+    motionHint: "Slow aerial orbit 60° around the subject at elevated angle, smooth drone motion.",
+  },
+  parallax_pan: {
+    model: "kling",
+    motionHint: "Lateral parallax pan moving slowly left to right with foreground/background depth shift.",
+  },
+  reveal_rise: {
+    model: "kling",
+    motionHint: "Camera rises vertically from low to eye height, revealing the composition.",
+  },
+  architectural: {
+    model: "seedance",
+    motionHint: "Clean architectural slider pan, perfectly horizontal, no rotation.",
+  },
+  establishing: {
+    model: "seedance",
+    motionHint: "Slow pull-back dolly from tight composition to wide establishing shot.",
+  },
+}
 
-  const res = await fetch(OPENROUTER, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": "https://thevantage.co",
-      "X-Title": "The Vantage"
-    },
-    body: JSON.stringify({
-      model: "openai/gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userContent }
-      ],
-      max_tokens: 600,
-      temperature: 0.7
-    })
-  })
+const EFFECT_PROMPTS: Record<string, string> = {
+  none: "",
+  just_listed: "A realistic 'JUST LISTED' real estate yard sign on a metal frame, planted in the lawn or grass area in the foreground of the scene, photorealistic, weathered finish, in scale with the building, evenly lit.",
+  open_house: "A realistic 'OPEN HOUSE' real estate sandwich-board sign positioned near the front entrance walkway of the property, photorealistic, weathered finish, in scale with the scene.",
+  for_sale: "A realistic 'FOR SALE' real estate yard sign on a metal frame, planted in the lawn or grass area in front of the building, photorealistic, weathered finish, in scale with the scene.",
+  sold: "A realistic 'SOLD' real estate yard sign with a SOLD sticker across it, planted in the lawn or grass area, photorealistic, weathered finish, in scale with the scene.",
+}
 
-  const data = await res.json()
-  if (!res.ok) throw new Error(`OpenRouter error ${res.status}: ${JSON.stringify(data)}`)
-  const text = data.choices?.[0]?.message?.content?.trim()
-  if (!text) throw new Error(`OpenRouter returned no content: ${JSON.stringify(data)}`)
-  return text
+const QUICK_EFFECT_BADGES: Record<string, { label: string; color: string }> = {
+  just_listed: { label: "JUST LISTED", color: "#8C3F2E" },
+  open_house: { label: "OPEN HOUSE THIS WEEKEND", color: "#0E0E0C" },
+  for_sale: { label: "FOR SALE", color: "#8C3F2E" },
+  sold: { label: "SOLD", color: "#0E0E0C" },
 }
 
 async function pollReplicate(predictionId: string, maxAttempts = 120): Promise<string> {
@@ -75,16 +72,102 @@ async function pollReplicate(predictionId: string, maxAttempts = 120): Promise<s
   throw new Error("Replicate prediction timed out")
 }
 
+async function generateWithGptImage(
+  imageUrl: string,
+  effectPrompt: string,
+  token: string
+): Promise<string> {
+  const res = await fetch(
+    `${REPLICATE}/models/openai/gpt-image-2/predictions`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${token}`,
+        "Content-Type": "application/json",
+        Prefer: "wait=60",
+      },
+      body: JSON.stringify({
+        input: {
+          input_images: [imageUrl],
+          prompt: effectPrompt,
+          aspect_ratio: "2:3", // 9:16 mapped to 2:3 for gpt-image-2
+        },
+      }),
+    }
+  )
+
+  const prediction = await res.json()
+  if (!res.ok || !prediction.id) {
+    throw new Error(`GPT-Image-2 failed: ${JSON.stringify(prediction)}`)
+  }
+
+  if (prediction.status === "succeeded") {
+    return typeof prediction.output === "string"
+      ? prediction.output
+      : prediction.output?.[0]
+  }
+
+  return await pollReplicate(prediction.id)
+}
+
+async function generateVideo(
+  imageUrl: string,
+  shotType: string,
+  duration: number,
+  token: string
+): Promise<string> {
+  const config = SHOT_CONFIG[shotType]
+  if (!config) throw new Error(`Unknown shot type: ${shotType}`)
+
+  const prompt = `${config.motionHint} Listing video for a real estate property. Cinematic, photorealistic, smooth motion, no flicker, no morphing.`
+  const negativePrompt = "No hallucinations, no invented rooms, no new objects, no people, no animals, no weather, no morphing, no warping, no flickering, no artifacts, no blurry motion, no floating objects, no distortion, no changes to lighting, no added reflections, no ghost trails, no duplicate surfaces."
+
+  const endpoint =
+    config.model === "kling"
+      ? `${REPLICATE}/models/kwaivgi/kling-v2.5-turbo-pro/predictions`
+      : `${REPLICATE}/models/bytedance/seedance-1-pro/predictions`
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Token ${token}`,
+      "Content-Type": "application/json",
+      Prefer: "wait=60",
+    },
+    body: JSON.stringify({
+      input: {
+        prompt,
+        start_image: imageUrl,
+        duration,
+        aspect_ratio: "9:16",
+        negative_prompt: negativePrompt,
+      },
+    }),
+  })
+
+  const prediction = await res.json()
+  if (!res.ok || !prediction.id) {
+    throw new Error(`Video generation failed: ${JSON.stringify(prediction)}`)
+  }
+
+  if (prediction.status === "succeeded") {
+    return typeof prediction.output === "string"
+      ? prediction.output
+      : prediction.output?.[0]
+  }
+
+  return await pollReplicate(prediction.id)
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
   }
 
   const REPLICATE_TOKEN = Deno.env.get("REPLICATE_API_TOKEN")
-  const OPENROUTER_KEY = Deno.env.get("OPENROUTER_API_KEY")
-  if (!REPLICATE_TOKEN || !OPENROUTER_KEY) {
+  if (!REPLICATE_TOKEN) {
     return new Response(
-      JSON.stringify({ error: "Missing API keys" }),
+      JSON.stringify({ error: "Missing REPLICATE_API_TOKEN" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
   }
@@ -95,105 +178,61 @@ serve(async (req) => {
   )
 
   try {
-    const { image_url, scene_type, motion_style, format, duration, submission_id } = await req.json()
+    const {
+      mode,
+      photo_urls,
+      shot_type,
+      effect_id,
+      effect_mode,
+      duration,
+      credits_cost,
+    } = await req.json()
 
-    if (!image_url) throw new Error("image_url required")
-
-    // Mark submission as generating
-    if (submission_id) {
-      await supabase
-        .from("submissions")
-        .update({ status: "in progress", prompt_status: "generating" })
-        .eq("id", submission_id)
+    // Validate
+    if (!mode || !photo_urls || photo_urls.length === 0) {
+      throw new Error("mode and photo_urls required")
     }
 
-    // GPT-4o writes the Kling listing video prompt
-    const listingSystemPrompt = `You write cinematic real estate showcase prompts for Kling 2.5 Turbo Pro image-to-video. The camera is the ONLY thing that moves. No people. No objects. No weather. No changes. Only the camera travels through the space.
+    if (mode !== "single" && mode !== "compilation") {
+      throw new Error("mode must be 'single' or 'compilation'")
+    }
 
-WHAT THE CAMERA CAN DO:
-  Move forward or backward along a straight path
-  Pan left or right on a fixed axis
-  Tilt up or down on a fixed axis
-  Rise or descend on a vertical axis
-  Travel along a curved arc path
-  Dolly along a wall or counter
+    if (mode === "single" && photo_urls.length !== 1) {
+      throw new Error("single mode requires exactly 1 photo")
+    }
 
-WHAT THE CAMERA CANNOT DO:
-  Create rooms that do not exist in the photo
-  Show spaces outside the frame of the photo
-  Make objects appear, move, or disappear
-  Bring people into the scene
-  Change lighting beyond what exists in photo
-  Add weather, wind, rain, or atmosphere
-  Create reflections not already in the photo
+    if (mode === "compilation" && (photo_urls.length < 3 || photo_urls.length > 6)) {
+      throw new Error("compilation mode requires 3-6 photos")
+    }
 
-PHYSICS OF CAMERA MOVEMENT:
-  The camera has weight and momentum. It starts moving slowly, reaches full speed in the middle, and slows before stopping. It never jerks or changes direction suddenly. It passes objects at correct parallax speed: near objects pass faster than far objects. The frame never tilts unless intentionally described as a tilt move.
+    // Start with the first photo
+    let sourceImageUrl = photo_urls[0]
 
-NEGATIVE PROMPT — always output this on a new line at the end, verbatim:
-  "No hallucinations, no invented rooms, no new objects, no people, no animals, no weather, no morphing, no warping, no flickering, no artifacts, no blurry motion, no floating objects, no distortion, no changes to lighting, no added reflections, no ghost trails, no duplicate surfaces."
+    // Step 1: Apply effect with GPT-Image-2 if realistic mode
+    if (effect_id !== "none" && effect_mode === "realistic") {
+      const effectPrompt = EFFECT_PROMPTS[effect_id]
+      if (!effectPrompt) throw new Error(`Unknown effect: ${effect_id}`)
+      sourceImageUrl = await generateWithGptImage(
+        sourceImageUrl,
+        effectPrompt,
+        REPLICATE_TOKEN
+      )
+    }
 
-OUTPUT FORMAT:
-  Prompt: [50-60 words describing the camera movement through the visible space only]
-  Negative: [the full negative prompt above]
-
-Output ONLY the prompt and negative prompt, nothing else.`
-
-    const videoPrompt = await callAI(
-      OPENROUTER_KEY,
-      listingSystemPrompt,
-      `Scene type: ${scene_type || "exterior"}
-Motion style: ${motion_style || "slow_push"}
-This is a real estate photo. Write a Kling prompt for a smooth cinematic camera move through this exact space. Only animate what is visible. No new content.`,
-      [image_url]
+    // Step 2: Generate video
+    const videoUrl = await generateVideo(
+      sourceImageUrl,
+      shot_type,
+      duration,
+      REPLICATE_TOKEN
     )
 
-    const aspectRatio = format === "MLS" ? "16:9" : "9:16"
-    const dur = parseInt(duration) || 5
-
-    // Call Kling 2.5 Turbo Pro for listing video
-    const res = await fetch(
-      `${REPLICATE}/models/kwaivgi/kling-v2.5-turbo-pro/predictions`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Token ${REPLICATE_TOKEN}`,
-          "Content-Type": "application/json",
-          Prefer: "wait",
-        },
-        body: JSON.stringify({
-          input: {
-            prompt: videoPrompt,
-            start_image: image_url,
-            duration: dur,
-            aspect_ratio: aspectRatio,
-            negative_prompt: "No hallucinations, no invented rooms, no new objects, no people, no animals, no weather, no morphing, no warping, no flickering, no artifacts, no blurry motion, no floating objects, no distortion, no changes to lighting, no added reflections, no ghost trails, no duplicate surfaces",
-          },
-        }),
-      }
-    )
-
-    const prediction = await res.json()
-    if (!res.ok || !prediction.id) {
-      throw new Error(`Kling listing failed: ${JSON.stringify(prediction)}`)
-    }
-
-    let videoUrl: string
-    if (prediction.status === "succeeded") {
-      videoUrl = typeof prediction.output === "string"
-        ? prediction.output
-        : prediction.output?.[0]
-    } else {
-      videoUrl = await pollReplicate(prediction.id, 120)
-    }
-
-    // Download video and store permanently in Supabase storage
+    // Step 3: Download and store video permanently
     let outputVideoPath: string | null = null
-    const storageId = submission_id || `listing-${Date.now()}`
     try {
       const videoFetch = await fetch(videoUrl)
       const videoBuffer = await videoFetch.arrayBuffer()
-      const videoPath = `${storageId}/generated/listing-video.mp4`
+      const videoPath = `listing-videos/${Date.now()}/video.mp4`
 
       await supabase.storage
         .from("project-submissions")
@@ -204,42 +243,28 @@ This is a real estate photo. Write a Kling prompt for a smooth cinematic camera 
 
       outputVideoPath = videoPath
     } catch (storageErr) {
-      console.error("Failed to store listing video permanently:", storageErr)
+      console.error("Failed to store video permanently:", storageErr)
     }
 
-    // Update submission if provided
-    if (submission_id) {
-      await supabase
-        .from("submissions")
-        .update({
-          output_video_url: videoUrl,
-          output_video_path: outputVideoPath,
-          generated_video_prompt: videoPrompt,
-          status: "delivered",
-          prompt_status: "complete",
-        })
-        .eq("id", submission_id)
+    // Build response
+    const response: any = {
+      video_url: videoUrl,
+      output_video_path: outputVideoPath,
+      mode,
+      shot_type,
+      effect_id,
+      effect_mode,
     }
 
-    return new Response(
-      JSON.stringify({ video_url: videoUrl, output_video_path: outputVideoPath, prompt: videoPrompt }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    )
+    if (effect_id !== "none" && effect_mode === "quick") {
+      response.quick_effect = QUICK_EFFECT_BADGES[effect_id]
+    }
+
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
   } catch (err) {
-    // Try to update submission on error
-    try {
-      const bodyClone = await req.clone().json().catch(() => ({}))
-      if (bodyClone.submission_id) {
-        await supabase
-          .from("submissions")
-          .update({
-            prompt_status: "error",
-            prompt_error: (err as Error).message,
-          })
-          .eq("id", bodyClone.submission_id)
-      }
-    } catch (_) {}
-
+    console.error("Error:", err)
     return new Response(
       JSON.stringify({ error: (err as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

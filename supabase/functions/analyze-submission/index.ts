@@ -86,6 +86,22 @@ function extractFirstUrl(output: unknown): string {
 }
 
 /**
+ * Map any user-requested aspect ratio to one gpt-image-2 actually accepts.
+ * gpt-image-2 only supports "1:1", "3:2", "2:3".
+ */
+function mapToGptImage2Ratio(requested: string): "1:1" | "3:2" | "2:3" {
+  const r = (requested || "").trim()
+  // Portrait → 2:3
+  if (["9:16", "4:5", "2:3", "3:4", "9:18"].includes(r)) return "2:3"
+  // Square
+  if (r === "1:1") return "1:1"
+  // Landscape → 3:2
+  if (["16:9", "3:2", "4:3", "21:9"].includes(r)) return "3:2"
+  // Default safe fallback for unknown — vertical, since most listing reels are 9:16
+  return "2:3"
+}
+
+/**
  * Run openai/gpt-image-2 on Replicate.
  * Takes a textual prompt + an input image and produces an edited WebP image.
  */
@@ -93,11 +109,14 @@ async function runGptImage2(
   token: string,
   prompt: string,
   inputImageUrl: string,
-  aspectRatio: "9:16" | "16:9" | "1:1" | "4:5" | "3:2" = "9:16"
+  aspectRatio: string = "9:16"
 ): Promise<string> {
+  const validRatio = mapToGptImage2Ratio(aspectRatio)
+  console.log(`[runGptImage2] requested=${aspectRatio} mapped=${validRatio}`)
+
   const input: Record<string, unknown> = {
     prompt,
-    aspect_ratio: aspectRatio,
+    aspect_ratio: validRatio,
     input_images: [inputImageUrl],
   }
 
@@ -269,7 +288,7 @@ serve(async (req) => {
       const description = body.description || ""
       const category = body.transformation_category || "construction"
       const shotType = body.shot_type || "slow_push"
-      const aspectRatio = (body.aspect_ratio || "9:16") as "9:16" | "16:9" | "1:1" | "4:5" | "3:2"
+      const aspectRatio = (body.aspect_ratio || "9:16") as string
 
       console.log(`[direct] start category=${category} type=${transformationType} shot=${shotType}`)
 

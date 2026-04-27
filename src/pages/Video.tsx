@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Helmet } from "react-helmet-async";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TransformationFlow } from "@/components/video/TransformationFlow";
-import { ListingVideoForm } from "@/components/video/ListingVideoForm";
+import { ListingVideoFlow } from "@/components/video/ListingVideoFlow";
 import {
   ArrowLeft,
   Coins,
@@ -16,7 +16,7 @@ import {
   Video,
 } from "lucide-react";
 
-type VideoMode = "select" | "listing" | "transform";
+type VideoMode = "select" | "listing" | "transform" | "setup" | "cleanup";
 export type TransformationCategory = "construction" | "cleanup" | "setup";
 
 export default function VideoPage() {
@@ -29,6 +29,8 @@ export default function VideoPage() {
     const mode = searchParams.get("mode");
     if (mode === "transform") return "transform";
     if (mode === "listing") return "listing";
+    if (mode === "setup") return "setup";
+    if (mode === "cleanup") return "cleanup";
     return "select";
   };
 
@@ -70,7 +72,7 @@ export default function VideoPage() {
                 className="h-9 w-9"
                 aria-label="Go back"
                 onClick={() => {
-                  if (videoMode === "transform" && transformationCategory !== null) {
+                  if (transformationCategory !== null) {
                     setTransformationCategory(null);
                   } else if (videoMode !== "select") {
                     setVideoMode("select");
@@ -87,11 +89,15 @@ export default function VideoPage() {
                 <span className="font-semibold">
                   {videoMode === "select"
                     ? "Create a Video"
+                    : videoMode === "listing"
+                    ? "Listing Videos"
                     : videoMode === "transform" && !transformationCategory
                     ? "Choose Type"
                     : videoMode === "transform"
-                    ? "Transformation Video"
-                    : "Listing Video"}
+                    ? "Transformation Videos"
+                    : videoMode === "setup"
+                    ? "Setup Videos"
+                    : "Cleanup Videos"}
                 </span>
               </div>
             </div>
@@ -115,7 +121,7 @@ export default function VideoPage() {
           {videoMode !== "select" && (
             <button
               onClick={() => {
-                if (videoMode === "transform" && transformationCategory !== null) {
+                if (transformationCategory !== null) {
                   setTransformationCategory(null);
                 } else {
                   setVideoMode("select");
@@ -125,9 +131,7 @@ export default function VideoPage() {
               className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
             >
               <ArrowLeft className="h-3 w-3" />
-              {videoMode === "transform" && transformationCategory !== null
-                ? "Back to transformation types"
-                : "Back to video types"}
+              Back to video types
             </button>
           )}
 
@@ -137,144 +141,120 @@ export default function VideoPage() {
                 <h1 className="lux-display text-2xl font-bold tracking-tight">
                   CREATE A VIDEO
                 </h1>
-                <p className="lux-prose text-sm" style={{ color: "var(--lux-ash)" }}>Two formats. One upload. Cinematic output.</p>
+                <p className="lux-prose text-sm" style={{ color: "var(--lux-ash)" }}>Four products. One upload. Cinematic output.</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button
-                  onClick={() => setVideoMode("transform")}
-                  className="text-left p-5 rounded-none border transition-all hover:shadow-lg"
-                  style={{ backgroundColor: "var(--lux-bone)", borderColor: "var(--lux-hairline)", color: "var(--lux-ink)" }}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <span className="text-5xl">🏗️</span>
-                    <span className="lux-eyebrow text-[9px]" style={{ color: "var(--lux-brass)" }}>NEW</span>
-                  </div>
-                  <h2 className="lux-display text-lg font-bold tracking-wide mb-2">
-                    TRANSFORMATION VIDEO
-                  </h2>
-                   <p className="lux-prose text-xs leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
-                    Upload the finished shot. We recreate the before state and render a cinematic build, cleanup, or setup video. Built for TikTok and Reels.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono" style={{ color: "var(--lux-ash)" }}>from 30 credits</span>
-                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Start Transformation →</span>
-                  </div>
-                </button>
-
+              <div className="grid grid-cols-1 gap-4">
+                {/* I. Listing Videos */}
                 <button
                   onClick={() => setVideoMode("listing")}
-                  className="text-left p-5 rounded-none border transition-all hover:shadow-lg"
+                  className="text-left p-5 rounded-none border transition-all"
                   style={{ backgroundColor: "var(--lux-bone)", borderColor: "var(--lux-hairline)", color: "var(--lux-ink)" }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--lux-cream)"}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--lux-bone)"}
                 >
-                  <div className="mb-3">
-                    <span className="text-5xl">🏠</span>
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="lux-display-italic text-3xl" style={{ color: "var(--lux-rust)" }}>I.</span>
                   </div>
-                  <h2 className="lux-display text-lg font-bold tracking-wide mb-2">
-                    LISTING VIDEO
+                  <h2 className="lux-display text-xl font-bold tracking-wide mb-1">
+                    LISTING VIDEOS
                   </h2>
-                   <p className="lux-prose text-xs leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
-                     One photo of a room or exterior. We render a smooth cinematic showcase — no AI hallucinations, just real camera movement. Built for MLS and social.
-                   </p>
-                   <div className="flex items-center justify-between">
-                     <span className="text-xs font-mono" style={{ color: "var(--lux-ash)" }}>2 credits</span>
-                     <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Create Listing Video →</span>
+                  <p className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>FOR THE LISTING ON THE MARKET</p>
+                  <p className="lux-prose text-sm leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
+                    Turn one or more listing photos into cinematic Reels. Six camera moves, optional Just-Listed signage, multi-photo compilations. Built for real estate photographers and listing agents.
+                  </p>
+                  <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--lux-hairline)" }}>
+                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--lux-brass)" }}>PHOTOGRAPHERS · AGENTS · BROKERAGES</span>
+                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Begin →</span>
+                  </div>
+                </button>
+
+                {/* II. Transformation Videos */}
+                <button
+                  onClick={() => { setVideoMode("transform"); setTransformationCategory("construction"); }}
+                  className="text-left p-5 rounded-none border transition-all"
+                  style={{ backgroundColor: "var(--lux-bone)", borderColor: "var(--lux-hairline)", color: "var(--lux-ink)" }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--lux-cream)"}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--lux-bone)"}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="lux-display-italic text-3xl" style={{ color: "var(--lux-rust)" }}>II.</span>
+                  </div>
+                  <h2 className="lux-display text-xl font-bold tracking-wide mb-1">
+                    TRANSFORMATION VIDEOS
+                  </h2>
+                  <p className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>FOR FINISHED CONSTRUCTION & RENOVATION</p>
+                  <p className="lux-prose text-sm leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
+                    Upload one finished after photo. We generate the raw bare-site before and animate the build sequence. Kitchen remodels, full builds, exteriors.
+                  </p>
+                  <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--lux-hairline)" }}>
+                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--lux-brass)" }}>CONTRACTORS · RENOVATORS · BUILDERS</span>
+                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Begin →</span>
+                  </div>
+                </button>
+
+                {/* III. Setup Videos */}
+                <button
+                  onClick={() => { setVideoMode("setup"); setTransformationCategory("setup"); }}
+                  className="text-left p-5 rounded-none border transition-all"
+                  style={{ backgroundColor: "var(--lux-bone)", borderColor: "var(--lux-hairline)", color: "var(--lux-ink)" }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--lux-cream)"}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--lux-bone)"}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="lux-display-italic text-3xl" style={{ color: "var(--lux-rust)" }}>III.</span>
+                  </div>
+                  <h2 className="lux-display text-xl font-bold tracking-wide mb-1">
+                    SETUP VIDEOS
+                  </h2>
+                  <p className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>FOR EVENT VENUES & STYLED SPACES</p>
+                  <p className="lux-prose text-sm leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
+                    Upload one styled after photo. We generate the empty unstyled before and animate the setup sequence. Event venues, caterers, hospitality.
+                  </p>
+                  <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--lux-hairline)" }}>
+                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--lux-brass)" }}>VENUES · CATERERS · STYLISTS</span>
+                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Begin →</span>
+                  </div>
+                </button>
+
+                {/* IV. Cleanup Videos */}
+                <button
+                  onClick={() => { setVideoMode("cleanup"); setTransformationCategory("cleanup"); }}
+                  className="text-left p-5 rounded-none border transition-all"
+                  style={{ backgroundColor: "var(--lux-bone)", borderColor: "var(--lux-hairline)", color: "var(--lux-ink)" }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--lux-cream)"}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--lux-bone)"}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="lux-display-italic text-3xl" style={{ color: "var(--lux-rust)" }}>IV.</span>
+                  </div>
+                  <h2 className="lux-display text-xl font-bold tracking-wide mb-1">
+                    CLEANUP VIDEOS
+                  </h2>
+                  <p className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>FOR CLEANED & RESTORED SPACES</p>
+                  <p className="lux-prose text-sm leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
+                    Upload one cleaned after photo. We generate the cluttered messy before and animate the cleanup sequence. Rubbish removal, hoarding cleanouts, restoration.
+                  </p>
+                  <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--lux-hairline)" }}>
+                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--lux-brass)" }}>CLEANUP CREWS · RESTORERS · HAULERS</span>
+                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Begin →</span>
                   </div>
                 </button>
               </div>
             </>
           )}
 
-          {/* Transformation category selection */}
-          {videoMode === "transform" && !transformationCategory && (
-            <>
-              <div className="text-center space-y-1">
-                <h1 className="lux-display text-2xl font-bold tracking-tight">
-                  WHAT ARE YOU TRANSFORMING?
-                </h1>
-              </div>
-
-              <p className="lux-eyebrow text-center">
-                Create → Transformation → Choose Type
-              </p>
-
-              <div className="space-y-3">
-                {/* Construction */}
-                <button
-                  onClick={() => setTransformationCategory("construction")}
-                  className="w-full text-left p-6 rounded-none transition-all hover:shadow-lg"
-                  style={{ backgroundColor: "var(--lux-bone)", border: "1px solid var(--lux-hairline)" }}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <span className="text-5xl">🏗️</span>
-                    <span className="lux-eyebrow text-[8px]" style={{ color: "var(--lux-brass)" }}>POPULAR</span>
-                  </div>
-                  <h2 className="lux-display text-[22px] font-bold tracking-wide mb-2">
-                    CONSTRUCTION TRANSFORMATION
-                  </h2>
-                  <p className="lux-prose text-xs leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
-                    Upload the finished shot. We reconstruct the raw site before you broke ground and render a cinematic build arc.
-                    Contractors, landscapers, pool builders, renovators.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono" style={{ color: "var(--lux-ash)" }}>from 40 credits</span>
-                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Start →</span>
-                  </div>
-                </button>
-
-                {/* Cleanup */}
-                <button
-                  onClick={() => setTransformationCategory("cleanup")}
-                  className="w-full text-left p-6 rounded-none transition-all hover:shadow-lg"
-                  style={{ backgroundColor: "var(--lux-bone)", border: "1px solid var(--lux-hairline)" }}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <span className="text-5xl">🧹</span>
-                    <span className="lux-eyebrow text-[8px]" style={{ color: "var(--lux-brass)" }}>NEW</span>
-                  </div>
-                  <h2 className="lux-display text-[22px] font-bold tracking-wide mb-2">
-                    CLEANUP TRANSFORMATION
-                  </h2>
-                  <p className="lux-prose text-xs leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
-                    Upload the cleaned shot. We recreate the messy before — rubbish, junk, debris — and render a dramatic cleanup reveal.
-                    Rubbish removal, junk hauling, hoarding cleanouts, site clearance.
-                  </p>
-                  <div className="flex items-center justify-between">
-                     <span className="text-xs font-mono" style={{ color: "var(--lux-ash)" }}>from 50 credits</span>
-                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Start →</span>
-                   </div>
-                </button>
-
-                {/* Setup */}
-                <button
-                  onClick={() => setTransformationCategory("setup")}
-                  className="w-full text-left p-6 rounded-none transition-all hover:shadow-lg"
-                  style={{ backgroundColor: "var(--lux-bone)", border: "1px solid var(--lux-hairline)" }}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <span className="text-5xl">✨</span>
-                    <span className="lux-eyebrow text-[8px]" style={{ color: "var(--lux-brass)" }}>NEW</span>
-                  </div>
-                  <h2 className="lux-display text-[22px] font-bold tracking-wide mb-2">
-                    SETUP TRANSFORMATION
-                  </h2>
-                  <p className="lux-prose text-xs leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
-                    Upload the styled shot. We recreate the empty unstyled before and render a satisfying setup reveal.
-                    Event setups, catering, venue styling, hospitality.
-                  </p>
-                  <div className="flex items-center justify-between">
-                     <span className="text-xs font-mono" style={{ color: "var(--lux-ash)" }}>from 50 credits</span>
-                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Start →</span>
-                   </div>
-                </button>
-              </div>
-            </>
-          )}
-
+          {/* Transformation, Setup, Cleanup Flows */}
           {videoMode === "transform" && transformationCategory && (
             <TransformationFlow transformationCategory={transformationCategory} />
           )}
-          {videoMode === "listing" && <ListingVideoForm />}
+          {videoMode === "setup" && transformationCategory && (
+            <TransformationFlow transformationCategory={transformationCategory} />
+          )}
+          {videoMode === "cleanup" && transformationCategory && (
+            <TransformationFlow transformationCategory={transformationCategory} />
+          )}
+          {videoMode === "listing" && <ListingVideoFlow />}
         </main>
         </div>
       </ErrorBoundary>
