@@ -175,7 +175,7 @@ export function ListingVideoFlow() {
           photo_urls: photoUrls,
           shot_type: category === "animate_single" ? shotType : undefined,
           effect_id: effectId,
-          effect_mode: "realistic",
+          effect_mode: effectId !== "none" ? "realistic" : undefined,
           listing: {
             realtor_name: realtorName,
             location,
@@ -190,7 +190,30 @@ export function ListingVideoFlow() {
         },
       });
 
-      if (response.error) throw response.error;
+      // Surface the actual server error message, not just "non-2xx"
+      if (response.error) {
+        // Try to read the body of the failed response if FunctionsHttpError has it
+        let detailedMsg = response.error.message || "Generation failed";
+        try {
+          const errCtx: any = (response.error as any).context;
+          if (errCtx?.body) {
+            const parsed = typeof errCtx.body === "string" ? JSON.parse(errCtx.body) : errCtx.body;
+            if (parsed?.error) detailedMsg = parsed.error;
+            if (parsed?.debug?.received) {
+              console.error("[ListingVideoFlow] server received:", parsed.debug.received);
+            }
+          }
+        } catch (parseErr) {
+          console.warn("Could not parse error body:", parseErr);
+        }
+        // Also try the data field — Supabase sometimes puts errors there too
+        if (response.data?.error) detailedMsg = response.data.error;
+        throw new Error(detailedMsg);
+      }
+
+      if (!response.data?.video_url) {
+        throw new Error("No video URL returned from generation");
+      }
 
       setVideoUrl(response.data.video_url);
       await deductCredits(creditCost);
@@ -198,6 +221,7 @@ export function ListingVideoFlow() {
       setStep(7);
     } catch (err) {
       const msg = (err as Error).message;
+      console.error("[ListingVideoFlow] generation error:", err);
       setError(msg);
       toast.error(msg);
     } finally {

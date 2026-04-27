@@ -64,15 +64,10 @@ const InteractiveDemo = () => {
     setIsProcessing(true);
 
     try {
-      // Convert data URL to blob for edge function
-      const response = await fetch(uploadedImage);
-      const blob = await response.blob();
-
-      // Call the demo-enhance edge function
+      // Call the demo-enhance edge function with image URL
       const { data, error } = await supabase.functions.invoke("demo-enhance", {
         body: {
-          image: blob,
-          preset: "exterior-enhancement",
+          imageUrl: uploadedImage,
         },
       });
 

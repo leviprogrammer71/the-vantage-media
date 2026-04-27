@@ -98,7 +98,8 @@ async function generateWithGptImage(
 
   const prediction = await res.json()
   if (!res.ok || !prediction.id) {
-    throw new Error(`GPT-Image-2 failed: ${JSON.stringify(prediction)}`)
+    const detail = prediction?.detail || prediction?.error?.message || JSON.stringify(prediction).slice(0, 400)
+    throw new Error(`gpt-image-2 rejected the request (HTTP ${res.status}): ${detail}`)
   }
 
   if (prediction.status === "succeeded") {
@@ -160,7 +161,8 @@ async function generateVideo(
 
   const prediction = await res.json()
   if (!res.ok || !prediction.id) {
-    throw new Error(`Video generation failed: ${JSON.stringify(prediction)}`)
+    const detail = prediction?.detail || prediction?.error?.message || JSON.stringify(prediction).slice(0, 400)
+    throw new Error(`${config.model} rejected the request (HTTP ${res.status}): ${detail}`)
   }
 
   if (prediction.status === "succeeded") {
@@ -190,7 +192,19 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   )
 
+  let body: any = {}
   try {
+    body = await req.json()
+    console.log("[generate-listing-video] payload:", JSON.stringify({
+      category: body.category,
+      photo_count: body.photo_urls?.length,
+      shot_type: body.shot_type,
+      effect_id: body.effect_id,
+      effect_mode: body.effect_mode,
+      duration: body.duration,
+      has_listing: !!body.listing,
+    }))
+
     const {
       category,
       photo_urls,
@@ -200,19 +214,31 @@ serve(async (req) => {
       listing,
       duration,
       credits_cost,
-    } = await req.json()
+    } = body
 
     // Validate
     if (!category || !photo_urls || photo_urls.length === 0) {
-      throw new Error("category and photo_urls required")
+      throw new Error(`category and photo_urls required. Received: category="${category}", photo_urls.length=${photo_urls?.length}`)
     }
 
     if (!["animate_single", "sun_to_sun", "listing_bundle"].includes(category)) {
-      throw new Error("category must be animate_single, sun_to_sun, or listing_bundle")
+      throw new Error(`category must be animate_single, sun_to_sun, or listing_bundle. Received: "${category}"`)
     }
 
     if (category === "animate_single" && !shot_type) {
-      throw new Error("animate_single requires shot_type")
+      throw new Error(`animate_single requires shot_type. Received: shot_type="${shot_type}"`)
+    }
+
+    // Verify all photo URLs are reachable before calling Replicate
+    for (let i = 0; i < photo_urls.length; i++) {
+      try {
+        const head = await fetch(photo_urls[i], { method: "HEAD" })
+        if (!head.ok) {
+          throw new Error(`Photo URL ${i} returned ${head.status}: ${photo_urls[i].slice(0, 80)}...`)
+        }
+      } catch (fetchErr) {
+        throw new Error(`Photo URL ${i} unreachable: ${(fetchErr as Error).message}. URL: ${photo_urls[i].slice(0, 100)}...`)
+      }
     }
 
     // Category: animate_single
@@ -394,9 +420,25 @@ serve(async (req) => {
 
     throw new Error("Unknown category")
   } catch (err) {
-    console.error("Error:", err)
+    const errorMsg = (err as Error).message || String(err)
+    const errorStack = (err as Error).stack || ""
+    console.error("[generate-listing-video] FAILED:", errorMsg)
+    console.error("[generate-listing-video] STACK:", errorStack)
+    console.error("[generate-listing-video] PAYLOAD WAS:", JSON.stringify(body).slice(0, 1000))
     return new Response(
-      JSON.stringify({ error: (err as Error).message }),
+      JSON.stringify({
+        error: errorMsg,
+        debug: {
+          stack: errorStack.slice(0, 500),
+          received: {
+            category: body.category,
+            photo_count: body.photo_urls?.length,
+            shot_type: body.shot_type,
+            effect_id: body.effect_id,
+            effect_mode: body.effect_mode,
+          },
+        },
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
   }

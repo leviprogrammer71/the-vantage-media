@@ -80,7 +80,11 @@ const Submit = () => {
       // Trigger confirmation email
       try {
         await supabase.functions.invoke("send-confirmation", {
-          body: { email: formData.email, name: formData.fullName },
+          body: {
+            to_email: formData.email,
+            first_name: formData.fullName,
+            business_name: formData.businessName,
+          },
         });
       } catch {
         // Non-blocking

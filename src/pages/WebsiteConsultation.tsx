@@ -113,11 +113,8 @@ const WebsiteConsultation = () => {
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("website-consultation", {
-        body: { 
-          websiteUrl: url, 
-          consultationType: selectedType,
-          contactEmail,
-          businessDescription
+        body: {
+          websiteUrl: url,
         }
       });
 
