@@ -34,8 +34,20 @@ export default function VideoPage() {
     return "select";
   };
 
+  // Initialise transformationCategory from the URL too — without this, landing on
+  // /video?mode=transform from a CTA leaves transformationCategory null and the
+  // render conditional `videoMode === "transform" && transformationCategory` is
+  // false, producing a blank page.
+  const getInitialCategory = (): TransformationCategory | null => {
+    const mode = searchParams.get("mode");
+    if (mode === "transform") return "construction";
+    if (mode === "setup") return "setup";
+    if (mode === "cleanup") return "cleanup";
+    return null;
+  };
+
   const [videoMode, setVideoMode] = useState<VideoMode>(getInitialMode);
-  const [transformationCategory, setTransformationCategory] = useState<TransformationCategory | null>(null);
+  const [transformationCategory, setTransformationCategory] = useState<TransformationCategory | null>(getInitialCategory);
 
   useEffect(() => {
     if (!authLoading && !user) {

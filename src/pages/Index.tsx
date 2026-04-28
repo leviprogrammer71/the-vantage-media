@@ -84,7 +84,7 @@ const Index = () => {
             ]}
           />
 
-          {/* THE STUDIO — manifesto */}
+          {/* THE STUDIO — manifesto + powered by section */}
           <section className="lux-section lux-bg-bone">
             <div className="lux-container grid lg:grid-cols-12 gap-12 lg:gap-16 items-start">
               <div className="lg:col-span-5">
@@ -93,6 +93,10 @@ const Index = () => {
                   title={<>A new genre of <span className="lux-display-italic">listing film.</span></>}
                   lede="The Vantage is a single-frame transformation studio. We turn one photograph — the one your client actually shot — into a cinematic vertical film built for Reels, TikTok, and the algorithm."
                 />
+                <div className="mt-12 p-6 lux-bg-cream" style={{ border: "1px solid var(--lux-hairline)" }}>
+                  <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-rust)" }}>POWERED BY</div>
+                  <p className="text-sm" style={{ color: "var(--lux-ink)", lineHeight: 1.6 }}>ByteDance Seedance 2.0, Kling 2.5 Turbo Pro, Flux Kontext Pro, OpenAI gpt-image-2. Not open-source slop. The same models top studios license separately.</p>
+                </div>
               </div>
               <div className="lg:col-span-7">
                 <div className="grid sm:grid-cols-2 gap-6">
@@ -172,10 +176,11 @@ const Index = () => {
                 >
                   {isLoggedIn ? "ENTER THE STUDIO →" : "BEGIN A FILM — FREE →"}
                 </Link>
-                <p className="lux-eyebrow mt-6" style={{ color: "var(--lux-ash)" }}>
-                  50 CREDITS GRATIS · NO CARD · INSTANT ACCESS
-                </p>
-                <p className="lux-prose text-sm mt-3" style={{ color: "var(--lux-brass)" }}>
+                <div className="mt-6 p-4 lux-bg-bone" style={{ border: "1px solid var(--lux-hairline)", display: "inline-block" }}>
+                  <p className="lux-eyebrow" style={{ color: "var(--lux-rust)", marginBottom: 8 }}>30-DAY REFUND · CANCEL ANYTIME · NO CARD</p>
+                  <p className="text-xs" style={{ color: "var(--lux-ink)" }}>Full refund within 30 days. Zero commitment contracts.</p>
+                </div>
+                <p className="lux-prose text-sm mt-6" style={{ color: "var(--lux-rust)" }}>
                   ✦ {liveCount} studios began a film today
                 </p>
               </div>
@@ -223,9 +228,12 @@ const Index = () => {
             </div>
           </section>
 
-          {/* THE FORMULA — How it works, editorial */}
+          {/* THE FORMULA — How it works, editorial + quality claim */}
           <section className="lux-section lux-bg-bone">
             <div className="lux-container">
+              <div className="mb-12 p-5 lux-bg-parchment" style={{ border: "1px solid var(--lux-hairline)", textAlign: "center" }}>
+                <p className="text-sm" style={{ color: "var(--lux-ink)" }}>1080p native output. Seedance 2.0 by default. The only real-estate AI tool shipping long-form quality at scale. Most competitors max out at 720p generic models.</p>
+              </div>
               <SectionHeading
                 eyebrow="THE FORMULA"
                 title="Three movements."

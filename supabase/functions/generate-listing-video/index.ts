@@ -603,71 +603,83 @@ serve(async (req) => {
     }
 
     // Category: sun_to_sun — true day cycle: sunrise → golden hour → dusk
-    // Generates 3 time-of-day frames in parallel, then stitches as a 2-clip
-    // sequence (sunrise→golden, golden→dusk) for a real timelapse feel.
+    // FIRE-AND-POLL architecture: render 3 time-of-day frames synchronously
+    // (~30-45s for 3 parallel gpt-image-2 calls), then KICK OFF the two Kling
+    // transitions and immediately return prediction_ids for client-side polling.
+    // Without this, total wall time exceeds the 60s edge timeout.
     if (category === "sun_to_sun") {
       const firstPhotoUrl = photo_urls[0]
 
-      const sunrisePrompt = `Render this same scene at SUNRISE — the sun just above the eastern horizon, warm pink-and-amber sky, long cool shadows pointing west, soft rosy light glowing on the building's east-facing surfaces, dew on the grass. Keep every architectural element, all landscaping, and the camera angle identical to the source.`
-      const goldenPrompt = `Render this same scene at GOLDEN HOUR — late afternoon, sun low in the west, warm orange light on the building, long shadows cast across the lawn, sky in soft amber transitioning to pink, lens flare optional. Keep every architectural element, all landscaping, and the camera angle identical to the source.`
-      const duskPrompt = `Render this same scene at DUSK / BLUE HOUR — sun just set, sky in deep cobalt blue with warm horizon glow, interior windows beginning to glow warm yellow from inside, exterior lights starting to come on, cool ambient light on the building. Keep every architectural element, all landscaping, and the camera angle identical to the source.`
+      const sunrisePrompt = `Render this same scene at SUNRISE — sun just above the eastern horizon, warm pink-and-amber sky, long cool shadows pointing west, soft rosy light on east-facing surfaces. Lock all architecture, landscaping, and the camera angle exactly as in the source.`
+      const goldenPrompt = `Render this same scene at GOLDEN HOUR — late afternoon, sun low in the west, warm orange light on the building, long shadows across the lawn, sky in amber-to-pink. Lock all architecture, landscaping, and the camera angle exactly as in the source.`
+      const duskPrompt = `Render this same scene at DUSK / BLUE HOUR — sun just set, sky in deep cobalt with warm horizon glow, interior windows glowing warm from inside, exterior lights coming on. Lock all architecture, landscaping, and the camera angle exactly as in the source.`
 
-      // Generate all three time-of-day variants in parallel — saves ~30s wall time
-      console.log("[sun_to_sun] generating sunrise + golden + dusk in parallel")
+      // 3 parallel image renders (~30-45s)
+      console.log("[sun_to_sun] rendering sunrise + golden + dusk in parallel")
       const [sunriseUrl, goldenUrl, duskUrl] = await Promise.all([
         generateWithNanoBanana(firstPhotoUrl, sunrisePrompt, REPLICATE_TOKEN),
         generateWithNanoBanana(firstPhotoUrl, goldenPrompt, REPLICATE_TOKEN),
         generateWithNanoBanana(firstPhotoUrl, duskPrompt, REPLICATE_TOKEN),
       ])
 
-      // Two 6s Kling transitions in parallel: sunrise→golden and golden→dusk
-      console.log("[sun_to_sun] animating two 6s transitions in parallel")
-      const [morningClip, eveningClip] = await Promise.all([
-        animatePhotoTransition(
+      // KICK OFF both Kling transitions in parallel without awaiting completion.
+      // Use start_image + end_image; return prediction_ids in the bundle-style
+      // response shape so the client's existing poll loop handles it.
+      console.log("[sun_to_sun] kicking off morning + evening Kling predictions")
+      const [morningStart, eveningStart] = await Promise.all([
+        startKlingTransitionPrediction(
           sunriseUrl,
           goldenUrl,
-          "Smooth cinematic time-lapse from sunrise into late afternoon golden hour. The sun arcs across the sky, shadows shorten then lengthen, light warms gradually. No camera movement.",
+          "Smooth cinematic time-lapse from sunrise into late afternoon golden hour. Sun arcs across the sky, light warms gradually. No camera movement.",
           6,
           REPLICATE_TOKEN
         ),
-        animatePhotoTransition(
+        startKlingTransitionPrediction(
           goldenUrl,
           duskUrl,
-          "Smooth cinematic time-lapse from golden hour into dusk and blue hour. The sun sets, sky transitions from amber to deep blue, interior windows begin to glow warm. No camera movement.",
+          "Smooth cinematic time-lapse from golden hour into dusk and blue hour. Sun sets, sky shifts amber to cobalt, interior windows glow warm. No camera movement.",
           6,
           REPLICATE_TOKEN
         ),
       ])
 
-      const clipUrls = [morningClip, eveningClip]
-
-      // Store both clips
-      const clipPaths: string[] = []
-      for (let i = 0; i < clipUrls.length; i++) {
-        try {
-          const clipFetch = await fetch(clipUrls[i])
-          const clipBuffer = await clipFetch.arrayBuffer()
-          const clipPath = `listing-videos/${Date.now()}/sun-clip-${i}.mp4`
-          await supabase.storage
-            .from("project-submissions")
-            .upload(clipPath, clipBuffer, { contentType: "video/mp4", upsert: true })
-          clipPaths.push(clipPath)
-        } catch (storageErr) {
-          console.error(`[sun_to_sun] storage clip ${i} failed:`, storageErr)
+      // If both happened to complete during Replicate's wait window, return synchronously
+      if (morningStart.videoUrl && eveningStart.videoUrl) {
+        const clipUrls = [morningStart.videoUrl, eveningStart.videoUrl]
+        const clipPaths: string[] = []
+        for (let i = 0; i < clipUrls.length; i++) {
+          try {
+            const clipFetch = await fetch(clipUrls[i])
+            const clipBuffer = await clipFetch.arrayBuffer()
+            const clipPath = `listing-videos/${Date.now()}/sun-clip-${i}.mp4`
+            await supabase.storage
+              .from("project-submissions")
+              .upload(clipPath, clipBuffer, { contentType: "video/mp4", upsert: true })
+            clipPaths.push(clipPath)
+          } catch (storageErr) {
+            console.error(`[sun_to_sun] storage clip ${i} failed:`, storageErr)
+          }
         }
-      }
-
-      return new Response(
-        JSON.stringify({
+        return new Response(JSON.stringify({
           status: "complete",
           category,
           video_url: clipUrls[0],
           clip_urls: clipUrls,
           output_clip_paths: clipPaths,
           listing,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      )
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+      }
+
+      // Async path — return prediction_ids array, client polls (mirrors bundle shape)
+      return new Response(JSON.stringify({
+        status: "processing",
+        category,
+        prediction_ids: [
+          { index: 0, prediction_id: morningStart.predictionId, video_url: morningStart.videoUrl || null },
+          { index: 1, prediction_id: eveningStart.predictionId, video_url: eveningStart.videoUrl || null },
+        ],
+        listing,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
     // Category: listing_bundle — fire N Seedance predictions in parallel, return prediction_ids
@@ -785,64 +797,64 @@ serve(async (req) => {
 
       const vibePromptSuffix = vibeSuffix(vibe)
 
-      // Two clips in parallel:
-      // (A) STAGING TRANSITION — Kling animates empty room → fully furnished
-      //     This is the empty-becomes-styled magic from the reference reels.
-      // (B) WALKTHROUGH — slow camera push through the staged room.
+      // FIRE-AND-POLL: kick off both Kling predictions in parallel, return prediction_ids
+      // Two clips:
+      // (A) STAGING TRANSITION — empty room → fully furnished morph
+      // (B) WALKTHROUGH — slow_push through the staged room
       const stagingTransitionPrompt = `An empty interior room gradually becomes fully styled and furnished. Furniture pieces — sofa, coffee table, rug, lamps, art, plants — appear smoothly into place. Soft natural light warms the room. ${stylePrompt} No camera movement — the space dresses itself. ${vibePromptSuffix}`
 
-      console.log("[virtual_staging] running staging transition + walkthrough in parallel")
-      const [stageClipUrl, walkResult] = await Promise.all([
-        animatePhotoTransition(
-          emptyRoomUrl,           // start = empty
-          stagedImageUrl,         // end   = furnished
+      console.log("[virtual_staging] kicking off staging transition + walkthrough predictions")
+      const [stageStart, walkStart] = await Promise.all([
+        startKlingTransitionPrediction(
+          emptyRoomUrl,
+          stagedImageUrl,
           stagingTransitionPrompt,
-          5,                      // 5s "becomes furnished" morph
+          5,
           REPLICATE_TOKEN
         ),
         startVideoGeneration(
           stagedImageUrl,
           "slow_push",
-          5,                      // 5s reveal walk
+          5,
           REPLICATE_TOKEN
         ),
       ])
 
-      let walkClipUrl = walkResult.videoUrl
-      if (!walkClipUrl && walkResult.predictionId) {
-        walkClipUrl = await pollReplicate(walkResult.predictionId)
-      }
-      if (!walkClipUrl) {
-        throw new Error("Virtual staging walkthrough clip failed to produce a URL")
-      }
-
-      const clipUrls = [stageClipUrl, walkClipUrl]
-
-      const clipPaths: string[] = []
-      for (let i = 0; i < clipUrls.length; i++) {
-        try {
-          const clipFetch = await fetch(clipUrls[i])
-          const clipBuffer = await clipFetch.arrayBuffer()
-          const clipPath = `listing-videos/${Date.now()}/staging-${i}.mp4`
-          await supabase.storage.from("project-submissions").upload(clipPath, clipBuffer, {
-            contentType: "video/mp4",
-            upsert: true,
-          })
-          clipPaths.push(clipPath)
-        } catch (storageErr) {
-          console.error(`[virtual_staging] storage clip ${i} failed:`, storageErr)
+      // Synchronous success
+      if (stageStart.videoUrl && walkStart.videoUrl) {
+        const clipUrls = [stageStart.videoUrl, walkStart.videoUrl]
+        const clipPaths: string[] = []
+        for (let i = 0; i < clipUrls.length; i++) {
+          try {
+            const clipFetch = await fetch(clipUrls[i])
+            const clipBuffer = await clipFetch.arrayBuffer()
+            const clipPath = `listing-videos/${Date.now()}/staging-${i}.mp4`
+            await supabase.storage.from("project-submissions").upload(clipPath, clipBuffer, {
+              contentType: "video/mp4", upsert: true,
+            })
+            clipPaths.push(clipPath)
+          } catch (storageErr) {
+            console.error(`[virtual_staging] storage clip ${i} failed:`, storageErr)
+          }
         }
+        return new Response(JSON.stringify({
+          status: "complete",
+          category,
+          video_url: clipUrls[0],
+          clip_urls: clipUrls,
+          output_clip_paths: clipPaths,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
       }
 
+      // Async — return prediction_ids array, client polls
       return new Response(JSON.stringify({
-        status: "complete",
+        status: "processing",
         category,
-        video_url: clipUrls[0],
-        clip_urls: clipUrls,
-        output_clip_paths: clipPaths,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      })
+        prediction_ids: [
+          { index: 0, prediction_id: stageStart.predictionId, video_url: stageStart.videoUrl || null },
+          { index: 1, prediction_id: walkStart.predictionId, video_url: walkStart.videoUrl || null },
+        ],
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
     // Category: sketch_to_real
@@ -878,61 +890,58 @@ serve(async (req) => {
         ? `An architectural pencil sketch of an interior gradually transforms into a photorealistic, magazine-quality interior. Pencil lines fade as colour, light, materials, furniture, and shadows appear. Smooth dreamlike transition. No camera movement — the room itself becomes real before our eyes. ${vibeLine}`
         : `An architectural pencil sketch of a building exterior gradually transforms into a photorealistic, magazine-quality architectural photograph. Pencil lines fade as materials, sky, landscaping, and natural light appear. Smooth dreamlike transition. No camera movement — the building itself becomes real before our eyes. ${vibeLine}`
 
-      // Step 3: REVEAL CLIP — slow push on the final photoreal to show off the result
-      console.log("[sketch_to_real] running transformation + reveal clips in parallel")
-      const [transformClipUrl, revealResult] = await Promise.all([
-        animatePhotoTransition(
+      // FIRE-AND-POLL: kick off both predictions, return prediction_ids
+      console.log("[sketch_to_real] kicking off transformation + reveal predictions")
+      const [transformStart, revealStart] = await Promise.all([
+        startKlingTransitionPrediction(
           sketchImageUrl,        // start = the sketch
           photorealImageUrl,     // end   = the photoreal render
           transformPrompt,
-          5,                     // 5s transformation morph
+          5,
           REPLICATE_TOKEN
         ),
         startVideoGeneration(
           photorealImageUrl,
           "slow_push",
-          5,                     // 5s reveal push
+          5,
           REPLICATE_TOKEN
         ),
       ])
 
-      // The reveal might be async — wait for it if so
-      let revealClipUrl = revealResult.videoUrl
-      if (!revealClipUrl && revealResult.predictionId) {
-        revealClipUrl = await pollReplicate(revealResult.predictionId)
-      }
-      if (!revealClipUrl) {
-        throw new Error("Sketch reveal clip failed to produce a URL")
-      }
-
-      const clipUrls = [transformClipUrl, revealClipUrl]
-
-      // Store both clips
-      const clipPaths: string[] = []
-      for (let i = 0; i < clipUrls.length; i++) {
-        try {
-          const clipFetch = await fetch(clipUrls[i])
-          const clipBuffer = await clipFetch.arrayBuffer()
-          const clipPath = `listing-videos/${Date.now()}/sketch-${i}.mp4`
-          await supabase.storage.from("project-submissions").upload(clipPath, clipBuffer, {
-            contentType: "video/mp4",
-            upsert: true,
-          })
-          clipPaths.push(clipPath)
-        } catch (storageErr) {
-          console.error(`[sketch_to_real] storage clip ${i} failed:`, storageErr)
+      // Synchronous success
+      if (transformStart.videoUrl && revealStart.videoUrl) {
+        const clipUrls = [transformStart.videoUrl, revealStart.videoUrl]
+        const clipPaths: string[] = []
+        for (let i = 0; i < clipUrls.length; i++) {
+          try {
+            const clipFetch = await fetch(clipUrls[i])
+            const clipBuffer = await clipFetch.arrayBuffer()
+            const clipPath = `listing-videos/${Date.now()}/sketch-${i}.mp4`
+            await supabase.storage.from("project-submissions").upload(clipPath, clipBuffer, {
+              contentType: "video/mp4", upsert: true,
+            })
+            clipPaths.push(clipPath)
+          } catch (storageErr) {
+            console.error(`[sketch_to_real] storage clip ${i} failed:`, storageErr)
+          }
         }
+        return new Response(JSON.stringify({
+          status: "complete",
+          category,
+          video_url: clipUrls[0],
+          clip_urls: clipUrls,
+          output_clip_paths: clipPaths,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
       }
 
       return new Response(JSON.stringify({
-        status: "complete",
+        status: "processing",
         category,
-        video_url: clipUrls[0],
-        clip_urls: clipUrls,
-        output_clip_paths: clipPaths,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      })
+        prediction_ids: [
+          { index: 0, prediction_id: transformStart.predictionId, video_url: transformStart.videoUrl || null },
+          { index: 1, prediction_id: revealStart.predictionId, video_url: revealStart.videoUrl || null },
+        ],
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
     // Category: floor_plan_pan — Floor plan / axonometric → photoreal walkthrough
@@ -968,58 +977,56 @@ serve(async (req) => {
       // (B) WALKTHROUGH clip — chosen camera move through the photoreal interior.
       const transformPrompt = `An architectural floor plan / axonometric drawing gradually transforms into a photorealistic, magazine-quality interior scene. Drawing lines fade as walls gain colour, materials appear, furniture lifts into place, and natural light fills the space. Smooth dreamlike transition. No camera movement — the room itself becomes real before our eyes. ${vibeLine}`
 
-      console.log("[floor_plan_pan] running transformation + walkthrough clips in parallel")
-      const [transformClipUrl, walkResult] = await Promise.all([
-        animatePhotoTransition(
-          floorPlanUrl,          // start = the drawing
-          photorealUrl,          // end   = the photoreal render
+      console.log("[floor_plan_pan] kicking off transformation + walkthrough predictions")
+      const [transformStart, walkStart] = await Promise.all([
+        startKlingTransitionPrediction(
+          floorPlanUrl,
+          photorealUrl,
           transformPrompt,
-          5,                     // 5s morph
+          5,
           REPLICATE_TOKEN
         ),
         startVideoGeneration(
           photorealUrl,
           selectedShotType,
-          5,                     // 5s walkthrough with chosen shot type
+          5,
           REPLICATE_TOKEN
         ),
       ])
 
-      let walkClipUrl = walkResult.videoUrl
-      if (!walkClipUrl && walkResult.predictionId) {
-        walkClipUrl = await pollReplicate(walkResult.predictionId)
-      }
-      if (!walkClipUrl) {
-        throw new Error("Floor plan walkthrough clip failed to produce a URL")
-      }
-
-      const clipUrls = [transformClipUrl, walkClipUrl]
-
-      const clipPaths: string[] = []
-      for (let i = 0; i < clipUrls.length; i++) {
-        try {
-          const clipFetch = await fetch(clipUrls[i])
-          const clipBuffer = await clipFetch.arrayBuffer()
-          const clipPath = `listing-videos/${Date.now()}/floorplan-${i}.mp4`
-          await supabase.storage.from("project-submissions").upload(clipPath, clipBuffer, {
-            contentType: "video/mp4",
-            upsert: true,
-          })
-          clipPaths.push(clipPath)
-        } catch (storageErr) {
-          console.error(`[floor_plan_pan] storage clip ${i} failed:`, storageErr)
+      if (transformStart.videoUrl && walkStart.videoUrl) {
+        const clipUrls = [transformStart.videoUrl, walkStart.videoUrl]
+        const clipPaths: string[] = []
+        for (let i = 0; i < clipUrls.length; i++) {
+          try {
+            const clipFetch = await fetch(clipUrls[i])
+            const clipBuffer = await clipFetch.arrayBuffer()
+            const clipPath = `listing-videos/${Date.now()}/floorplan-${i}.mp4`
+            await supabase.storage.from("project-submissions").upload(clipPath, clipBuffer, {
+              contentType: "video/mp4", upsert: true,
+            })
+            clipPaths.push(clipPath)
+          } catch (storageErr) {
+            console.error(`[floor_plan_pan] storage clip ${i} failed:`, storageErr)
+          }
         }
+        return new Response(JSON.stringify({
+          status: "complete",
+          category,
+          video_url: clipUrls[0],
+          clip_urls: clipUrls,
+          output_clip_paths: clipPaths,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
       }
 
       return new Response(JSON.stringify({
-        status: "complete",
+        status: "processing",
         category,
-        video_url: clipUrls[0],
-        clip_urls: clipUrls,
-        output_clip_paths: clipPaths,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      })
+        prediction_ids: [
+          { index: 0, prediction_id: transformStart.predictionId, video_url: transformStart.videoUrl || null },
+          { index: 1, prediction_id: walkStart.predictionId, video_url: walkStart.videoUrl || null },
+        ],
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
     throw new Error("Unknown category")
@@ -1048,7 +1055,58 @@ serve(async (req) => {
   }
 })
 
-// Helper: Animate transition between two photos using Kling
+// Helper: Kick off a Kling start→end transition WITHOUT awaiting completion.
+// Returns videoUrl if Replicate finished within the wait=60 window, otherwise
+// predictionId so the client can poll. Mirrors startVideoGeneration's shape so
+// it slots into the existing bundle-style poll flow.
+async function startKlingTransitionPrediction(
+  startImageUrl: string,
+  endImageUrl: string,
+  motionPrompt: string,
+  duration: number,
+  token: string
+): Promise<{ videoUrl?: string; predictionId?: string }> {
+  const prompt = `${motionPrompt} Cinematic real-estate listing reel. Photorealistic. Smooth physically-plausible transition between the two frames.`
+  const negativePrompt = "Invented objects, added people or animals, geometry warping, jittery interpolation, flickering, motion artifacts, frame drops."
+
+  const res = await fetch(
+    `${REPLICATE}/models/${MODEL_KLING}/predictions`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${token}`,
+        "Content-Type": "application/json",
+        Prefer: "wait=60",
+      },
+      body: JSON.stringify({
+        input: {
+          prompt,
+          start_image: startImageUrl,
+          end_image: endImageUrl,
+          duration,
+          aspect_ratio: "9:16",
+          negative_prompt: negativePrompt,
+        },
+      }),
+    }
+  )
+
+  const prediction = await res.json()
+  if (!res.ok || !prediction.id) {
+    const detail = prediction?.detail || prediction?.error?.message || JSON.stringify(prediction).slice(0, 400)
+    throw new Error(`Kling transition rejected (HTTP ${res.status}): ${detail}`)
+  }
+
+  if (prediction.status === "succeeded" && prediction.output) {
+    const out = prediction.output
+    const url = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : null)
+    if (url) return { videoUrl: url }
+  }
+
+  return { predictionId: prediction.id }
+}
+
+// Helper: Animate transition between two photos using Kling (synchronous — waits for completion)
 async function animatePhotoTransition(
   startImageUrl: string,
   endImageUrl: string,

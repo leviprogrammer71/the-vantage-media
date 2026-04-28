@@ -9,11 +9,13 @@
  *  4. Still can't decode? throw a clear, user-facing error.
  */
 
+// Accepted final formats AFTER normalization. Note: webp is intentionally
+// excluded — Kling 2.5 and Seedance 2.0 reject webp inputs with "mime type
+// image/webp is not supported." Any webp upload gets canvas-re-encoded to JPEG
+// before it ever reaches our storage / edge functions.
 export const ACCEPTED_IMAGE_TYPES = [
   "image/jpeg",
   "image/png",
-  "image/webp",
-  "image/gif",
 ] as const;
 
 const HEIC_RX = /\.(heic|heif)$/i;
@@ -137,6 +139,13 @@ export async function normalizeImageForUpload(file: File): Promise<File> {
     }
   }
 
+  // WebP → JPEG: Kling/Seedance reject webp, so re-encode via canvas before upload
+  const isWebp = file.type === "image/webp" || /\.webp$/i.test(file.name);
+  if (isWebp) {
+    console.log("[normalize-image] WebP detected — converting to JPEG via canvas");
+    return await reencodeViaCanvas(file);
+  }
+
   // Already OK?
   if (ACCEPTED_IMAGE_TYPES.includes(file.type as any)) {
     console.log("[normalize-image] format already accepted, passthrough");
@@ -149,7 +158,7 @@ export async function normalizeImageForUpload(file: File): Promise<File> {
     return await reencodeViaCanvas(file);
   } catch (e) {
     throw new Error(
-      `Unsupported image format: ${file.type || "unknown"}. Please use JPEG, PNG, or WebP.`
+      `Unsupported image format: ${file.type || "unknown"}. Please use JPEG or PNG.`
     );
   }
 }
@@ -161,11 +170,14 @@ export async function normalizeImageForUpload(file: File): Promise<File> {
 export async function normalizeWithReport(
   file: File
 ): Promise<{ file: File; converted: boolean; reason?: string }> {
-  if (ACCEPTED_IMAGE_TYPES.includes(file.type as any) && !isHeic(file)) {
+  const isWebp = file.type === "image/webp" || /\.webp$/i.test(file.name);
+  if (ACCEPTED_IMAGE_TYPES.includes(file.type as any) && !isHeic(file) && !isWebp) {
     return { file, converted: false };
   }
   const reason = isHeic(file)
     ? "Converted HEIC to JPEG for AI compatibility"
+    : isWebp
+    ? "Converted WebP to JPEG (video models don't accept WebP)"
     : "Re-encoded to JPEG for AI compatibility";
   const converted = await normalizeImageForUpload(file);
   return { file: converted, converted: true, reason };

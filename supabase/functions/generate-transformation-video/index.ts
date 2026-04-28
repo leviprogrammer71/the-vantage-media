@@ -199,6 +199,26 @@ serve(async (req) => {
       afterUrl = afterSigned?.signedUrl
     }
 
+    // Defensive guard: Kling 2.5 + Seedance 2.0 reject webp inputs.
+    // Frontend converts webp → jpg before upload, but if a webp slips through
+    // (old uploads, direct API calls), surface a clean error before we waste
+    // a Replicate call with the cryptic "mime type image/webp is not supported".
+    for (const [label, candidateUrl] of [["before", beforeUrl], ["after", afterUrl]] as const) {
+      if (!candidateUrl) continue
+      try {
+        const head = await fetch(candidateUrl, { method: "HEAD" })
+        const ct = (head.headers.get("content-type") || "").toLowerCase()
+        if (ct.includes("webp")) {
+          throw new Error(
+            `The ${label} photo is in WebP format, which video models don't support. Re-upload it as JPEG or PNG. (We auto-convert WebP for new uploads — this looks like an older file.)`
+          )
+        }
+      } catch (e) {
+        if (e instanceof Error && e.message.includes("WebP")) throw e
+        // HEAD failed for some other reason — let the downstream call fail naturally
+      }
+    }
+
     // Mark submission as in progress
     if (submission_id) {
       await supabase

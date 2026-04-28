@@ -129,8 +129,19 @@ const Pricing = () => {
             </div>
           </section>
 
-          {/* TESTIMONIAL STRIP */}
+          {/* VS RENDY — Why choose Vantage */}
           <section className="lux-section lux-bg-bone">
+            <div className="lux-container mb-16">
+              <div className="mb-12 p-6 lux-bg-parchment" style={{ border: "1px solid var(--lux-hairline)" }}>
+                <h3 className="lux-display text-2xl mb-4" style={{ color: "var(--lux-ink)" }}>vs. Rendy.io</h3>
+                <div className="space-y-3 text-sm" style={{ color: "var(--lux-ink)", lineHeight: 1.8 }}>
+                  <p>Six listing categories, not two. Floor-plan-to-walkthrough native. 2-clip transformation reels — moment plus reveal. 1080p Seedance 2.0. Built by photographers who shoot $5M+ listings. Real-estate-native shot types and vibes.</p>
+                </div>
+              </div>
+            </div>
+
+          {/* TESTIMONIAL STRIP */}
+          <section className="lux-section lux-bg-bone" style={{ paddingTop: 0 }}>
             <div className="lux-container">
               <div className="grid md:grid-cols-3 gap-8">
                 {[
@@ -221,7 +232,7 @@ const Pricing = () => {
                       </div>
                       <div
                         className="lux-display-italic mt-3"
-                        style={{ color: featured ? "rgba(244,239,230,0.8)" : "var(--lux-ash)", fontSize: 18 }}
+                        style={{ color: featured ? "rgba(244,239,230,0.8)" : "var(--lux-ink)", fontSize: 18 }}
                       >
                         {p.credits} credits
                       </div>

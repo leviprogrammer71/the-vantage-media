@@ -315,6 +315,30 @@ export function ListingVideoFlow() {
       setClipUrls(allClips);
       setActiveClipIndex(0);
       setVideoUrl(finalVideoUrl);
+
+      // Persist a submission row so this listing video shows up in the user's gallery.
+      // Best-effort: failure here does not block the user from seeing their video.
+      try {
+        const finalClipPaths: string[] = response.data?.output_clip_paths || (response.data?.output_video_path ? [response.data.output_video_path] : []);
+        await supabase.from("submissions").insert({
+          user_id: user!.id,
+          full_name: user!.email || "",
+          email: user!.email || "",
+          business_name: realtorName || brokerage || "Self",
+          project_description: caption || generatedCaption,
+          transformation_type: category || "listing",
+          transformation_category: null,
+          video_type: "listing",
+          status: "delivered",
+          prompt_status: "complete",
+          after_photo_paths: photoUrls.map((u) => u.split("?")[0]).filter(Boolean),
+          output_video_url: finalVideoUrl,
+          output_video_path: finalClipPaths[0] || null,
+        });
+      } catch (persistErr) {
+        console.error("[ListingVideoFlow] gallery persist failed (non-fatal):", persistErr);
+      }
+
       await deductCredits(creditCost);
       await refreshCredits();
       setStep(7);
@@ -1259,7 +1283,7 @@ export function ListingVideoFlow() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
             <a
               href={videoUrl}
               download
@@ -1269,6 +1293,15 @@ export function ListingVideoFlow() {
               <Download className="mr-2 w-5 h-5" />
               Download
             </a>
+            <Link
+              to="/gallery"
+              className="lux-btn text-center w-full inline-flex items-center justify-center"
+              style={{ background: "var(--lux-rust)", color: "var(--lux-bone)", padding: "16px 20px" }}
+            >
+              View in Gallery →
+            </Link>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
             <button
               onClick={() => {
                 navigator.share({
@@ -1278,9 +1311,9 @@ export function ListingVideoFlow() {
                 });
               }}
               className="lux-btn-ghost text-center w-full inline-flex items-center justify-center"
-              style={{ padding: "16px 20px" }}
+              style={{ padding: "14px 18px", fontSize: "0.9rem" }}
             >
-              <Share2 className="mr-2 w-5 h-5" />
+              <Share2 className="mr-2 w-4 h-4" />
               Share
             </button>
             <button
@@ -1290,11 +1323,18 @@ export function ListingVideoFlow() {
                 setCategory(null);
               }}
               className="lux-btn-ghost text-center w-full inline-flex items-center justify-center"
-              style={{ padding: "16px 20px" }}
+              style={{ padding: "14px 18px", fontSize: "0.9rem" }}
             >
-              <RefreshCw className="mr-2 w-5 h-5" />
+              <RefreshCw className="mr-2 w-4 h-4" />
               Create Another
             </button>
+            <Link
+              to="/dashboard"
+              className="lux-btn-ghost text-center w-full inline-flex items-center justify-center"
+              style={{ padding: "14px 18px", fontSize: "0.9rem" }}
+            >
+              Back to Dashboard
+            </Link>
           </div>
         </div>
       </div>

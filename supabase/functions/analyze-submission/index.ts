@@ -318,9 +318,43 @@ serve(async (req) => {
       const videoPrompt = await refineVideoPromptIfPossible(videoPromptBase)
       console.log(`[direct] videoPrompt=${videoPrompt.length} chars`)
 
+      // 6. If a submission_id was passed, PERSIST the before image to storage and
+      // update the submissions row. Without this, the gallery shows "No before image"
+      // because the AI-generated before never gets a stable storage path.
+      let persistedBeforePath: string | null = null
+      if (body.submission_id) {
+        try {
+          const beforeFetch = await fetch(beforeImageUrl)
+          const beforeBuffer = await beforeFetch.arrayBuffer()
+          const beforePath = `${body.submission_id}/generated/before.jpg`
+          await supabase.storage
+            .from("project-submissions")
+            .upload(beforePath, beforeBuffer, {
+              contentType: "image/jpeg",
+              upsert: true,
+            })
+          persistedBeforePath = beforePath
+          await supabase
+            .from("submissions")
+            .update({
+              generated_before_image_path: beforePath,
+              scene_analysis_prompt: beforePrompt,
+              generated_video_prompt: videoPrompt,
+              prompt_status: "ready",
+              shot_type: shotType,
+            })
+            .eq("id", body.submission_id)
+          console.log(`[direct] persisted before to ${beforePath} + updated submission row`)
+        } catch (persistErr) {
+          console.error("[direct] failed to persist before image:", persistErr)
+          // Non-fatal — return the URL anyway, frontend still works for this generation
+        }
+      }
+
       return new Response(
         JSON.stringify({
           before_image_url: beforeImageUrl,
+          before_image_path: persistedBeforePath,
           video_prompt: videoPrompt,
           flux_prompt: beforePrompt, // kept for backward compatibility w/ frontend
           shot_type: shotType,

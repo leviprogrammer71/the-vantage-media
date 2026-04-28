@@ -221,7 +221,7 @@ const RealEstatePhotographers = () => {
                       <span style={{ flex: 1, height: 1, background: "var(--lux-hairline)" }} />
                     </div>
                     <h3 className="lux-display text-2xl md:text-3xl mb-4">{f.h}</h3>
-                    <p className="lux-prose text-sm" style={{ lineHeight: 1.7 }}>{f.b}</p>
+                    <p className="lux-prose text-sm" style={{ lineHeight: 1.7, color: "var(--lux-ink)" }}>{f.b}</p>
                   </div>
                 ))}
               </div>
@@ -371,7 +371,7 @@ const RealEstatePhotographers = () => {
                             style={{
                               padding: "20px",
                               borderBottom: "1px solid var(--lux-hairline)",
-                              color: j === 1 ? "var(--lux-ink)" : j === 0 ? "var(--lux-ash)" : "var(--lux-ink)",
+                              color: j === 1 ? "var(--lux-ink)" : j === 0 ? "var(--lux-rust)" : "var(--lux-ink)",
                               fontWeight: j === 1 ? 500 : 400,
                               fontSize: j === 0 ? 11 : 14,
                             }}
