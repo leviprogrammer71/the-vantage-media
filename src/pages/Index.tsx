@@ -97,6 +97,10 @@ const Index = () => {
                   <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-rust)" }}>POWERED BY</div>
                   <p className="text-sm" style={{ color: "var(--lux-ink)", lineHeight: 1.6 }}>ByteDance Seedance 2.0, Kling 2.5 Turbo Pro, Flux Kontext Pro, OpenAI gpt-image-2. Not open-source slop. The same models top studios license separately.</p>
                 </div>
+                <div className="mt-6 p-6" style={{ background: "var(--lux-ink)", color: "var(--lux-bone)" }}>
+                  <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-champagne)" }}>WHAT WE HAND BACK</div>
+                  <p className="text-sm" style={{ lineHeight: 1.6 }}>One finished MP4. 1080p vertical. Your price, location, realtor name, and brokerage burned in as cinematic overlays. Multi-clip reels stitched into a single download — done-for-you, post-ready. Drop it on Reels and walk away.</p>
+                </div>
               </div>
               <div className="lg:col-span-7">
                 <div className="grid sm:grid-cols-2 gap-6">

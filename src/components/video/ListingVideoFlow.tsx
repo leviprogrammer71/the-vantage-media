@@ -46,9 +46,9 @@ const CATEGORY_CARDS = [
   {
     id: "listing_bundle" as const,
     title: "The Listing Bundle",
-    eyebrow: "FULL LISTING REEL · 3-6 PHOTOS",
-    description: "Upload 3-6 photos. We render each as a Seedance 2.0 cinematic clip and stitch them as a single auto-playing reel with your price, caption and music suggestion overlaid.",
-    details: "15-30 seconds · From 90 credits · 5s per clip",
+    eyebrow: "DONE-FOR-YOU REEL · MOST POPULAR",
+    description: "Upload 3-6 photos. We render each as a Seedance 2.0 cinematic clip, stitch them into one finished MP4 with your price and realtor name burned in, and hand back a post-ready film. The full white-glove deliverable.",
+    details: "15-30s · From 90 credits · Stitched + branded",
   },
   {
     id: "virtual_staging" as const,
@@ -135,6 +135,8 @@ export function ListingVideoFlow() {
   const [activeClipIndex, setActiveClipIndex] = useState(0);
   const [showCreditsModal, setShowCreditsModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isStitching, setIsStitching] = useState(false);
+  const [stitchedUrl, setStitchedUrl] = useState<string | null>(null);
 
   const creditCost = calculateListingCost(category || "animate_single", effectId);
   const hasEnoughCredits = credits !== null && credits >= creditCost;
@@ -359,6 +361,61 @@ export function ListingVideoFlow() {
     brokerage ? `, ${brokerage}` : ""
   }`;
 
+  // Stitch multi-clip reel into single MP4 with text overlays
+  const handleStitchReel = async () => {
+    if (!clipUrls || clipUrls.length < 2) {
+      toast.error("Stitching requires multiple clips");
+      return;
+    }
+
+    setIsStitching(true);
+    setError(null);
+
+    try {
+      const stitchResponse = await supabase.functions.invoke("stitch-listing-reel", {
+        body: {
+          clip_urls: clipUrls,
+          listing: {
+            price: showPrice ? price : undefined,
+            realtor_name: realtorName,
+            location,
+            brokerage,
+            show_price: showPrice,
+          },
+          watermark: true,
+        },
+      });
+
+      if (stitchResponse.error) {
+        let detailedMsg = stitchResponse.error.message || "Stitching failed";
+        try {
+          const errCtx: any = (stitchResponse.error as any).context;
+          if (errCtx?.body) {
+            const parsed = typeof errCtx.body === "string" ? JSON.parse(errCtx.body) : errCtx.body;
+            if (parsed?.error) detailedMsg = parsed.error;
+          }
+        } catch {}
+        if (stitchResponse.data?.error) detailedMsg = stitchResponse.data.error;
+        throw new Error(detailedMsg);
+      }
+
+      const stitched = stitchResponse.data?.stitched_url;
+      if (!stitched) {
+        throw new Error("No stitched URL returned");
+      }
+
+      setStitchedUrl(stitched);
+      toast.success("Stitching complete! Download your final cut.");
+    } catch (err) {
+      const msg = (err as Error).message;
+      console.error("[ListingVideoFlow] stitching error:", err);
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setIsStitching(false);
+    }
+  };
+
   // STEP 1: Category picker
   if (step === 1) {
     return (
@@ -376,44 +433,103 @@ export function ListingVideoFlow() {
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {CATEGORY_CARDS.map((card) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {CATEGORY_CARDS.map((card) => {
+              const isFeatured = card.id === "listing_bundle";
+              return (
               <button
                 key={card.id}
                 onClick={() => {
                   setCategory(card.id);
                   setStep(2);
                 }}
-                className="group text-left p-8 lux-bg-cream flex flex-col min-h-80"
+                className="group text-left p-6 flex flex-col relative"
                 style={{
-                  border: "1px solid var(--lux-hairline)",
+                  background: isFeatured ? "var(--lux-ink)" : "var(--lux-cream)",
+                  color: isFeatured ? "var(--lux-bone)" : "var(--lux-ink)",
+                  border: `1px solid ${isFeatured ? "var(--lux-ink)" : "var(--lux-hairline)"}`,
                   transition: "all 0.3s var(--lux-ease)",
+                  minWidth: 0,
+                  minHeight: "320px",
+                  boxShadow: isFeatured ? "0 14px 40px rgba(14,14,12,0.18)" : "none",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "var(--lux-ink)";
+                  if (!isFeatured) e.currentTarget.style.borderColor = "var(--lux-ink)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "var(--lux-hairline)";
+                  if (!isFeatured) e.currentTarget.style.borderColor = "var(--lux-hairline)";
                 }}
               >
-                <div className="lux-eyebrow mb-4" style={{ color: "var(--lux-brass)" }}>
+                {isFeatured && (
+                  <div
+                    className="lux-eyebrow absolute -top-2 right-4 px-3 py-1"
+                    style={{
+                      background: "var(--lux-rust)",
+                      color: "var(--lux-bone)",
+                      fontSize: "0.6rem",
+                      letterSpacing: "0.18em",
+                    }}
+                  >
+                    DONE-FOR-YOU
+                  </div>
+                )}
+                <div
+                  className="lux-eyebrow mb-3"
+                  style={{
+                    color: isFeatured ? "var(--lux-champagne)" : "var(--lux-brass)",
+                    fontSize: "0.65rem",
+                    lineHeight: 1.3,
+                    wordBreak: "normal",
+                    overflowWrap: "break-word",
+                  }}
+                >
                   {card.eyebrow}
                 </div>
                 <h3
-                  className="lux-display mb-4"
-                  style={{ fontSize: "clamp(1.6rem, 4vw, 2.2rem)", lineHeight: 0.96 }}
+                  className="lux-display mb-3"
+                  style={{
+                    fontSize: "clamp(1.4rem, 2.4vw, 1.85rem)",
+                    lineHeight: 1.05,
+                    wordBreak: "normal",
+                    overflowWrap: "break-word",
+                    hyphens: "manual",
+                    color: isFeatured ? "var(--lux-bone)" : "var(--lux-ink)",
+                  }}
                 >
                   {card.title}
                 </h3>
-                <p className="lux-prose mb-6 flex-1">{card.description}</p>
-                <div className="flex items-center justify-between mt-auto pt-4" style={{ borderTop: "1px solid var(--lux-hairline)" }}>
-                  <span className="text-xs" style={{ color: "var(--lux-ash)" }}>
+                <p
+                  className="lux-prose mb-4 flex-1"
+                  style={{
+                    fontSize: "0.875rem",
+                    lineHeight: 1.55,
+                    color: isFeatured ? "rgba(244,239,230,0.85)" : "var(--lux-ink)",
+                  }}
+                >
+                  {card.description}
+                </p>
+                <div
+                  className="flex items-center justify-between gap-3 mt-auto pt-3"
+                  style={{ borderTop: `1px solid ${isFeatured ? "rgba(244,239,230,0.18)" : "var(--lux-hairline)"}` }}
+                >
+                  <span
+                    className="text-xs"
+                    style={{
+                      color: isFeatured ? "var(--lux-champagne)" : "var(--lux-ink)",
+                      fontSize: "0.7rem",
+                      lineHeight: 1.4,
+                    }}
+                  >
                     {card.details}
                   </span>
-                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition text-lux-brass" style={{ color: "var(--lux-brass)" }} />
+                  <ChevronRight
+                    className="w-4 h-4 flex-shrink-0 group-hover:translate-x-1 transition"
+                    style={{ color: isFeatured ? "var(--lux-champagne)" : "var(--lux-brass)" }}
+                  />
                 </div>
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1113,17 +1229,27 @@ export function ListingVideoFlow() {
           </h2>
 
           <div className="mb-8 aspect-[9/16] overflow-hidden relative" style={{ background: "var(--lux-ink)" }}>
+            {isStitching && (
+              <div className="absolute inset-0 flex items-center justify-center z-50" style={{ background: "rgba(14,14,12,0.9)" }}>
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" style={{ color: "var(--lux-champagne)" }} />
+                  <p className="lux-eyebrow" style={{ color: "var(--lux-bone)" }}>
+                    Stitching your final cut…
+                  </p>
+                </div>
+              </div>
+            )}
             <video
-              key={clipUrls[activeClipIndex] || videoUrl}
-              src={clipUrls[activeClipIndex] || videoUrl}
-              controls={clipUrls.length <= 1}
+              key={stitchedUrl || clipUrls[activeClipIndex] || videoUrl}
+              src={stitchedUrl || clipUrls[activeClipIndex] || videoUrl}
+              controls={clipUrls.length <= 1 || stitchedUrl !== null}
               autoPlay
-              muted={clipUrls.length > 1}
+              muted={clipUrls.length > 1 && !stitchedUrl}
               playsInline
               onEnded={() => {
-                if (activeClipIndex < clipUrls.length - 1) {
+                if (!stitchedUrl && activeClipIndex < clipUrls.length - 1) {
                   setActiveClipIndex(activeClipIndex + 1);
-                } else if (clipUrls.length > 1) {
+                } else if (!stitchedUrl && clipUrls.length > 1) {
                   // Loop the reel
                   setActiveClipIndex(0);
                 }
@@ -1196,7 +1322,7 @@ export function ListingVideoFlow() {
             >
               AI · THE VANTAGE
             </div>
-            {clipUrls.length > 1 && (
+            {clipUrls.length > 1 && !stitchedUrl && (
               <>
                 {/* Clip progress indicator at top */}
                 <div className="absolute top-3 left-3 right-3 flex gap-1.5 z-10">
@@ -1244,16 +1370,46 @@ export function ListingVideoFlow() {
             )}
           </div>
 
-          {clipUrls.length > 1 && (
-            <div className="mb-8 text-center space-y-2">
+          {clipUrls.length > 1 && !stitchedUrl && (
+            <div className="mb-8 text-center space-y-3">
               <div className="lux-eyebrow" style={{ color: "var(--lux-ash)" }}>
-                ✦ {clipUrls.length}-CLIP REEL · {clipUrls.length * 5}s · AUTO-PLAYS AS ONE
+                ✦ {clipUrls.length}-CLIP REEL · {clipUrls.length * 5}s
               </div>
               {musicVibe && musicVibe !== "No music (you'll add yours)" && (category === "listing_bundle" || category === "animate_single" || category === "sun_to_sun") && (
                 <div className="lux-prose text-sm" style={{ color: "var(--lux-brass)" }}>
                   ♫ Suggested music: <span style={{ color: "var(--lux-ink)" }}>{musicVibe}</span> — drop a track in this style in your editor
                 </div>
               )}
+              <button
+                onClick={handleStitchReel}
+                disabled={isStitching}
+                className="lux-btn mt-4"
+                style={{
+                  background: "var(--lux-brass)",
+                  color: "var(--lux-bone)",
+                  padding: "12px 24px",
+                  opacity: isStitching ? 0.6 : 1,
+                }}
+              >
+                {isStitching ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 inline-block animate-spin" />
+                    Stitching…
+                  </>
+                ) : (
+                  "Stitch into Single MP4"
+                )}
+              </button>
+            </div>
+          )}
+          {stitchedUrl && (
+            <div className="mb-8 text-center space-y-2">
+              <div className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>
+                ✓ STITCHED FINAL CUT READY
+              </div>
+              <p className="lux-prose text-sm" style={{ color: "var(--lux-ink)" }}>
+                Your clips are now a single MP4 with price and realtor name overlaid. Download your finished reel below.
+              </p>
             </div>
           )}
 
@@ -1288,13 +1444,13 @@ export function ListingVideoFlow() {
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
             <a
-              href={videoUrl}
+              href={stitchedUrl || videoUrl}
               download
               className="lux-btn text-center w-full inline-flex items-center justify-center"
               style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "16px 20px" }}
             >
               <Download className="mr-2 w-5 h-5" />
-              Download
+              Download {stitchedUrl ? "Final Cut" : ""}
             </a>
             <Link
               to="/gallery"

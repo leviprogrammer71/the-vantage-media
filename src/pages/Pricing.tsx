@@ -28,7 +28,8 @@ const Pricing = () => {
   const { user } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+  // Default to annual — anchors higher AOV + lower churn, and the cents-per-month math reads better
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("annual");
 
   useEffect(() => {
     if (user) {

@@ -8,11 +8,18 @@ interface LuxuryHeaderProps {
   variant?: "transparent" | "bone" | "ink";
 }
 
-const navLinks = [
+const publicNavLinks = [
   { to: "/real-estate-photographers", label: "For Photographers" },
   { to: "/for-agents", label: "For Agents" },
   { to: "/for-airbnb", label: "Airbnb" },
-  { to: "/gallery", label: "The Reel" },
+  { to: "/pricing", label: "Pricing" },
+];
+
+const authedNavLinks = [
+  { to: "/real-estate-photographers", label: "For Photographers" },
+  { to: "/for-agents", label: "For Agents" },
+  { to: "/gallery", label: "My Gallery" },
+  { to: "/dashboard", label: "Dashboard" },
   { to: "/pricing", label: "Pricing" },
 ];
 
@@ -30,6 +37,7 @@ const LuxuryHeader = ({ variant = "bone" }: LuxuryHeaderProps) => {
       : "var(--lux-bone)";
   const fg = variant === "ink" ? "var(--lux-bone)" : "var(--lux-ink)";
   const hairline = variant === "ink" ? "rgba(244,239,230,0.12)" : "var(--lux-hairline)";
+  const navLinks = user ? authedNavLinks : publicNavLinks;
 
   return (
     <header
@@ -88,7 +96,7 @@ const LuxuryHeader = ({ variant = "bone" }: LuxuryHeaderProps) => {
                 {credits ?? 0} CREDITS
               </Link>
               <Link
-                to="/generate"
+                to="/video?mode=listing"
                 className="lux-eyebrow inline-flex items-center gap-3"
                 style={{
                   color: variant === "ink" ? "var(--lux-ink)" : "var(--lux-bone)",
