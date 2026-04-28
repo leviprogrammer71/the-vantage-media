@@ -782,7 +782,8 @@ export function TransformationFlow({ transformationCategory }: { transformationC
             >
               <Upload className="h-8 w-8 mb-2" style={{ color: "var(--lux-ash)" }} />
               <span className="lux-prose text-xs font-medium" style={{ color: "var(--lux-ink)" }}>Upload after photo</span>
-              <span className="lux-prose text-[10px] mt-1" style={{ color: "var(--lux-ash)" }}>JPG, PNG, or WebP (max 50MB)</span>
+              <span className="lux-prose text-[10px] mt-1" style={{ color: "var(--lux-ink)" }}>JPG, PNG, or HEIC (max 50MB)</span>
+              <span className="lux-prose text-[10px] mt-0.5" style={{ color: "var(--lux-rust)" }}>WebP not supported — auto-converted on upload</span>
             </button>
           )}
         </div>

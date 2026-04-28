@@ -112,6 +112,67 @@ function vibeSuffix(vibe: string): string {
   }
 }
 
+// ── Property photo → "sketch on a desk" reference image ──
+// Uses google/nano-banana on Replicate. Verified working: takes a photo as
+// `image_input` reference, outputs a hand-drawing-on-desk sketch of the same
+// subject in ~8s. Used for the Sketch to Reality reveal flow where the sketch
+// then morphs back into the real photo via Kling.
+async function generateSketchWithNanoBanana(
+  referenceImageUrl: string,
+  prompt: string,
+  token: string
+): Promise<string> {
+  const res = await fetch(
+    `${REPLICATE}/models/google/nano-banana/predictions`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${token}`,
+        "Content-Type": "application/json",
+        Prefer: "wait=60",
+      },
+      body: JSON.stringify({
+        input: {
+          prompt,
+          image_input: [referenceImageUrl],
+          output_format: "jpg",
+        },
+      }),
+    }
+  )
+
+  const prediction = await res.json()
+  if (!res.ok || !prediction.id) {
+    const detail = prediction?.detail || prediction?.error?.message || JSON.stringify(prediction).slice(0, 400)
+    throw new Error(`nano-banana sketch generation rejected (HTTP ${res.status}): ${detail}`)
+  }
+
+  if (prediction.status === "succeeded") {
+    const out = prediction.output
+    const url = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : (out?.url || ""))
+    if (url) return url
+  }
+
+  const TOKEN = Deno.env.get("REPLICATE_API_TOKEN")!
+  for (let i = 0; i < 12; i++) {
+    await new Promise((r) => setTimeout(r, 4000))
+    const pollRes = await fetch(`${REPLICATE}/predictions/${prediction.id}`, {
+      headers: { Authorization: `Token ${TOKEN}` },
+    })
+    const pollData = await pollRes.json()
+    if (pollData.status === "succeeded") {
+      const out = pollData.output
+      const url = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : (out?.url || ""))
+      if (url) return url
+      throw new Error("nano-banana succeeded but returned no URL")
+    }
+    if (pollData.status === "failed" || pollData.status === "canceled") {
+      throw new Error(`nano-banana failed: ${pollData.error || "unknown"}`)
+    }
+  }
+  throw new Error("nano-banana sketch generation timed out")
+}
+
 // ── Sketch / Floor Plan → Photoreal renderer ──
 // Uses flux-kontext-pro which is purpose-built for image-to-image style
 // transformation (sketch → photoreal, line drawing → render). Falls back to
@@ -858,6 +919,14 @@ serve(async (req) => {
     }
 
     // Category: sketch_to_real
+    // FLOW (nano-banana sketch reveal — verified working on Replicate):
+    //   1. User uploads their PROPERTY PHOTO (the real subject, not a sketch).
+    //   2. nano-banana takes that photo as `image_input` reference and produces
+    //      a hand-drawing-on-desk image: pencil sketch of the same property,
+    //      sitting on a wooden desk, with a person's hand drawing it.
+    //   3. Kling animates: sketch-on-desk → actual property photo. The sketch
+    //      "becomes real" — the magic moment from the reference reels.
+    //   4. Kling slow_push reveal of the property photo as clip 2.
     if (category === "sketch_to_real") {
       const { sketch_intent, vibe: selectedVibe } = body
 
@@ -869,39 +938,35 @@ serve(async (req) => {
         throw new Error(`sketch_to_real requires vibe. Received: "${selectedVibe}"`)
       }
 
-      const sketchImageUrl = photo_urls[0]
+      const propertyPhotoUrl = photo_urls[0]
       const vibeLine = vibeSuffix(selectedVibe)
 
-      // Tighter, more decisive transformation prompt — flux-kontext responds better to short instructions
-      const renderPrompt = sketch_intent === "interior"
-        ? `Render this sketch as a photorealistic interior. Preserve the exact room geometry, walls, windows, doors, ceiling lines, and key architectural features from the drawing. Add realistic furniture, finishes, materials, soft natural light, and lived-in props in a ${selectedVibe} aesthetic. Magazine-quality interior photography. ${vibeLine}`
-        : `Render this sketch as a photorealistic exterior of the same building. Preserve the exact massing, façade composition, window placements, and rooflines from the drawing. Add realistic materials, landscaping, sky, and natural lighting in a ${selectedVibe} aesthetic. Magazine-quality architectural photography. ${vibeLine}`
+      // Step 1: nano-banana — generate the sketch-on-desk version of the property
+      const sketchPrompt = sketch_intent === "interior"
+        ? `Generate a version of the reference image as a pencil architectural sketch on a piece of paper sitting on a wooden desk, with a person's right hand holding a pencil drawing it. The sketch shows the same interior room from the reference image, in clean architectural pencil-sketch style with shading and perspective. Warm desk lighting, shallow depth of field, photorealistic — but the drawing on the paper is a hand-drawn pencil sketch.`
+        : `Generate a version of the reference image as a pencil architectural sketch on a piece of paper sitting on a wooden desk, with a person's right hand holding a pencil drawing it. The sketch shows the same building exterior from the reference image, in clean architectural pencil-sketch style with shading and perspective. Warm desk lighting, shallow depth of field, photorealistic — but the drawing on the paper is a hand-drawn pencil sketch.`
 
-      // Step 1: Render sketch to photoreal with flux-kontext-pro (purpose-built for transforms)
-      const photorealImageUrl = await renderSketchToPhotoreal(
-        sketchImageUrl,
-        renderPrompt,
-        REPLICATE_TOKEN
-      )
+      console.log("[sketch_to_real] generating sketch-on-desk via nano-banana")
+      const sketchOnDeskUrl = await generateSketchWithNanoBanana(propertyPhotoUrl, sketchPrompt, REPLICATE_TOKEN)
 
-      // Step 2: TRANSFORMATION CLIP — Kling animates sketch → photoreal in parallel
-      // This is the magic moment users see in reference reels: drawing fades/morphs into reality
+      // Step 2: TRANSFORMATION CLIP — Kling animates sketch-on-desk → real photo
+      // The pencil drawing comes alive and becomes the actual property.
       const transformPrompt = sketch_intent === "interior"
-        ? `An architectural pencil sketch of an interior gradually transforms into a photorealistic, magazine-quality interior. Pencil lines fade as colour, light, materials, furniture, and shadows appear. Smooth dreamlike transition. No camera movement — the room itself becomes real before our eyes. ${vibeLine}`
-        : `An architectural pencil sketch of a building exterior gradually transforms into a photorealistic, magazine-quality architectural photograph. Pencil lines fade as materials, sky, landscaping, and natural light appear. Smooth dreamlike transition. No camera movement — the building itself becomes real before our eyes. ${vibeLine}`
+        ? `A pencil architectural sketch on a wooden desk gradually transforms into the actual photorealistic interior shown in the drawing. Pencil lines fade as colour, light, materials, furniture, and shadows appear. The hand and desk dissolve away. Smooth dreamlike transition. No camera movement — the drawing becomes real before our eyes. ${vibeLine}`
+        : `A pencil architectural sketch on a wooden desk gradually transforms into the actual photorealistic building exterior shown in the drawing. Pencil lines fade as materials, sky, landscaping, and natural light appear. The hand and desk dissolve away. Smooth dreamlike transition. No camera movement — the drawing becomes real before our eyes. ${vibeLine}`
 
       // FIRE-AND-POLL: kick off both predictions, return prediction_ids
-      console.log("[sketch_to_real] kicking off transformation + reveal predictions")
+      console.log("[sketch_to_real] kicking off sketch-reveal + property-walk predictions")
       const [transformStart, revealStart] = await Promise.all([
         startKlingTransitionPrediction(
-          sketchImageUrl,        // start = the sketch
-          photorealImageUrl,     // end   = the photoreal render
+          sketchOnDeskUrl,       // start = the sketch-on-desk image
+          propertyPhotoUrl,      // end   = the actual property photo (becomes real)
           transformPrompt,
           5,
           REPLICATE_TOKEN
         ),
         startVideoGeneration(
-          photorealImageUrl,
+          propertyPhotoUrl,      // walk through the real property
           "slow_push",
           5,
           REPLICATE_TOKEN

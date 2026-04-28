@@ -60,8 +60,8 @@ const CATEGORY_CARDS = [
   {
     id: "sketch_to_real" as const,
     title: "Sketch to Reality",
-    eyebrow: "DRAWING TO PHOTOREAL FILM",
-    description: "Architect's drawing or designer sketch. We deliver a 2-clip reel: the sketch visibly transforming into the photoreal render + a slow reveal of the finished space.",
+    eyebrow: "PROPERTY PHOTO · HAND-DRAWN REVEAL",
+    description: "Upload your property photo. We render a pencil sketch of the same property being hand-drawn on a wooden desk, then animate the drawing morphing into the real photo. Magic moment + reveal walk.",
     details: "10s reel · 2 clips · From 60 credits",
   },
   {
@@ -435,16 +435,16 @@ export function ListingVideoFlow() {
 
           <div className="mb-12">
             <h2 className="lux-display mb-2" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
-              Is this interior or exterior?
+              Is this an interior or exterior shot?
             </h2>
-            <p className="lux-prose mb-6" style={{ color: "var(--lux-ash)" }}>
-              Choose the architectural intent. We'll render it photorealistically in the style you pick.
+            <p className="lux-prose mb-6" style={{ color: "var(--lux-ink)" }}>
+              Tells us whether to draw a room sketch or an architectural exterior sketch on the desk.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-12">
             {[
-              { id: "interior" as const, label: "Interior", description: "Room, hallway, or space design" },
+              { id: "interior" as const, label: "Interior", description: "Room, hallway, or space" },
               { id: "exterior" as const, label: "Exterior", description: "Building facade or landscape" },
             ].map((option) => {
               const isSelected = sketchIntent === option.id;
@@ -615,14 +615,14 @@ export function ListingVideoFlow() {
               {category === "animate_single" && "Upload your hero shot"}
               {category === "sun_to_sun" && "Upload exterior photo"}
               {category === "listing_bundle" && "Upload 3-6 property photos"}
-              {category === "sketch_to_real" && "Upload your architectural sketch"}
+              {category === "sketch_to_real" && "Upload the property photo"}
               {category === "floor_plan_pan" && "Upload your floor plan or axonometric drawing"}
             </h2>
             <p className="lux-prose" style={{ color: "var(--lux-ash)" }}>
               {category === "animate_single" && "High-res horizontal or vertical photos work best."}
               {category === "sun_to_sun" && "A bright daytime exterior. We'll render it at sunrise, golden hour, and dusk."}
               {category === "listing_bundle" && "Mix of exterior, interior, and detail shots. We'll stitch them into one reel."}
-              {category === "sketch_to_real" && "Cleanest results with: digital architectural drawings, clear elevations, or designer renders. Hand-drawn sketches work but proportions may vary."}
+              {category === "sketch_to_real" && "Upload the actual property photo (interior or exterior). We'll render a pencil sketch of the same scene being hand-drawn on a desk, then animate the sketch becoming real. Best with sharp, well-lit photos."}
               {category === "floor_plan_pan" && "Floor plans, axonometric drawings, or 3D-isometric room views all work. We'll render the plan as a photoreal interior, then move the camera through it."}
             </p>
           </div>
@@ -649,9 +649,12 @@ export function ListingVideoFlow() {
             onClick={() => fileInputRef.current?.click()}
           >
             <Upload className="w-10 h-10 mx-auto mb-6" style={{ color: "var(--lux-brass)" }} />
-            <p className="lux-prose mb-3 font-semibold">Drag photos here or click to select</p>
-            <p style={{ color: "var(--lux-ash)", fontSize: "0.875rem" }}>
-              JPEG, PNG, WebP · Max 50MB · {maxPhotos === 1 ? "1 photo" : `${minPhotos}-${maxPhotos} photos`}
+            <p className="lux-prose mb-3 font-semibold" style={{ color: "var(--lux-ink)" }}>Drag photos here or click to select</p>
+            <p style={{ color: "var(--lux-ink)", fontSize: "0.875rem" }}>
+              JPEG, PNG, or HEIC (iPhone) · Max 50MB · {maxPhotos === 1 ? "1 photo" : `${minPhotos}-${maxPhotos} photos`}
+            </p>
+            <p className="mt-2" style={{ color: "var(--lux-rust)", fontSize: "0.75rem" }}>
+              WebP not supported — our video models reject it. We auto-convert if you drop one.
             </p>
           </div>
 
@@ -659,7 +662,7 @@ export function ListingVideoFlow() {
             ref={fileInputRef}
             type="file"
             multiple={category === "listing_bundle"}
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+            accept="image/jpeg,image/png,image/heic,image/heif,image/webp"
             onChange={(e) => handlePhotoSelect(e.target.files)}
             className="hidden"
           />
