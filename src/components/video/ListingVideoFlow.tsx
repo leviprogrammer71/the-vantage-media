@@ -40,36 +40,36 @@ const CATEGORY_CARDS = [
     id: "sun_to_sun" as const,
     title: "Sun-Up to Sundown",
     eyebrow: "DAY-TO-DUSK · GOLDEN-HOUR TIMELAPSE",
-    description: "Upload one daytime exterior. Render at sunrise → golden hour → dusk.",
-    details: "12 seconds · Premium tier · From 60 credits",
+    description: "Upload one daytime exterior. We render three time-of-day frames (sunrise, golden hour, dusk) and stitch two cinematic transitions through them.",
+    details: "12s reel · 2 clips · From 60 credits",
   },
   {
     id: "listing_bundle" as const,
     title: "The Listing Bundle",
     eyebrow: "FULL LISTING REEL · 3-6 PHOTOS",
-    description: "Upload 3-6 photos. AI composes a 15-30 second reel with music & pricing.",
-    details: "15-30 seconds · From 90 credits",
+    description: "Upload 3-6 photos. We render each as a Seedance 2.0 cinematic clip and stitch them as a single auto-playing reel with your price, caption and music suggestion overlaid.",
+    details: "15-30 seconds · From 90 credits · 5s per clip",
   },
   {
     id: "virtual_staging" as const,
     title: "Virtual Staging",
     eyebrow: "EMPTY ROOM TO FULLY FURNISHED",
-    description: "Upload one empty room photo. We furnish it in your chosen style and animate a slow walk-through. Listings sell 73% faster when staged.",
-    details: "8 seconds · 50 credits · gpt-image-2 + Kling",
+    description: "Upload one empty room photo. We furnish it in your chosen style, then deliver a 2-clip reel: the room dressing itself + a slow walk-through. Listings sell 73% faster when staged.",
+    details: "10s reel · 2 clips · From 50 credits",
   },
   {
     id: "sketch_to_real" as const,
     title: "Sketch to Reality",
     eyebrow: "DRAWING TO PHOTOREAL FILM",
-    description: "Architect's drawing or designer sketch becomes a photorealistic walk-through. Pick interior or exterior intent.",
-    details: "8 seconds · 60 credits · gpt-image-2 + Kling",
+    description: "Architect's drawing or designer sketch. We deliver a 2-clip reel: the sketch visibly transforming into the photoreal render + a slow reveal of the finished space.",
+    details: "10s reel · 2 clips · From 60 credits",
   },
   {
     id: "floor_plan_pan" as const,
     title: "Floor Plan to Walkthrough",
     eyebrow: "FLOOR PLAN · PHOTOREAL WALK-THROUGH",
-    description: "Upload a floor plan or axonometric drawing. We render it into a photoreal interior, then animate a cinematic camera move through the space.",
-    details: "5 seconds · From 30 credits · flux-kontext + Kling",
+    description: "Upload a floor plan or axonometric drawing. 2-clip reel: the plan transforming into a photoreal interior + a cinematic camera move through the space.",
+    details: "10s reel · 2 clips · From 30 credits",
   },
 ];
 
@@ -1103,6 +1103,57 @@ export function ListingVideoFlow() {
               }}
               className="w-full h-full object-cover"
             />
+            {/* Listing metadata overlay (price, location, brokerage) — matches Reels-style branding */}
+            {(category === "listing_bundle" || category === "animate_single" || category === "sun_to_sun") && (location || (showPrice && price) || brokerage) && (
+              <>
+                {/* Top-left location badge */}
+                {location && (
+                  <div
+                    className="lux-eyebrow absolute top-4 left-4 px-3 py-1.5 z-10"
+                    style={{
+                      background: "rgba(14,14,12,0.7)",
+                      color: "var(--lux-bone)",
+                      backdropFilter: "blur(8px)",
+                      fontSize: "0.7rem",
+                    }}
+                  >
+                    {location}
+                  </div>
+                )}
+                {/* Bottom price + brokerage */}
+                <div className="absolute bottom-16 left-4 right-4 z-10 flex justify-between items-end gap-3">
+                  {showPrice && price ? (
+                    <div
+                      className="lux-display"
+                      style={{
+                        color: "var(--lux-bone)",
+                        fontSize: "clamp(1.4rem, 4vw, 2rem)",
+                        textShadow: "0 2px 12px rgba(0,0,0,0.6)",
+                        lineHeight: 1,
+                      }}
+                    >
+                      ${price.toLocaleString()}
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+                  {brokerage && (
+                    <div
+                      className="lux-eyebrow"
+                      style={{
+                        color: "var(--lux-bone)",
+                        opacity: 0.85,
+                        textShadow: "0 1px 6px rgba(0,0,0,0.6)",
+                        fontSize: "0.65rem",
+                        textAlign: "right",
+                      }}
+                    >
+                      {brokerage}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
             {/* Watermark overlay */}
             <div
               className="absolute bottom-4 right-4 lux-eyebrow z-20"
@@ -1167,8 +1218,15 @@ export function ListingVideoFlow() {
           </div>
 
           {clipUrls.length > 1 && (
-            <div className="mb-8 lux-eyebrow text-center" style={{ color: "var(--lux-ash)" }}>
-              ✦ {clipUrls.length}-CLIP REEL · TOTAL {clipUrls.length * 5}s · STITCH IN YOUR EDITOR FOR FINAL CUT
+            <div className="mb-8 text-center space-y-2">
+              <div className="lux-eyebrow" style={{ color: "var(--lux-ash)" }}>
+                ✦ {clipUrls.length}-CLIP REEL · {clipUrls.length * 5}s · AUTO-PLAYS AS ONE
+              </div>
+              {musicVibe && musicVibe !== "No music (you'll add yours)" && (category === "listing_bundle" || category === "animate_single" || category === "sun_to_sun") && (
+                <div className="lux-prose text-sm" style={{ color: "var(--lux-brass)" }}>
+                  ♫ Suggested music: <span style={{ color: "var(--lux-ink)" }}>{musicVibe}</span> — drop a track in this style in your editor
+                </div>
+              )}
             </div>
           )}
 

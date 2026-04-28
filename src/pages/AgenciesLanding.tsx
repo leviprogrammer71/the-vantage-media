@@ -61,9 +61,9 @@ const AgenciesLanding = () => {
             <div className="lux-container">
               <SectionHeading
                 eyebrow="THE HOUSE PLAN INCLUDES"
-                title="Built for the office,"
-                italic="not the seat."
-                lede="Every feature here is designed for a brokerage or agency that needs to deliver cinematic film at scale, with brand control, governance, and a single point of accountability."
+                title="One studio,"
+                italic="for every agent."
+                lede="White-label at scale. Team seats, brand presets, MLS handoff, and a liaison who knows your roster."
                 align="center"
                 className="mb-20"
               />

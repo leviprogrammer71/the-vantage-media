@@ -114,10 +114,13 @@ async function runGptImage2(
   const validRatio = mapToGptImage2Ratio(aspectRatio)
   console.log(`[runGptImage2] requested=${aspectRatio} mapped=${validRatio}`)
 
+  // Force JPEG output — Kling 2.5 and Seedance 2.0 reject webp inputs ("mime type image/webp is not supported").
+  // We'd rather pay the small quality hit than break the entire pipeline downstream.
   const input: Record<string, unknown> = {
     prompt,
     aspect_ratio: validRatio,
     input_images: [inputImageUrl],
+    output_format: "jpg",
   }
 
   const res = await fetch(`${REPLICATE}/models/openai/gpt-image-2/predictions`, {
@@ -362,12 +365,12 @@ serve(async (req) => {
     // Persist before image into the submissions bucket
     const beforeFetch = await fetch(beforeImageUrl)
     const beforeBuffer = await beforeFetch.arrayBuffer()
-    const beforePath = `${submissionId}/generated/before.webp`
+    const beforePath = `${submissionId}/generated/before.jpg`
 
     await supabase.storage
       .from("project-submissions")
       .upload(beforePath, beforeBuffer, {
-        contentType: "image/webp",
+        contentType: "image/jpeg",
         upsert: true,
       })
 

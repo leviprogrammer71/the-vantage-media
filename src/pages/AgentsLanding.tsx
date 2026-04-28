@@ -72,19 +72,19 @@ const AgentsLanding = () => {
             <div className="lux-container grid lg:grid-cols-12 gap-12 lg:gap-20 items-start">
               <div className="lg:col-span-5">
                 <SectionHeading
-                  eyebrow="THE NEW STANDARD"
-                  title="Static photos."
-                  italic="A vanishing genre."
-                  lede="By Q3 2026, video listings will outsell carousel listings 2.4 to 1. The agents who lead this shift in their market will own it. The ones who wait will inherit it."
+                  eyebrow="THE MARKET MOMENTUM"
+                  title="Motion is outrunning"
+                  italic="still photographs."
+                  lede="Homes with video close 9 days faster. Reels get 3.4× more buyer leads. By Q3 2026, video will be 70% of search results. Lead now or follow later."
                 />
               </div>
               <div className="lg:col-span-7">
                 <div className="grid sm:grid-cols-2 gap-6">
                   {[
-                    { v: "+62%", l: "INSTAGRAM SAVE RATE", c: "Listing reels vs. carousels, NAR Q1 2026" },
-                    { v: "−9 days", l: "AVG. DAYS ON MARKET", c: "Listings with video vs. without" },
-                    { v: "3.4×", l: "BUYER LEAD VOLUME", c: "Cinematic film vs. static set" },
-                    { v: "+$18k", l: "FINAL SALE LIFT", c: "Median home, $850k–$1.2M tier" },
+                    { v: "+62%", l: "SAVE RATE ON REELS", c: "vs. static carousel photos" },
+                    { v: "−9 days", l: "FASTER SALE VELOCITY", c: "Homes with film vs. without" },
+                    { v: "3.4×", l: "BUYER INQUIRIES", c: "Cinematic listing film to showings" },
+                    { v: "+$18k", l: "SALE PRICE LIFT", c: "$850k–$1.2M median homes" },
                   ].map((s) => (
                     <div key={s.l} className="p-8 lux-bg-cream" style={{ border: "1px solid var(--lux-hairline)" }}>
                       <div className="lux-display" style={{ fontSize: "clamp(2.4rem, 4vw, 3.4rem)", lineHeight: 1 }}>{s.v}</div>
@@ -133,10 +133,10 @@ const AgentsLanding = () => {
             <div className="lux-container grid lg:grid-cols-12 gap-12 lg:gap-16 items-start">
               <div className="lg:col-span-5">
                 <SectionHeading
-                  eyebrow="THE ECONOMICS"
-                  title="One closing."
-                  italic="Pays for the year."
-                  lede="The math on cinematic listings is uncomfortable, in a good way. Move the dials below to see what one extra closing this year would mean for your GCI."
+                  eyebrow="THE MATH"
+                  title="One extra closing."
+                  italic="Pays for 12 months."
+                  lede="Move the dials. See what one extra sale (just one) means for your yearly GCI. The spreadsheet makes the case."
                 />
               </div>
               <div className="lg:col-span-7">

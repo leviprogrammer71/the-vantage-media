@@ -91,7 +91,7 @@ const RealEstatePhotographers = () => {
                   <br />
                   cinematic video
                   <br />
-                  <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>because the math broke.</span>
+                  <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>when the margins died.</span>
                 </h2>
               </div>
               <div className="lg:col-span-7">
@@ -117,8 +117,8 @@ const RealEstatePhotographers = () => {
                     paddingLeft: 24,
                   }}
                 >
-                  We rebuilt the math. One frame. Three minutes. $0.42 a film at volume.
-                  Add it to every shoot at $450 and watch your invoice average climb 35%
+                  We rebuilt the business. One frame. Three minutes. $0.42 per film at volume.
+                  Add it to every shoot at $450 and watch billings climb 35%—
                   without changing a single thing on set.
                 </p>
               </div>
@@ -202,15 +202,15 @@ const RealEstatePhotographers = () => {
 
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px" style={{ background: "var(--lux-hairline-strong)" }}>
                 {[
-                  { tag: "01", h: "Brand presets", b: "Save your studio's color grade, watermark, and intro card. Apply to every film with one tap." },
-                  { tag: "02", h: "Private agent gallery", b: "A bespoke micro-site for each agent client. They review, download, and share — you keep the relationship." },
-                  { tag: "03", h: "MLS-ready handoff", b: "Render in vertical 9:16, square 1:1, and horizontal 16:9 simultaneously. Drop into any MLS field." },
-                  { tag: "04", h: "Bulk render queue", b: "Submit a full shoot of 24 frames overnight. Wake up to 24 finished films, named, dated, organized." },
-                  { tag: "05", h: "RAW workflow respect", b: "Drag your edited JPEGs straight from Lightroom or Capture One. We accept what your studio already exports." },
+                  { tag: "01", h: "Brand presets", b: "Lock your studio color, watermark, intro card. One tap per film. Standardize in seconds." },
+                  { tag: "02", h: "Private agent gallery", b: "A white-label gallery for each agent. They review, download, share. You never lose the client." },
+                  { tag: "03", h: "MLS multi-format", b: "One render becomes vertical / square / horizontal. Drop into any MLS field without re-rendering." },
+                  { tag: "04", h: "Batch renders", b: "Drop 24 frames before bed. Wake to 24 finished films, auto-named, organized by client." },
+                  { tag: "05", h: "Your JPEG, unchanged", b: "Drag from Lightroom / Capture One. No re-editing, no re-proofing. We take what you ship." },
                   { tag: "06", h: "Watermark removal", b: "On every paid plan. Your work, your name, your watermark — or none at all." },
                   { tag: "07", h: "Invoice & licensing", b: "Each film ships with a usage license PDF, ready to attach to your client invoice or proposal." },
-                  { tag: "08", h: "Priority render", b: "Studio plan subscribers see 90-second average renders. House plan: 45 seconds." },
-                  { tag: "09", h: "API & Zapier", b: "Push from Pixifi, Iris, ShootProof, HoneyBook. The studio integrates with the tools you already trust." },
+                  { tag: "08", h: "Priority queue", b: "Studio plan: 90 seconds. House plan: 45 seconds. Standard: 3 min 14 sec." },
+                  { tag: "09", h: "API & automation", b: "Native: Pixifi, Iris, ShootProof, HoneyBook. Zapier for everything else." },
                 ].map((f) => (
                   <div
                     key={f.tag}

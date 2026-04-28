@@ -107,16 +107,16 @@ const Pricing = () => {
                     className="lux-display"
                     style={{ fontSize: "clamp(3rem, 8vw, 7rem)", lineHeight: 0.92, letterSpacing: "-0.022em" }}
                   >
-                    Pay only for
+                    No subscriptions.
                     <br />
-                    the films you
+                    Credits never
                     <br />
-                    actually <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>finish.</span>
+                    <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>expire.</span>
                   </h1>
                 </div>
                 <div className="lg:col-span-5">
                   <p className="lux-prose" style={{ fontSize: 19 }}>
-                    Credits, paid as you create. Top up when the studio is busy. No subscriptions to forget about. No tiers to outgrow. Credits never expire.
+                    Pay once. Use for months. Top up anytime the studio's busy. No subscriptions to cancel, no expiry dates, no hidden tiers.
                   </p>
                   {creditBalance !== null && (
                     <div className="mt-8 p-6 lux-bg-cream" style={{ border: "1px solid var(--lux-hairline)" }}>
@@ -166,10 +166,10 @@ const Pricing = () => {
             <div className="lux-container">
               <div className="mb-12 text-center">
                 <SectionHeading
-                  eyebrow="THE CREDIT PACKS"
-                  title="One purchase."
-                  italic="Years of films."
-                  lede="Each pack ships immediately. Credits never expire. Use them across photo enhancement, listing films, and transformation videos in any combination."
+                  eyebrow="CREDIT PACKS"
+                  title="Load once."
+                  italic="Use forever."
+                  lede="Buy credits, create films forever. No subscription, no expiry. Works for listing videos, transformations, photo enhancements in any mix."
                   align="center"
                   className="mb-12"
                 />
@@ -277,12 +277,12 @@ const Pricing = () => {
             <div className="lux-container">
               <div className="mb-16 text-center">
                 <h2 className="lux-display mb-4" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
-                  Three ways to make
+                  Free tier vs.
                   <br />
-                  <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>a film.</span>
+                  <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>studio scale.</span>
                 </h2>
                 <p className="lux-prose italic" style={{ maxWidth: 500, margin: "0 auto" }}>
-                  One is dramatically less expensive.
+                  See where the math pays for itself.
                 </p>
               </div>
 
@@ -408,10 +408,10 @@ const Pricing = () => {
                 <div className="grid lg:grid-cols-12 gap-12 items-center">
                   <div className="lg:col-span-5">
                     <SectionHeading
-                      eyebrow="THE STANDING ORDER"
-                      title="A monthly retainer,"
-                      italic="for the working studio."
-                      lede="If you create every week, set up a standing order. Credits refresh on the first. Cancel anytime."
+                      eyebrow="MONTHLY RETAINER"
+                      title="For studios in"
+                      italic="constant motion."
+                      lede="Refresh every month. Cancel anytime. No penalty, no lock-in. Unused credits roll over."
                     />
                   </div>
                   <div className="lg:col-span-7">
@@ -468,9 +468,9 @@ const Pricing = () => {
           <section className="lux-section lux-bg-parchment">
             <div className="lux-container">
               <SectionHeading
-                eyebrow="THE TARIFF SHEET"
-                title="What each thing costs."
-                lede="Transparent pricing across every studio service. Credits convert linearly — no hidden multipliers, no surge pricing."
+                eyebrow="TARIFF SHEET"
+                title="Cost per film."
+                lede="Linear pricing. No surge. No multipliers. A 5-second film costs the same at 2am as 2pm."
                 align="center"
                 className="mb-16"
               />
@@ -505,10 +505,10 @@ const Pricing = () => {
             <div className="lux-container grid lg:grid-cols-12 gap-12 lg:gap-16 items-start">
               <div className="lg:col-span-5">
                 <SectionHeading
-                  eyebrow="DO THE MATH"
-                  title="An invoice,"
-                  italic="not an expense."
-                  lede="Move the dials. See what cinematic motion adds to your monthly invoice. Numbers are conservative — pulled from active-studio cohort data, Q1 2026."
+                  eyebrow="THE ROI"
+                  title="One film per week"
+                  italic="buys itself instantly."
+                  lede="Move the dials. See how much cinematic motion adds to your monthly billings. Numbers are conservative cohort averages."
                 />
               </div>
               <div className="lg:col-span-7">
@@ -552,12 +552,12 @@ const Pricing = () => {
           <section className="lux-section lux-bg-bone">
             <div className="lux-container text-center">
               <h2 className="lux-display" style={{ fontSize: "clamp(2.6rem, 6vw, 5.5rem)", lineHeight: 0.95 }}>
-                Begin with fifty
+                Fifty free credits.
                 <br />
-                <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>credits, free.</span>
+                <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>No card required.</span>
               </h2>
               <p className="lux-prose mt-8 mx-auto" style={{ maxWidth: 480 }}>
-                Roughly twelve finished films. Enough to test it on three real shoots before you ever reach for your card.
+                Roughly twelve finished films. Test it on real work before spending a cent.
               </p>
               <div className="mt-10 flex flex-wrap items-center justify-center gap-6">
                 <Link to="/signup" className="lux-btn">

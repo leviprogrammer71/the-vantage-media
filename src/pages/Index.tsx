@@ -99,23 +99,23 @@ const Index = () => {
                   {[
                     {
                       tag: "I.",
-                      h: "Single-frame transformation",
-                      b: "No before photo required. Our model reconstructs the prior state from architectural cues, then animates the metamorphosis.",
+                      h: "One photo in",
+                      b: "No before shot needed. AI reconstructs. Output in 3 minutes.",
                     },
                     {
                       tag: "II.",
-                      h: "Cinematic, not synthetic",
-                      b: "Slow drone-style camera moves, parallax depth, real physics. The kind of film a top operator would charge $2,800 to deliver.",
+                      h: "Studio-grade motion",
+                      b: "Drone perspectives, parallax, physics-real movement. Worth $2,800 from a videographer.",
                     },
                     {
                       tag: "III.",
-                      h: "Vertical-first, scroll-native",
-                      b: "1080p · 9:16 · 8–12 seconds — engineered for the four formats that actually convert in 2026.",
+                      h: "Vertical for feeds",
+                      b: "1080p · 9:16 · 8–12 sec. Reels, TikTok, Shorts, YouTube. Ready to post.",
                     },
                     {
                       tag: "IV.",
-                      h: "White-glove for the trade",
-                      b: "Studio-grade outputs, watermark removal, brand presets, MLS handoff, and a private agent gallery — included.",
+                      h: "Built for the business",
+                      b: "White-label, watermark-free, brand presets, MLS multi-export, agent galleries. Studio plan up.",
                     },
                   ].map((p) => (
                     <div
@@ -239,20 +239,20 @@ const Index = () => {
                 {[
                   {
                     n: "I.",
-                    h: "Submit one frame",
-                    b: "Drop a single after photograph — the polished interior, the finished pool, the staged living room. JPEG, PNG, HEIC. We accept what you shoot.",
+                    h: "Upload the after photo",
+                    b: "The finished space. Interior, pool, garden, kitchen. JPEG, PNG, HEIC. We take what you shoot.",
                     sub: "00:00:08",
                   },
                   {
                     n: "II.",
-                    h: "The studio composes",
-                    b: "Our model reconstructs the prior state, then animates the metamorphosis with cinematic camera moves, real physics, and a measured tempo.",
+                    h: "AI reconstructs + animates",
+                    b: "Prior state inferred from architecture. Transformation rendered with cinematic moves and physics in 3 minutes.",
                     sub: "00:03:14",
                   },
                   {
                     n: "III.",
-                    h: "Receive the film",
-                    b: "1080p vertical, watermark-free, ready for Reels, TikTok, YouTube Shorts, and your private agent gallery.",
+                    h: "Download and post",
+                    b: "1080p vertical. Watermark-free. Ready for Reels, TikTok, Shorts. Post same day.",
                     sub: "READY · 00:11:00",
                   },
                 ].map((s, i) => (

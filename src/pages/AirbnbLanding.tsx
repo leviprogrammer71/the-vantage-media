@@ -68,19 +68,19 @@ const AirbnbLanding = () => {
             <div className="lux-container grid lg:grid-cols-12 gap-12 lg:gap-20 items-start">
               <div className="lg:col-span-5">
                 <SectionHeading
-                  eyebrow="WHY IT WORKS"
-                  title="The first three"
-                  italic="seconds decide it."
-                  lede="Guests skim 28 listings before they book one. The reel-format hero is the only thing that survives the swipe. Static photos get a glance. A cinematic film gets a tap."
+                  eyebrow="WHY IT WINS"
+                  title="Guests browse"
+                  italic="in the first 3 seconds."
+                  lede="A static photo carousel = scroll past. A cinematic reel = stop, watch, book. Motion is the algorithm's native language."
                 />
               </div>
               <div className="lg:col-span-7">
                 <div className="grid sm:grid-cols-2 gap-6">
                   {[
-                    { v: "+47%", l: "BOOKING CONVERSION" },
-                    { v: "+$182", l: "ADR · LIFT" },
-                    { v: "+38", l: "DAYS BOOKED / YR" },
-                    { v: "−21%", l: "CANCELLATION RATE" },
+                    { v: "+47%", l: "INQUIRY → BOOKING RATE" },
+                    { v: "+$182", l: "AVG. DAILY RATE" },
+                    { v: "+38 days", l: "BOOKED PER YEAR" },
+                    { v: "−21%", l: "GUEST CANCELLATIONS" },
                   ].map((s) => (
                     <div key={s.l} className="p-8 lux-bg-cream" style={{ border: "1px solid var(--lux-hairline)" }}>
                       <div className="lux-display" style={{ fontSize: "clamp(2.4rem, 4vw, 3.4rem)", lineHeight: 1 }}>{s.v}</div>
