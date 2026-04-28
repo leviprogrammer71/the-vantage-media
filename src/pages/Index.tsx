@@ -218,11 +218,12 @@ const Index = () => {
               </div>
 
               <VideoReel
-                eyebrow="THIS WEEK'S DISPATCH"
+                eyebrow="REAL CUSTOMER OUTPUT · NOT STOCK FOOTAGE"
                 title="The 04.26 Selection"
                 clips={[
                   { src: "/videos/transform-1.mp4", label: "The Beacon Residence", byline: "ATWOOD STUDIO · MASS." },
                   { src: "/videos/transform-2.mp4", label: "Olive & 14th Pool House", byline: "MERIDIAN · LOS ANGELES" },
+                  { src: "/videos/transform-3.mp4", label: "Cedar Crest Estate", byline: "VANTAGE STUDIO · NORTHEAST" },
                 ]}
               />
             </div>

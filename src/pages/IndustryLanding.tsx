@@ -252,11 +252,12 @@ const IndustryLanding = ({ slug }: Props) => {
           <section className="lux-section lux-bg-ink lux-grain" style={{ color: "var(--lux-bone)" }}>
             <div className="lux-container">
               <VideoReel
-                eyebrow={`THE ${c.trade.toUpperCase()} REEL`}
+                eyebrow={`THE ${c.trade.toUpperCase()} REEL · REAL CUSTOMER OUTPUT`}
                 title={`Recently delivered to ${c.trade.toLowerCase()} studios.`}
                 clips={[
                   { src: "/videos/transform-1.mp4", label: "The Beacon Project", byline: "ATWOOD · MASS." },
                   { src: "/videos/transform-2.mp4", label: "Olive & 14th", byline: "MERIDIAN · LOS ANGELES" },
+                  { src: "/videos/transform-3.mp4", label: "Cedar Crest Build", byline: "VANTAGE · NORTHEAST" },
                 ]}
               />
             </div>

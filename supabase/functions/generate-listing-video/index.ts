@@ -364,7 +364,7 @@ async function startVideoGeneration(
   // Tight prompt: camera move + scene = listing reel. Locked subject (no morphing,
   // no invented rooms) is the most important constraint — keep it last so the
   // model weights it heavily.
-  const prompt = `${config.motionHint} Cinematic real-estate listing reel. Photorealistic. Smooth physically-plausible motion. Subject and architecture stay locked exactly as in the source frame.`
+  const prompt = `${config.motionHint} Cinematic 9:16 vertical real-estate listing reel. Photorealistic, magazine-quality. Smooth physically-plausible camera motion only. Subject, architecture, and lighting stay locked exactly as in the source frame.`
   const negativePrompt = "Invented rooms, new objects, added people or animals, weather changes, morphing or warping geometry, flickering, motion blur, floating objects, lighting changes, added reflections, ghost trails, duplicated surfaces."
 
   const endpoint = useSeedance
@@ -862,7 +862,7 @@ serve(async (req) => {
       // Two clips:
       // (A) STAGING TRANSITION — empty room → fully furnished morph
       // (B) WALKTHROUGH — slow_push through the staged room
-      const stagingTransitionPrompt = `An empty interior room gradually becomes fully styled and furnished. Furniture pieces — sofa, coffee table, rug, lamps, art, plants — appear smoothly into place. Soft natural light warms the room. ${stylePrompt} No camera movement — the space dresses itself. ${vibePromptSuffix}`
+      const stagingTransitionPrompt = `An empty interior room becomes fully styled, matching the end frame exactly. Furniture and decor settle smoothly into their final positions as shown in the end image. Soft natural light warms the room. The space dresses itself. No camera movement, no zoom, no pan. ${vibePromptSuffix}`
 
       console.log("[virtual_staging] kicking off staging transition + walkthrough predictions")
       const [stageStart, walkStart] = await Promise.all([
@@ -952,8 +952,8 @@ serve(async (req) => {
       // Step 2: TRANSFORMATION CLIP — Kling animates sketch-on-desk → real photo
       // The pencil drawing comes alive and becomes the actual property.
       const transformPrompt = sketch_intent === "interior"
-        ? `A pencil architectural sketch on a wooden desk gradually transforms into the actual photorealistic interior shown in the drawing. Pencil lines fade as colour, light, materials, furniture, and shadows appear. The hand and desk dissolve away. Smooth dreamlike transition. No camera movement — the drawing becomes real before our eyes. ${vibeLine}`
-        : `A pencil architectural sketch on a wooden desk gradually transforms into the actual photorealistic building exterior shown in the drawing. Pencil lines fade as materials, sky, landscaping, and natural light appear. The hand and desk dissolve away. Smooth dreamlike transition. No camera movement — the drawing becomes real before our eyes. ${vibeLine}`
+        ? `The pencil architectural sketch on the desk gradually fills with realistic colour, light, materials, and furniture, then opens up to fill the full frame as the actual photorealistic interior shown in the end image. Hand and desk fade gently to the edges. Smooth dreamlike crossfade — the drawing comes alive. No camera movement. ${vibeLine}`
+        : `The pencil architectural sketch on the desk gradually fills with realistic materials, sky, landscaping, and natural light, then opens up to fill the full frame as the actual photorealistic building exterior shown in the end image. Hand and desk fade gently to the edges. Smooth dreamlike crossfade — the drawing comes alive. No camera movement. ${vibeLine}`
 
       // FIRE-AND-POLL: kick off both predictions, return prediction_ids
       console.log("[sketch_to_real] kicking off sketch-reveal + property-walk predictions")
@@ -1040,7 +1040,7 @@ serve(async (req) => {
       //     This is the "magic moment" from the user's reference reels: the drawing
       //     becomes a real room before your eyes.
       // (B) WALKTHROUGH clip — chosen camera move through the photoreal interior.
-      const transformPrompt = `An architectural floor plan / axonometric drawing gradually transforms into a photorealistic, magazine-quality interior scene. Drawing lines fade as walls gain colour, materials appear, furniture lifts into place, and natural light fills the space. Smooth dreamlike transition. No camera movement — the room itself becomes real before our eyes. ${vibeLine}`
+      const transformPrompt = `The architectural floor plan / axonometric drawing in the start frame gradually fills with realistic colour, light, materials, and furniture, then opens up to fill the full frame as the photorealistic interior shown in the end frame. Drawing lines fade gracefully. Smooth dreamlike crossfade — the plan becomes real. No camera movement. ${vibeLine}`
 
       console.log("[floor_plan_pan] kicking off transformation + walkthrough predictions")
       const [transformStart, walkStart] = await Promise.all([

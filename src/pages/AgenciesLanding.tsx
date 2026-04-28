@@ -92,11 +92,12 @@ const AgenciesLanding = () => {
           <section className="lux-section lux-bg-ink lux-grain" style={{ color: "var(--lux-bone)" }}>
             <div className="lux-container">
               <VideoReel
-                eyebrow="WHITE-LABEL DELIVERY"
+                eyebrow="WHITE-LABEL DELIVERY · REAL CUSTOMER OUTPUT"
                 title="Films, branded as yours."
                 clips={[
                   { src: "/videos/transform-1.mp4", label: "Compass Coastal · NYC", byline: "DELIVERED · Q1 2026" },
                   { src: "/videos/transform-2.mp4", label: "The Agency · Beverly Hills", byline: "DELIVERED · Q1 2026" },
+                  { src: "/videos/transform-3.mp4", label: "Cedar Estate Group · NE", byline: "DELIVERED · Q2 2026" },
                 ]}
               />
             </div>

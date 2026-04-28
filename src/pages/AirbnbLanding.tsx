@@ -105,11 +105,12 @@ const AirbnbLanding = () => {
           <section className="lux-section lux-bg-ink lux-grain" style={{ color: "var(--lux-bone)" }}>
             <div className="lux-container">
               <VideoReel
-                eyebrow="LIVE LISTINGS · APRIL 2026"
+                eyebrow="REAL HOST OUTPUT · APRIL 2026"
                 title="A booking, in 12 seconds."
                 clips={[
                   { src: "/videos/transform-1.mp4", label: "The Walden Pool House", byline: "JOSHUA TREE · 96% OCC." },
                   { src: "/videos/transform-2.mp4", label: "Olive & 14th", byline: "TOPANGA · 89% OCC." },
+                  { src: "/videos/transform-3.mp4", label: "Cedar Cabin Retreat", byline: "BIG BEAR · 92% OCC." },
                 ]}
               />
             </div>

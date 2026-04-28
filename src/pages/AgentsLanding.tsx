@@ -118,11 +118,12 @@ const AgentsLanding = () => {
           <section className="lux-section lux-bg-ink lux-grain" style={{ color: "var(--lux-bone)" }}>
             <div className="lux-container">
               <VideoReel
-                eyebrow="LIVE LISTINGS · APRIL 2026"
+                eyebrow="REAL CUSTOMER LISTINGS · APRIL 2026"
                 title="What 12 seconds looks like."
                 clips={[
                   { src: "/videos/transform-1.mp4", label: "1132 Elm Court", byline: "AUSTIN · LISTED $1.2M" },
                   { src: "/videos/transform-2.mp4", label: "84 Olive Drive", byline: "LOS ANGELES · LISTED $2.4M" },
+                  { src: "/videos/transform-3.mp4", label: "62 Cedar Crest", byline: "BOSTON · LISTED $3.1M" },
                 ]}
               />
             </div>

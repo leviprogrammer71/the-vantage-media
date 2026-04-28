@@ -178,11 +178,12 @@ const RealEstatePhotographers = () => {
           <section className="lux-section lux-bg-ink lux-grain" id="reel" style={{ color: "var(--lux-bone)" }}>
             <div className="lux-container">
               <VideoReel
-                eyebrow="THE PHOTOGRAPHERS' DISPATCH"
+                eyebrow="THE PHOTOGRAPHERS' DISPATCH · REAL CUSTOMER OUTPUT"
                 title="Three films delivered this week."
                 clips={[
                   { src: "/videos/transform-1.mp4", label: "The Beacon Residence", byline: "ATWOOD STUDIO · BOSTON" },
                   { src: "/videos/transform-2.mp4", label: "Olive & 14th Pool House", byline: "MERIDIAN · LOS ANGELES" },
+                  { src: "/videos/transform-3.mp4", label: "Cedar Crest Estate", byline: "VANTAGE STUDIO · NORTHEAST" },
                 ]}
               />
             </div>
