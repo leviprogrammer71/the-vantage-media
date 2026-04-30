@@ -49,7 +49,8 @@ const AirbnbLanding = () => {
             }
             subtitle="One frame of your finished space. A 12-second cinematic reel that turns scrollers into bookers — for the platforms that actually drive direct revenue."
             primaryCta={{ label: isLoggedIn ? "CREATE A LISTING REEL →" : "BEGIN FREE — 50 CREDITS →", to: destination }}
-            rightImage={bx.hero}
+            rightImage="/vantage/airbnb/hero-still.jpg"
+            rightVideo="/vantage/airbnb/transform-1.mp4"
             byline="THE WALDEN POOL HOUSE · JOSHUA TREE"
           />
 
@@ -97,8 +98,20 @@ const AirbnbLanding = () => {
             <div className="lux-container">
               <SectionHeading eyebrow="THE METAMORPHOSIS" title="Drag the seam." italic="Watch the hook form." align="center" className="mb-16" />
               <div className="grid md:grid-cols-2 gap-8 md:gap-12">
-                <BeforeAfterSlider before={bx.emptyA} after={bx.stagedA} ratio="4/5" caption="MASTER SUITE · 9-SECOND REEL" />
-                <BeforeAfterSlider before={bx.emptyB} after={bx.stagedB} ratio="4/5" caption="GREATROOM · 12-SECOND REEL" />
+                <BeforeAfterSlider
+                  before="/vantage/backyard-slow-reveal/before.jpg"
+                  after="/vantage/backyard-slow-reveal/input.jpg"
+                  afterVideo="/vantage/backyard-slow-reveal/result.mp4"
+                  ratio="4/5"
+                  caption="OUTDOOR LIVING · 12-SECOND REEL"
+                />
+                <BeforeAfterSlider
+                  before="/vantage/setup/before.webp"
+                  after="/vantage/setup/after.jpeg"
+                  afterVideo="/vantage/setup/video.mp4"
+                  ratio="4/5"
+                  caption="GREATROOM · DRESSED FROM EMPTY"
+                />
               </div>
             </div>
           </section>

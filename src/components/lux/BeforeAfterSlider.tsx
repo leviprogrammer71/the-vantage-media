@@ -3,6 +3,10 @@ import { useEffect, useRef, useState } from "react";
 interface BeforeAfterSliderProps {
   before: string;
   after: string;
+  /** Optional video to autoplay in the after position. When provided, the
+   *  `after` image becomes the poster frame and the video plays muted+looped
+   *  underneath the slider so users see the live deliverable, not just a still. */
+  afterVideo?: string;
   beforeLabel?: string;
   afterLabel?: string;
   caption?: string;
@@ -18,6 +22,7 @@ interface BeforeAfterSliderProps {
 const BeforeAfterSlider = ({
   before,
   after,
+  afterVideo,
   beforeLabel = "BEFORE",
   afterLabel = "AFTER",
   caption,
@@ -68,14 +73,27 @@ const BeforeAfterSlider = ({
           updateFromClientX(e.clientX);
         }}
       >
-        {/* AFTER image — photographer's polished shot, full underlay */}
-        <img
-          src={after}
-          alt={afterLabel}
-          draggable={false}
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="lazy"
-        />
+        {/* AFTER — video if provided (autoplays the deliverable), otherwise still image */}
+        {afterVideo ? (
+          <video
+            src={afterVideo}
+            poster={after}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <img
+            src={after}
+            alt={afterLabel}
+            draggable={false}
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+          />
+        )}
 
         {/* BEFORE image — clipped to the left of the slider */}
         <div

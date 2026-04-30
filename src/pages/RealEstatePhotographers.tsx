@@ -63,6 +63,7 @@ const RealEstatePhotographers = () => {
             primaryCta={{ label: isLoggedIn ? "ENTER THE STUDIO →" : "BEGIN FREE — 50 CREDITS →", to: destination }}
             secondaryCta={{ label: "READ THE FILM REEL", to: "#reel" }}
             rightImage={px.hero}
+            rightVideo="/vantage/build/result.mp4"
             byline="A FILM FROM A SINGLE STILL · ATWOOD STUDIO"
           />
 
@@ -139,38 +140,79 @@ const RealEstatePhotographers = () => {
               />
 
               <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+                {/* SETUP — empty room → fully styled, video reveals the dressing */}
                 <BeforeAfterSlider
-                  before={px.empty1}
-                  after={px.staged1}
+                  before="/vantage/setup/before.webp"
+                  after="/vantage/setup/after.jpeg"
+                  afterVideo="/vantage/setup/video.mp4"
                   beforeLabel="ORIGINAL FRAME"
                   afterLabel="DELIVERED FILM"
                   ratio="4/5"
-                  caption="LIVING ROOM · ATWOOD PHOTOGRAPHIC · 12 SECONDS"
+                  caption="VIRTUAL STAGING · DRESSED FROM EMPTY"
                 />
+
+                {/* RANCH CLEAN — neglected exterior → cleaned & ready */}
                 <BeforeAfterSlider
-                  before={px.empty2}
-                  after={px.bedroom}
+                  before="/vantage/ranch-clean/before.webp"
+                  after="/vantage/ranch-clean/input.png"
+                  afterVideo="/vantage/ranch-clean/video.mp4"
                   beforeLabel="ORIGINAL FRAME"
                   afterLabel="DELIVERED FILM"
                   ratio="4/5"
-                  caption="PRIMARY SUITE · MERIDIAN · 9 SECONDS"
+                  caption="CLEANUP TRANSFORMATION · LISTING-READY"
                 />
+
+                {/* BACKYARD SLOW REVEAL — bare ground → built backyard */}
                 <BeforeAfterSlider
-                  before={px.empty3}
-                  after={px.staged3}
+                  before="/vantage/backyard-slow-reveal/before.jpg"
+                  after="/vantage/backyard-slow-reveal/input.jpg"
+                  afterVideo="/vantage/backyard-slow-reveal/result.mp4"
                   beforeLabel="ORIGINAL FRAME"
                   afterLabel="DELIVERED FILM"
                   ratio="4/5"
-                  caption="GREAT ROOM · LARSEN · 11 SECONDS"
+                  caption="BACKYARD BUILD · 14-SECOND CINEMATIC FILM"
                 />
-                <BeforeAfterSlider
-                  before={px.empty1}
-                  after={px.exterior}
-                  beforeLabel="ORIGINAL FRAME"
-                  afterLabel="DELIVERED FILM"
-                  ratio="4/5"
-                  caption="EXTERIOR · NORTH SHORE FILM · 14 SECONDS"
-                />
+
+                {/* SKETCH REVEAL — autoplay video tile (no before/after pair, the film IS the proof) */}
+                <div
+                  className="relative overflow-hidden"
+                  style={{
+                    aspectRatio: "4 / 5",
+                    background: "var(--lux-ink)",
+                    border: "1px solid var(--lux-hairline)",
+                  }}
+                >
+                  <video
+                    src="/vantage/sketch/result.mp4"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    poster="/vantage/sketch/original.webp"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  <div
+                    className="absolute top-3 left-3 px-3 py-1.5 lux-eyebrow"
+                    style={{
+                      background: "rgba(14,14,12,0.7)",
+                      color: "var(--lux-bone)",
+                      fontSize: "0.6rem",
+                      backdropFilter: "blur(8px)",
+                    }}
+                  >
+                    PLAYING — FILM ONLY
+                  </div>
+                  <div
+                    className="absolute bottom-3 left-3 right-3 lux-eyebrow"
+                    style={{
+                      color: "var(--lux-bone)",
+                      fontSize: "0.65rem",
+                      textShadow: "0 1px 8px rgba(0,0,0,0.6)",
+                    }}
+                  >
+                    SKETCH TO REALITY · HAND-DRAWN REVEAL
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -286,22 +328,22 @@ const RealEstatePhotographers = () => {
                     { value: "+62%", label: "AGENT BOOKINGS" },
                     { value: "$28k", label: "Q1 UPLIFT" },
                   ]}
-                  before={px.empty2}
-                  after={px.bedroom}
+                  before="/vantage/ranch-clean/before.webp"
+                  after="/vantage/ranch-clean/input.png"
                 />
                 <CaseStudy
                   index="03"
-                  studio="House of Larsen"
-                  city="WEST VILLAGE · NEW YORK"
-                  quote="We finally have a film offering that doesn't break our calendar."
-                  body="A husband-and-wife studio specializing in pre-war NYC interiors. Switched their entire offering to single-frame motion films in February. Booked solid through May."
+                  studio="Larsen Gardens"
+                  city="HUDSON VALLEY · NEW YORK"
+                  quote="The before-and-after used to take a drone, a second day on site, and an editor. Now it's the after photo and a coffee."
+                  body="A landscape design-build studio specializing in country residences. Switched every project's marketing reel to single-frame Vantage output in February. Booked solid through May."
                   metrics={[
                     { value: "248", label: "FILMS / Q1" },
                     { value: "$117k", label: "NEW REVENUE" },
                     { value: "+34%", label: "BOOKING RATE" },
                   ]}
-                  before={px.empty3}
-                  after={px.staged3}
+                  before="/vantage/backyard-slow-reveal/before.jpg"
+                  after="/vantage/backyard-slow-reveal/input.jpg"
                 />
               </div>
             </div>

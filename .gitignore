@@ -38,5 +38,8 @@ vite.config.ts.timestamp-*
 # Supabase temp
 supabase/.temp/
 
+# Raw source assets (duplicated in public/vantage/)
+/vantage/
+
 # OS files
 Thumbs.db

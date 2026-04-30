@@ -11,6 +11,9 @@ interface EditorialHeroProps {
   secondaryCta?: { label: string; to: string };
   backgroundImage?: string;
   rightImage?: string;
+  /** Optional video to autoplay in the hero right pane. Plays on top of
+   *  rightImage which acts as poster while metadata loads. */
+  rightVideo?: string;
   byline?: string;
 }
 
@@ -24,6 +27,7 @@ const EditorialHero = ({
   secondaryCta,
   backgroundImage = "/vantage/ranch-build/input.png",
   rightImage,
+  rightVideo,
   byline = "PHOTOGRAPHED BY THE VANTAGE STUDIO",
 }: EditorialHeroProps) => {
   const { destination, isLoggedIn } = useSmartCTA();
@@ -128,13 +132,26 @@ const EditorialHero = ({
                 boxShadow: "var(--lux-shadow-deep)",
               }}
             >
-              <img
-                src={rightImage ?? backgroundImage}
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover lux-kenburns"
-                loading="eager"
-                fetchPriority="high"
-              />
+              {rightVideo ? (
+                <video
+                  src={rightVideo}
+                  poster={rightImage ?? backgroundImage}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <img
+                  src={rightImage ?? backgroundImage}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover lux-kenburns"
+                  loading="eager"
+                  fetchPriority="high"
+                />
+              )}
               <div
                 className="absolute bottom-0 left-0 right-0 px-6 py-5 flex items-center justify-between"
                 style={{

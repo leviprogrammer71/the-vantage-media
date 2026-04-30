@@ -52,6 +52,7 @@ const AgentsLanding = () => {
             primaryCta={{ label: isLoggedIn ? "ENTER THE STUDIO →" : "BEGIN FREE — 50 CREDITS →", to: destination }}
             secondaryCta={{ label: "SEE A LIVE LISTING REEL", to: "/gallery" }}
             rightImage={ax.hero}
+            rightVideo="/vantage/build/result.mp4"
             byline="A LISTING FILM · 1132 ELM CT., AUSTIN"
           />
 
@@ -109,8 +110,20 @@ const AgentsLanding = () => {
                 className="mb-16"
               />
               <div className="grid md:grid-cols-2 gap-8 md:gap-12">
-                <BeforeAfterSlider before={ax.empty1} after={ax.staged1} ratio="4/5" caption="GREATROOM · 12-SECOND FILM" />
-                <BeforeAfterSlider before={ax.empty2} after={ax.staged2} ratio="4/5" caption="LIVING ROOM · 14-SECOND FILM" />
+                <BeforeAfterSlider
+                  before="/vantage/setup/before.webp"
+                  after="/vantage/setup/after.jpeg"
+                  afterVideo="/vantage/setup/video.mp4"
+                  ratio="4/5"
+                  caption="GREATROOM · DRESSED FROM EMPTY"
+                />
+                <BeforeAfterSlider
+                  before="/vantage/ranch-clean/before.webp"
+                  after="/vantage/ranch-clean/input.png"
+                  afterVideo="/vantage/ranch-clean/video.mp4"
+                  ratio="4/5"
+                  caption="OUTDOOR RECLAIM · CLEANED & READY TO LIST"
+                />
               </div>
             </div>
           </section>

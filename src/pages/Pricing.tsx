@@ -484,64 +484,210 @@ const Pricing = () => {
             </div>
           </section>
 
-          {/* SUBSCRIPTION */}
+          {/* SUBSCRIPTION — 3-tier monthly retainer */}
           {SUBSCRIPTION_PLANS.length > 0 && (
             <section className="lux-section lg:py-32 lux-bg-bone">
               <div className="lux-container">
-                <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-                  <div className="lg:col-span-5">
-                    <SectionHeading
-                      eyebrow="MONTHLY RETAINER"
-                      title="For studios in"
-                      italic="constant motion."
-                      lede="Refresh every month. Cancel anytime. No penalty, no lock-in. Unused credits roll over."
-                    />
-                  </div>
-                  <div className="lg:col-span-7">
-                    {SUBSCRIPTION_PLANS.map((plan) => (
+                <SectionHeading
+                  eyebrow="MONTHLY RETAINER"
+                  title="For trades and studios in"
+                  italic="constant motion."
+                  lede="Refresh every month. Cancel anytime. No penalty, no lock-in. Unused credits roll over."
+                  align="center"
+                  className="mb-16"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
+                  {SUBSCRIPTION_PLANS.map((plan) => {
+                    const featured = plan.is_popular;
+                    const isCustom = plan.price_monthly === null;
+                    const annualMonthlyEquivalent =
+                      plan.price_annual && plan.price_monthly
+                        ? Math.round(plan.price_annual / 12)
+                        : null;
+                    const displayPrice = isCustom
+                      ? "Custom"
+                      : billingCycle === "annual" && annualMonthlyEquivalent
+                      ? `$${annualMonthlyEquivalent}`
+                      : `$${plan.price_monthly}`;
+
+                    return (
                       <div
                         key={plan.id}
-                        className="p-10 lg:p-14 lux-bg-cream"
-                        style={{ border: "1px solid var(--lux-hairline)" }}
+                        className="relative p-8 lg:p-10 flex flex-col"
+                        style={{
+                          background: featured ? "var(--lux-ink)" : "var(--lux-cream)",
+                          color: featured ? "var(--lux-bone)" : "var(--lux-ink)",
+                          border: `1px solid ${featured ? "var(--lux-ink)" : "var(--lux-hairline-strong)"}`,
+                          minHeight: "560px",
+                          boxShadow: featured ? "0 14px 40px rgba(14,14,12,0.18)" : "none",
+                        }}
                       >
-                        <div className="flex justify-between items-baseline mb-6">
-                          <div>
-                            <div className="lux-eyebrow" style={{ color: "var(--lux-rust)" }}>{plan.name}</div>
-                            <div className="lux-display mt-2" style={{ fontSize: "clamp(2rem, 3.4vw, 2.6rem)" }}>
-                              The Atelier Standing Order
-                            </div>
+                        {featured && (
+                          <div
+                            className="lux-eyebrow absolute -top-3 left-8 px-3 py-1.5"
+                            style={{
+                              background: "var(--lux-champagne)",
+                              color: "var(--lux-ink)",
+                              fontSize: "0.62rem",
+                              letterSpacing: "0.18em",
+                            }}
+                          >
+                            ✦ MOST CHOSEN
                           </div>
-                          <div className="text-right">
-                            <div className="lux-display" style={{ fontSize: "clamp(2.4rem, 4vw, 3.4rem)", lineHeight: 1 }}>
-                              ${plan.price}
-                            </div>
-                            <div className="lux-eyebrow mt-2" style={{ color: "var(--lux-ash)" }}>/ {plan.period}</div>
-                          </div>
+                        )}
+
+                        {/* Plan name + tagline */}
+                        <div
+                          className="lux-eyebrow"
+                          style={{
+                            color: featured ? "var(--lux-champagne)" : "var(--lux-rust)",
+                            fontSize: "0.7rem",
+                            letterSpacing: "0.2em",
+                          }}
+                        >
+                          {plan.name}
                         </div>
-                        <ul className="grid sm:grid-cols-2 gap-3 mb-8">
+                        <div
+                          className="lux-display mt-2"
+                          style={{
+                            fontSize: "clamp(1.4rem, 2.4vw, 1.85rem)",
+                            lineHeight: 1.1,
+                            color: featured ? "var(--lux-bone)" : "var(--lux-ink)",
+                          }}
+                        >
+                          {plan.tagline}
+                        </div>
+
+                        {/* PRICE — never invisible, explicit color, big */}
+                        <div className="mt-6 flex items-baseline gap-2">
+                          <span
+                            className="lux-display"
+                            style={{
+                              fontSize: "clamp(2.6rem, 5vw, 3.6rem)",
+                              lineHeight: 1,
+                              color: featured ? "var(--lux-bone)" : "var(--lux-ink)",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {displayPrice}
+                          </span>
+                          {!isCustom && (
+                            <span
+                              className="lux-prose"
+                              style={{
+                                color: featured ? "rgba(244,239,230,0.7)" : "var(--lux-ash)",
+                                fontSize: "0.9rem",
+                                fontFamily: "Inter, sans-serif",
+                              }}
+                            >
+                              / month
+                            </span>
+                          )}
+                        </div>
+                        {!isCustom && billingCycle === "annual" && plan.price_annual && (
+                          <div
+                            className="mt-1"
+                            style={{
+                              color: featured ? "var(--lux-champagne)" : "var(--lux-rust)",
+                              fontSize: "0.78rem",
+                              fontFamily: "Inter, sans-serif",
+                              fontWeight: 500,
+                            }}
+                          >
+                            Billed annually · ${plan.price_annual.toLocaleString()}
+                          </div>
+                        )}
+                        {!isCustom && plan.credits_monthly && (
+                          <div
+                            className="mt-2"
+                            style={{
+                              color: featured ? "rgba(244,239,230,0.85)" : "var(--lux-ink)",
+                              fontSize: "0.85rem",
+                              fontFamily: "Inter, sans-serif",
+                            }}
+                          >
+                            {plan.credits_monthly.toLocaleString()} credits / month
+                          </div>
+                        )}
+
+                        {/* Divider */}
+                        <div
+                          className="mt-6 mb-5"
+                          style={{
+                            borderTop: `1px solid ${featured ? "rgba(244,239,230,0.18)" : "var(--lux-hairline)"}`,
+                          }}
+                        />
+
+                        {/* Features */}
+                        <ul className="flex flex-col gap-2.5 flex-1">
                           {plan.features.map((f, i) => (
-                            <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "var(--lux-ink)", fontFamily: "Inter, sans-serif" }}>
-                              <span style={{ color: "var(--lux-rust)", marginTop: 4 }}>—</span>
-                              {f}
+                            <li
+                              key={i}
+                              className="flex items-start gap-2"
+                              style={{
+                                color: featured ? "rgba(244,239,230,0.92)" : "var(--lux-ink)",
+                                fontFamily: "Inter, sans-serif",
+                                fontSize: "0.875rem",
+                                lineHeight: 1.5,
+                              }}
+                            >
+                              <span
+                                className="flex-shrink-0"
+                                style={{
+                                  color: featured ? "var(--lux-champagne)" : "var(--lux-rust)",
+                                  marginTop: 2,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                —
+                              </span>
+                              <span>{f}</span>
                             </li>
                           ))}
                         </ul>
-                        <button
-                          onClick={() => startCheckout(plan.name, plan.priceType, true)}
-                          disabled={loadingPlan === plan.priceType}
-                          className="lux-eyebrow inline-flex items-center gap-3"
-                          style={{
-                            padding: "16px 24px",
-                            background: "var(--lux-ink)",
-                            color: "var(--lux-bone)",
-                            border: "1px solid var(--lux-ink)",
-                          }}
-                        >
-                          {loadingPlan === plan.priceType ? <Loader2 size={14} className="animate-spin" /> : "BEGIN STANDING ORDER →"}
-                        </button>
+
+                        {/* CTA */}
+                        {isCustom ? (
+                          <Link
+                            to="/contact"
+                            className="w-full mt-6 inline-flex items-center justify-center gap-3 lux-eyebrow"
+                            style={{
+                              padding: "14px 18px",
+                              background: featured ? "var(--lux-bone)" : "var(--lux-ink)",
+                              color: featured ? "var(--lux-ink)" : "var(--lux-bone)",
+                              border: `1px solid ${featured ? "var(--lux-bone)" : "var(--lux-ink)"}`,
+                              fontSize: "0.7rem",
+                              letterSpacing: "0.18em",
+                            }}
+                          >
+                            SPEAK TO A LIAISON →
+                          </Link>
+                        ) : (
+                          <button
+                            onClick={() => startCheckout(plan.name, plan.id, true)}
+                            disabled={loadingPlan === plan.id}
+                            className="w-full mt-6 inline-flex items-center justify-center gap-3 lux-eyebrow"
+                            style={{
+                              padding: "14px 18px",
+                              background: featured ? "var(--lux-bone)" : "var(--lux-ink)",
+                              color: featured ? "var(--lux-ink)" : "var(--lux-bone)",
+                              border: `1px solid ${featured ? "var(--lux-bone)" : "var(--lux-ink)"}`,
+                              fontSize: "0.7rem",
+                              letterSpacing: "0.18em",
+                              opacity: loadingPlan === plan.id ? 0.6 : 1,
+                              cursor: loadingPlan === plan.id ? "wait" : "pointer",
+                            }}
+                          >
+                            {loadingPlan === plan.id ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <>BEGIN {plan.name} →</>
+                            )}
+                          </button>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
             </section>

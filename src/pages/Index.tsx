@@ -68,7 +68,11 @@ const Index = () => {
         <LuxuryHeader variant="bone" />
 
         <main id="main-content">
-          <EditorialHero rightImage={ux.hero} />
+          {/* Hero plays the BUILD reel — the strongest catch-all loop, real customer output */}
+          <EditorialHero
+            rightImage="/vantage/ranch-build/input.png"
+            rightVideo="/vantage/build/result.mp4"
+          />
 
           {/* Trust Badges */}
           <div className="lux-bg-parchment py-6 border-b" style={{ borderColor: "var(--lux-hairline)" }}>
@@ -176,18 +180,20 @@ const Index = () => {
                 <BeforeAfterSlider
                   before="/vantage/backyard-slow-reveal/before.jpg"
                   after="/vantage/backyard-slow-reveal/input.jpg"
+                  afterVideo="/vantage/backyard-slow-reveal/result.mp4"
                   beforeLabel="MOMENT 00:00"
                   afterLabel="FRAME 04:18"
                   ratio="4/5"
-                  caption="BACKYARD BUILD · REAL CUSTOMER OUTPUT"
+                  caption="BACKYARD BUILD · CONTRACTOR'S CINEMATIC DELIVERABLE"
                 />
                 <BeforeAfterSlider
                   before="/vantage/setup/before.webp"
                   after="/vantage/setup/after.jpeg"
+                  afterVideo="/vantage/setup/video.mp4"
                   beforeLabel="MOMENT 00:00"
                   afterLabel="FRAME 03:52"
                   ratio="4/5"
-                  caption="EVENT SETUP · DRESSED FROM EMPTY"
+                  caption="KITCHEN REMODEL · BARE TO FINISHED"
                 />
               </div>
 
@@ -244,12 +250,16 @@ const Index = () => {
                 eyebrow="REAL CUSTOMER OUTPUT · NOT STOCK FOOTAGE"
                 title="The 04.26 Selection"
                 clips={[
+                  { src: "/vantage/contractor/result.mp4", label: "Contractor Build", byline: "GENERAL CONSTRUCTION" },
+                  { src: "/vantage/build/result.mp4", label: "Build Reveal", byline: "FULL-HOME RENOVATION" },
+                  { src: "/vantage/cleanup/result.mp4", label: "Site Cleanup", byline: "BEFORE/AFTER · LISTING-READY" },
                   { src: "/vantage/ranch-build/result.mp4", label: "Ranch Build · Full Home", byline: "CONSTRUCTION · NORTHEAST" },
-                  { src: "/vantage/backyard-slow-reveal/result.mp4", label: "Backyard · Slow Reveal", byline: "LANDSCAPING · BACKYARD BUILD" },
-                  { src: "/vantage/ranch-clean/video.mp4", label: "Ranch · Cleanup", byline: "RUBBISH REMOVAL · BEFORE-AFTER" },
-                  { src: "/vantage/setup/video.mp4", label: "Event Setup · Venue Styling", byline: "VENUE · DRESSED FROM EMPTY" },
+                  { src: "/vantage/backyard-slow-reveal/result.mp4", label: "Backyard Slow Reveal", byline: "LANDSCAPING · BACKYARD BUILD" },
+                  { src: "/vantage/ranch-clean/video.mp4", label: "Ranch Cleanup", byline: "RUBBISH REMOVAL · BEFORE-AFTER" },
+                  { src: "/vantage/setup/video.mp4", label: "Event Setup", byline: "VENUE · DRESSED FROM EMPTY" },
                   { src: "/vantage/sketch/result.mp4", label: "Sketch to Reality", byline: "PROPERTY PHOTO · HAND-DRAWN REVEAL" },
-                  { src: "/vantage/just-listed/video.mp4", label: "Just Listed · Single Photo", byline: "LISTING · BADGE OVERLAY" },
+                  { src: "/vantage/airbnb/transform-1.mp4", label: "Short-Term Rental", byline: "AIRBNB · BOOKING-OPTIMISED" },
+                  { src: "/vantage/just-listed/video.mp4", label: "Just Listed", byline: "LISTING · BADGE OVERLAY" },
                 ]}
               />
             </div>
@@ -418,19 +428,19 @@ const Index = () => {
 
                 <CaseStudy
                   index="03"
-                  studio="House of Larsen"
-                  city="WEST VILLAGE · NEW YORK"
-                  quote="A listing video used to be a strategic decision. Now it's part of every shoot."
-                  body="A husband-and-wife studio specializing in pre-war NYC interiors. Switched their entire offering to single-frame motion films in February. Booked solid through May."
+                  studio="Larsen Gardens"
+                  city="HUDSON VALLEY · NEW YORK"
+                  quote="The before-and-after used to take a drone, a second day on site, and an editor. Now it's the after photo and a coffee."
+                  body="A landscape design-build studio specializing in country residences. Switched every project's marketing reel to single-frame Vantage output in February. Booked solid through May."
                   metrics={[
                     { value: "248", label: "FILMS / Q1" },
                     { value: "$117k", label: "NEW REVENUE" },
                     { value: "0", label: "RE-EDITS REQUESTED" },
                   ]}
-                  before={ux.empty1}
-                  after={ux.bedroom}
-                  beforeLabel="UNFURNISHED · 02:14"
-                  afterLabel="STAGED · DELIVERED"
+                  before="/vantage/backyard-slow-reveal/before.jpg"
+                  after="/vantage/backyard-slow-reveal/input.jpg"
+                  beforeLabel="THE BARE SITE"
+                  afterLabel="DELIVERED"
                 />
               </div>
             </div>
@@ -498,12 +508,12 @@ const Index = () => {
 
               <div className="grid md:grid-cols-3 gap-px" style={{ background: "rgba(244,239,230,0.12)" }}>
                 {[
-                  { tag: "I", title: "Real Estate Photographers", body: "Add a $250–$650 cinematic upsell to every shoot. No second crew, no post-production overhead.", to: "/real-estate-photographers" },
-                  { tag: "II", title: "Listing & Buyer Agents", body: "Open houses with a film, not a flyer. Turn every Zillow listing into a Reels-native asset.", to: "/for-agents" },
-                  { tag: "III", title: "Short-Term Hosts", body: "Outperform every other Airbnb in your zipcode. The metamorphosis hooks bookings.", to: "/for-airbnb" },
-                  { tag: "IV", title: "Builders & Renovators", body: "Show the build story without filming the build. Inbound leads up 3–5×.", to: "/general-construction" },
-                  { tag: "V", title: "Pool & Landscape", body: "Turn the empty backyard into the dream yard — in seconds, not seasons.", to: "/pool-builders" },
-                  { tag: "VI", title: "Brokerages & Agencies", body: "White-label, team seats, brand presets, and a private gallery for every agent on your roster.", to: "/for-agencies" },
+                  { tag: "I", title: "General Contractors", body: "Show the build story without filming the build. One after photo per job becomes a Reels-ready film. Inbound leads up 3–5×.", to: "/general-construction" },
+                  { tag: "II", title: "Kitchen & Bath Renovators", body: "Dated to delivered, on camera — from one finished frame. Every renovation becomes a viral before-and-after.", to: "/kitchen-renovation" },
+                  { tag: "III", title: "Pool & Landscape Builders", body: "Bare ground to dream yard, in twelve seconds. The cinematic reveal worth a $30k+ pipeline.", to: "/pool-builders" },
+                  { tag: "IV", title: "Outdoor Living & Decks", body: "Decks, pergolas, alfresco kitchens — rendered in motion from a single after photo.", to: "/outdoor-living" },
+                  { tag: "V", title: "Real Estate Agents & Photographers", body: "Open every listing with a film, not a flyer. The cinematic upsell built for the trade.", to: "/for-agents" },
+                  { tag: "VI", title: "Short-Term Hosts & Brokerages", body: "Outperform every Airbnb in your zipcode. White-label delivery for brokerages on request.", to: "/for-airbnb" },
                 ].map((v) => (
                   <Link
                     key={v.tag}
