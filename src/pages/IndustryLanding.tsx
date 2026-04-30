@@ -38,9 +38,10 @@ interface Content {
   heroImage: string;
 }
 
-const empty1 = "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=2000&q=85&auto=format&fit=crop";
-const empty2 = "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=2000&q=85&auto=format&fit=crop";
-const empty3 = "https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=2000&q=85&auto=format&fit=crop";
+// All imagery is real Vantage customer output — no stock photography.
+const empty1 = "/vantage/setup/before.webp";
+const empty2 = "/vantage/ranch-clean/before.webp";
+const empty3 = "/vantage/backyard-slow-reveal/before.jpg";
 
 const CONTENT: Record<Slug, Content> = {
   "landscaping": {
@@ -52,14 +53,14 @@ const CONTENT: Record<Slug, Content> = {
     heroSub: "One photograph of your finished garden. A cinematic before-and-after film engineered for Reels and TikTok. No before photo required — the studio reconstructs it.",
     metaTitle: "Cinematic Films for Landscapers — The Vantage",
     metaDesc: "Turn your finished garden photos into scroll-stopping transformation films. Built for Australian and US landscapers. 50 free credits, no card.",
-    beforeA: "https://images.unsplash.com/photo-1416664806563-bb6be3a02184?w=2000&q=85&auto=format&fit=crop",
-    afterA: "https://images.unsplash.com/photo-1558904541-efa843a96f01?w=2000&q=85&auto=format&fit=crop",
+    beforeA: "/vantage/backyard-slow-reveal/before.jpg",
+    afterA: "/vantage/backyard-slow-reveal/input.jpg",
     beforeB: empty3,
-    afterB: "https://images.unsplash.com/photo-1572297870735-d9b1d3eedf38?w=2000&q=85&auto=format&fit=crop",
+    afterB: "/vantage/ranch-build/input.png",
     caption1: "FRONT YARD · 12-SECOND FILM",
     caption2: "BACKYARD POOL DECK · 14-SECOND FILM",
     byline: "A LANDSCAPE FILM · LARSEN GARDENS",
-    heroImage: "https://images.unsplash.com/photo-1558904541-efa843a96f01?w=2400&q=85&auto=format&fit=crop",
+    heroImage: "/vantage/backyard-slow-reveal/input.jpg",
     faq: [
       { q: "Do I need a before photo of the garden?", a: "No. Submit your finished after frame — the studio reconstructs an overgrown-or-bare prior state that matches your exact site." },
       { q: "Does it work for hardscape jobs?", a: "Yes. Driveways, retaining walls, paving, turf, and planting beds all transform beautifully." },
@@ -76,13 +77,13 @@ const CONTENT: Record<Slug, Content> = {
     metaTitle: "Cinematic Films for Pool Builders — The Vantage",
     metaDesc: "Show the full magnitude of every pool build. One after photo becomes a 1080p transformation film in minutes. 50 free credits to start.",
     beforeA: empty3,
-    afterA: "https://images.unsplash.com/photo-1572883454114-1cf0031ede2a?w=2000&q=85&auto=format&fit=crop",
+    afterA: "/vantage/backyard-slow-reveal/input.jpg",
     beforeB: empty1,
-    afterB: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=2000&q=85&auto=format&fit=crop",
+    afterB: "/vantage/ranch-build/input.png",
     caption1: "INFINITY POOL · 12-SECOND FILM",
     caption2: "PLUNGE POOL & SPA · 14-SECOND FILM",
     byline: "A POOL FILM · MERIDIAN AQUATICS",
-    heroImage: "https://images.unsplash.com/photo-1572883454114-1cf0031ede2a?w=2400&q=85&auto=format&fit=crop",
+    heroImage: "/vantage/backyard-slow-reveal/input.jpg",
     faq: [
       { q: "Does it show the excavation?", a: "Yes. The studio reconstructs a bare-earth prior state and animates the build sequence between the two frames." },
       { q: "Indoor or infinity pools?", a: "Works for any finished pool with a clear photograph — infinity, plunge, lap, spa, and indoor." },
@@ -97,14 +98,14 @@ const CONTENT: Record<Slug, Content> = {
     heroSub: "The studio reconstructs the dated prior state of your kitchen renovation from a single completed photograph. Every job becomes a Reels-native film.",
     metaTitle: "Cinematic Films for Kitchen Renovators — The Vantage",
     metaDesc: "Turn your finished kitchen photos into cinematic renovation reveals. No before photo needed. 50 free credits, no subscription.",
-    beforeA: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=2000&q=85&auto=format&fit=crop",
-    afterA: "https://images.unsplash.com/photo-1556909114-f6e9adcb302e?w=2000&q=85&auto=format&fit=crop",
+    beforeA: "/vantage/ranch-clean/before.webp",
+    afterA: "/vantage/listing-bundle/1.webp",
     beforeB: empty2,
-    afterB: "https://images.unsplash.com/photo-1556909001-f5648b8d2348?w=2000&q=85&auto=format&fit=crop",
+    afterB: "/vantage/listing-bundle/2.webp",
     caption1: "PRE-WAR KITCHEN · 12-SECOND FILM",
     caption2: "GALLEY RENOVATION · 14-SECOND FILM",
     byline: "A RENOVATION FILM · WESTBROOK & CO.",
-    heroImage: "https://images.unsplash.com/photo-1556909001-f5648b8d2348?w=2400&q=85&auto=format&fit=crop",
+    heroImage: "/vantage/listing-bundle/2.webp",
     faq: [
       { q: "Do I need a photo of the old kitchen?", a: "No. The studio reconstructs a plausible dated kitchen from your finished frame." },
       { q: "Will it match the actual cabinetry and layout?", a: "The after photograph anchors the camera angle and footprint. The reconstructed prior state matches the same space, in a deteriorated form." },
@@ -120,13 +121,13 @@ const CONTENT: Record<Slug, Content> = {
     metaTitle: "Cinematic Films for Bathroom Renovators — The Vantage",
     metaDesc: "Transform finished bathroom photos into viral renovation films. Built for renovators and tilers. 50 free credits.",
     beforeA: empty1,
-    afterA: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=2000&q=85&auto=format&fit=crop",
+    afterA: "/vantage/setup/after.jpeg",
     beforeB: empty2,
-    afterB: "https://images.unsplash.com/photo-1620626011761-996317b8d101?w=2000&q=85&auto=format&fit=crop",
+    afterB: "/vantage/listing-bundle/3.webp",
     caption1: "WET ROOM · 12-SECOND FILM",
     caption2: "PRIMARY ENSUITE · 14-SECOND FILM",
     byline: "A TILER'S FILM · STILLWATER STUDIO",
-    heroImage: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=2400&q=85&auto=format&fit=crop",
+    heroImage: "/vantage/setup/after.jpeg",
     faq: [
       { q: "Wet rooms and ensuites?", a: "Yes — any finished bathroom with a clear, well-lit photograph works." },
       { q: "Tile-only jobs?", a: "Works beautifully. Regrouting, re-tiling, and waterproofing reveals all supported." },
@@ -142,13 +143,13 @@ const CONTENT: Record<Slug, Content> = {
     metaTitle: "Cinematic Films for Outdoor Living Builds — The Vantage",
     metaDesc: "Decks, pergolas, outdoor kitchens, alfresco areas. One after photo, one cinematic film. 50 free credits, no subscription.",
     beforeA: empty3,
-    afterA: "https://images.unsplash.com/photo-1572297870735-d9b1d3eedf38?w=2000&q=85&auto=format&fit=crop",
+    afterA: "/vantage/ranch-build/input.png",
     beforeB: empty1,
-    afterB: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=2000&q=85&auto=format&fit=crop",
+    afterB: "/vantage/listing-bundle/4.webp",
     caption1: "ALFRESCO PERGOLA · 12-SECOND FILM",
     caption2: "OUTDOOR KITCHEN · 14-SECOND FILM",
     byline: "AN OUTDOOR FILM · NORTH SHORE",
-    heroImage: "https://images.unsplash.com/photo-1572297870735-d9b1d3eedf38?w=2400&q=85&auto=format&fit=crop",
+    heroImage: "/vantage/ranch-build/input.png",
     faq: [
       { q: "Alfresco and patio builds?", a: "Yes. Decks, pergolas, outdoor kitchens, cabanas, and fire pits — all supported." },
       { q: "Can I post straight to TikTok?", a: "Yes. All outputs are 1080×1920 vertical MP4, ready for TikTok, Reels, and Shorts." },
@@ -164,13 +165,13 @@ const CONTENT: Record<Slug, Content> = {
     metaTitle: "Cinematic Films for Builders — The Vantage",
     metaDesc: "For general contractors, builders, and developers. One after photo per job becomes a social-ready transformation film. 50 free credits.",
     beforeA: empty3,
-    afterA: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=2000&q=85&auto=format&fit=crop",
+    afterA: "/vantage/ranch-build/input.png",
     beforeB: empty1,
-    afterB: "https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=2000&q=85&auto=format&fit=crop",
+    afterB: "/vantage/sketch/original.webp",
     caption1: "EXTERIOR REBUILD · 14-SECOND FILM",
     caption2: "GREATROOM RENOVATION · 12-SECOND FILM",
     byline: "A BUILDER'S FILM · ATWOOD CONSTRUCTION",
-    heroImage: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=2400&q=85&auto=format&fit=crop",
+    heroImage: "/vantage/ranch-build/input.png",
     faq: [
       { q: "Full home builds?", a: "Yes. New builds, knockdown-rebuilds, and full renovations are all supported." },
       { q: "Multiple trades?", a: "Yes. Submit any finished work — landscaping, builds, renovations, fitouts." },

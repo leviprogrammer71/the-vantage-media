@@ -14,23 +14,24 @@ import SectionHeading from "@/components/lux/SectionHeading";
 import OAuthReturnHandler from "@/components/OAuthReturnHandler";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
 
+// All imagery is now real Vantage customer output — no stock photography.
 const ux = {
-  hero: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=2400&q=85&auto=format&fit=crop",
-  interior1: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=2000&q=85&auto=format&fit=crop",
-  interior2: "https://images.unsplash.com/photo-1600210492493-0946911123ea?w=2000&q=85&auto=format&fit=crop",
-  exterior1: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=2000&q=85&auto=format&fit=crop",
-  exterior2: "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=2000&q=85&auto=format&fit=crop",
-  empty1: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=2000&q=85&auto=format&fit=crop",
-  empty2: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=2000&q=85&auto=format&fit=crop",
-  kitchen1: "https://images.unsplash.com/photo-1600585152220-90363fe7e115?w=2000&q=85&auto=format&fit=crop",
-  kitchen2: "https://images.unsplash.com/photo-1556909001-f5648b8d2348?w=2000&q=85&auto=format&fit=crop",
-  bathroom: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=2000&q=85&auto=format&fit=crop",
-  bathroomBefore: "https://images.unsplash.com/photo-1620626011761-996317b8d101?w=2000&q=85&auto=format&fit=crop",
-  livingRoom: "https://images.unsplash.com/photo-1600210491892-03d54c0aaf87?w=2000&q=85&auto=format&fit=crop",
-  living2: "https://images.unsplash.com/photo-1571055107559-3e67626fa8be?w=2000&q=85&auto=format&fit=crop",
-  bedroom: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=2000&q=85&auto=format&fit=crop",
-  studio1: "https://images.unsplash.com/photo-1494891848038-7bd202a2afeb?w=1600&q=85&auto=format&fit=crop",
-  studio2: "https://images.unsplash.com/photo-1604014237800-1c9102c219da?w=1600&q=85&auto=format&fit=crop",
+  hero: "/vantage/ranch-build/input.png",
+  interior1: "/vantage/setup/after.jpeg",
+  interior2: "/vantage/sketch/original.webp",
+  exterior1: "/vantage/ranch-build/input.png",
+  exterior2: "/vantage/backyard-slow-reveal/input.jpg",
+  empty1: "/vantage/setup/before.webp",
+  empty2: "/vantage/ranch-clean/before.webp",
+  kitchen1: "/vantage/listing-bundle/1.webp",
+  kitchen2: "/vantage/listing-bundle/2.webp",
+  bathroom: "/vantage/listing-bundle/3.webp",
+  bathroomBefore: "/vantage/backyard-slow-reveal/before.jpg",
+  livingRoom: "/vantage/listing-bundle/4.webp",
+  living2: "/vantage/listing-bundle/5.webp",
+  bedroom: "/vantage/listing-bundle/6.webp",
+  studio1: "/vantage/setup/after.jpeg",
+  studio2: "/vantage/ranch-clean/input.png",
 };
 
 const Index = () => {
@@ -68,6 +69,24 @@ const Index = () => {
 
         <main id="main-content">
           <EditorialHero rightImage={ux.hero} />
+
+          {/* Trust Badges */}
+          <div className="lux-bg-parchment py-6 border-b" style={{ borderColor: "var(--lux-hairline)" }}>
+            <div className="lux-container flex flex-wrap justify-center items-center gap-6 text-sm">
+              <div className="flex items-center gap-2" style={{ color: "var(--lux-rust)" }}>
+                30-DAY REFUND
+              </div>
+              <div className="flex items-center gap-2" style={{ color: "var(--lux-rust)" }}>
+                NO CARD REQUIRED
+              </div>
+              <div className="flex items-center gap-2" style={{ color: "var(--lux-rust)" }}>
+                1080P SEEDANCE 2.0
+              </div>
+              <div className="flex items-center gap-2" style={{ color: "var(--lux-rust)" }}>
+                BUILT FOR REAL ESTATE
+              </div>
+            </div>
+          </div>
 
           {/* Stockists / Press Marquee */}
           <Marquee
@@ -128,12 +147,12 @@ const Index = () => {
                   ].map((p) => (
                     <div
                       key={p.tag}
-                      className="p-10 lux-bg-parchment"
+                      className="p-8 lg:p-10 lux-bg-parchment"
                       style={{ border: "1px solid var(--lux-hairline)" }}
                     >
                       <div className="lux-display-italic mb-4" style={{ fontSize: 24, color: "var(--lux-rust)" }}>{p.tag}</div>
                       <div className="lux-display text-2xl md:text-3xl mb-3">{p.h}</div>
-                      <p className="lux-prose text-sm" style={{ lineHeight: 1.65 }}>{p.b}</p>
+                      <p className="lux-prose text-sm" style={{ color: "var(--lux-ink)", lineHeight: 1.65 }}>{p.b}</p>
                     </div>
                   ))}
                 </div>
@@ -176,7 +195,7 @@ const Index = () => {
                 <Link
                   to={destination}
                   className="lux-btn"
-                  style={{ background: "var(--lux-ink)", color: "var(--lux-bone)" }}
+                  style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "18px 28px" }}
                 >
                   {isLoggedIn ? "ENTER THE STUDIO →" : "BEGIN A FILM — FREE →"}
                 </Link>
@@ -214,7 +233,7 @@ const Index = () => {
                   </h2>
                 </div>
                 <div className="lg:col-span-5">
-                  <p className="lux-prose" style={{ color: "rgba(244,239,230,0.78)", maxWidth: 420 }}>
+                  <p className="lux-prose" style={{ color: "var(--lux-bone)", maxWidth: 420 }}>
                     Each film below was generated from a single still photograph submitted by a working
                     real estate photographer or builder. Average render time: 3 minutes 14 seconds.
                   </p>
@@ -259,6 +278,7 @@ const Index = () => {
                       alt={`Source photo ${i}`}
                       className="absolute inset-0 w-full h-full object-cover"
                       style={{ opacity: 0.35 }}
+                      loading="lazy"
                     />
                     <video
                       src={`/vantage/listing-bundle/${i}.mp4`}
@@ -336,7 +356,7 @@ const Index = () => {
                       {s.n}
                     </div>
                     <h3 className="lux-display text-3xl mb-5">{s.h}</h3>
-                    <p className="lux-prose mb-10" style={{ fontSize: 16 }}>{s.b}</p>
+                    <p className="lux-prose mb-10" style={{ fontSize: 16, color: "var(--lux-ink)" }}>{s.b}</p>
                     <div
                       className="lux-eyebrow pt-5"
                       style={{ borderTop: "1px solid var(--lux-hairline)", color: "var(--lux-brass)" }}
@@ -582,7 +602,7 @@ const Index = () => {
                     >
                       {p.price}
                     </div>
-                    <p className="lux-prose mt-4 text-sm" style={{ color: p.featured ? "rgba(244,239,230,0.78)" : "var(--lux-ash)" }}>
+                    <p className="lux-prose mt-4 text-sm" style={{ color: p.featured ? "var(--lux-bone)" : "var(--lux-ink)" }}>
                       {p.desc}
                     </p>
                     <ul className="mt-10 flex flex-col gap-3">
@@ -729,7 +749,7 @@ const Index = () => {
 
               <p
                 className="lux-prose mt-10 mx-auto"
-                style={{ color: "rgba(244,239,230,0.78)", maxWidth: 540 }}
+                style={{ color: "var(--lux-bone)", maxWidth: 540 }}
               >
                 Fifty credits. Roughly twelve finished films. Begin tonight, deliver tomorrow.
               </p>
@@ -756,6 +776,19 @@ const Index = () => {
               </div>
             </div>
           </section>
+
+          {/* Sticky Bottom CTA - shows after hero scroll */}
+          <div
+            className="fixed bottom-0 left-0 right-0 z-40 lux-bg-ink"
+            style={{ borderTop: "1px solid var(--lux-hairline-strong)", color: "var(--lux-bone)" }}
+          >
+            <div className="lux-container flex items-center justify-between gap-4 py-4">
+              <span className="lux-eyebrow hidden sm:inline" style={{ color: "var(--lux-champagne)" }}>50 free credits · No card required</span>
+              <Link to={destination} className="lux-btn lux-btn-bone" style={{ padding: "12px 22px", fontSize: "0.7rem" }}>
+                {isLoggedIn ? "ENTER STUDIO →" : "BEGIN FREE →"}
+              </Link>
+            </div>
+          </div>
         </main>
 
         <LuxuryFooter />

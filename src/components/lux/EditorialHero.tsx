@@ -22,7 +22,7 @@ const EditorialHero = ({
   subtitle = "One photograph. A scroll-stopping cinematic listing film. Delivered before your client's coffee gets cold.",
   primaryCta,
   secondaryCta,
-  backgroundImage = "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=2400&q=85&auto=format&fit=crop",
+  backgroundImage = "/vantage/ranch-build/input.png",
   rightImage,
   byline = "PHOTOGRAPHED BY THE VANTAGE STUDIO",
 }: EditorialHeroProps) => {

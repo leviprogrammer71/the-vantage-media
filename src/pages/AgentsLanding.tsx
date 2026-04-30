@@ -11,13 +11,14 @@ import SectionHeading from "@/components/lux/SectionHeading";
 import Marquee from "@/components/lux/Marquee";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
 
+// All imagery is real Vantage customer output — no stock photography.
 const ax = {
-  hero: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=2400&q=85&auto=format&fit=crop",
-  empty1: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=2000&q=85&auto=format&fit=crop",
-  empty2: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=2000&q=85&auto=format&fit=crop",
-  staged1: "https://images.unsplash.com/photo-1600210492493-0946911123ea?w=2000&q=85&auto=format&fit=crop",
-  staged2: "https://images.unsplash.com/photo-1571055107559-3e67626fa8be?w=2000&q=85&auto=format&fit=crop",
-  exterior: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=2000&q=85&auto=format&fit=crop",
+  hero: "/vantage/ranch-build/input.png",
+  empty1: "/vantage/setup/before.webp",
+  empty2: "/vantage/ranch-clean/before.webp",
+  staged1: "/vantage/setup/after.jpeg",
+  staged2: "/vantage/listing-bundle/1.webp",
+  exterior: "/vantage/backyard-slow-reveal/input.jpg",
 };
 
 const AgentsLanding = () => {
@@ -89,7 +90,7 @@ const AgentsLanding = () => {
                     <div key={s.l} className="p-8 lux-bg-cream" style={{ border: "1px solid var(--lux-hairline)" }}>
                       <div className="lux-display" style={{ fontSize: "clamp(2.4rem, 4vw, 3.4rem)", lineHeight: 1 }}>{s.v}</div>
                       <div className="lux-eyebrow mt-4" style={{ color: "var(--lux-rust)" }}>{s.l}</div>
-                      <div className="mt-3 text-sm" style={{ color: "var(--lux-ash)", fontStyle: "italic" }}>{s.c}</div>
+                      <div className="mt-3 text-sm" style={{ color: "var(--lux-ink)", fontStyle: "italic" }}>{s.c}</div>
                     </div>
                   ))}
                 </div>
@@ -178,6 +179,19 @@ const AgentsLanding = () => {
               </div>
             </div>
           </section>
+
+          {/* Sticky Bottom CTA */}
+          <div
+            className="fixed bottom-0 left-0 right-0 z-40 lux-bg-ink"
+            style={{ borderTop: "1px solid var(--lux-hairline-strong)", color: "var(--lux-bone)" }}
+          >
+            <div className="lux-container flex items-center justify-between gap-4 py-4">
+              <span className="lux-eyebrow hidden sm:inline" style={{ color: "var(--lux-champagne)" }}>50 free credits · No card required</span>
+              <Link to={destination} className="lux-btn lux-btn-bone" style={{ padding: "12px 22px", fontSize: "0.7rem" }}>
+                {isLoggedIn ? "ENTER STUDIO →" : "BEGIN FREE →"}
+              </Link>
+            </div>
+          </div>
         </main>
 
         <LuxuryFooter />

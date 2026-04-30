@@ -9,9 +9,10 @@ import SectionHeading from "@/components/lux/SectionHeading";
 import Marquee from "@/components/lux/Marquee";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
 
+// All imagery is real Vantage customer output — no stock photography.
 const agx = {
-  hero: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=2400&q=85&auto=format&fit=crop",
-  pano: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=2400&q=85&auto=format&fit=crop",
+  hero: "/vantage/ranch-build/input.png",
+  pano: "/vantage/backyard-slow-reveal/input.jpg",
 };
 
 const AgenciesLanding = () => {
@@ -133,6 +134,19 @@ const AgenciesLanding = () => {
               </div>
             </div>
           </section>
+
+          {/* Sticky Bottom CTA */}
+          <div
+            className="fixed bottom-0 left-0 right-0 z-40 lux-bg-ink"
+            style={{ borderTop: "1px solid var(--lux-hairline-strong)", color: "var(--lux-bone)" }}
+          >
+            <div className="lux-container flex items-center justify-between gap-4 py-4">
+              <span className="lux-eyebrow hidden sm:inline" style={{ color: "var(--lux-champagne)" }}>Schedule a demo · Dedicated liaison</span>
+              <Link to="/contact" className="lux-btn lux-btn-bone" style={{ padding: "12px 22px", fontSize: "0.7rem" }}>
+                SPEAK TO LIAISON →
+              </Link>
+            </div>
+          </div>
         </main>
 
         <LuxuryFooter />

@@ -10,13 +10,14 @@ import SectionHeading from "@/components/lux/SectionHeading";
 import Marquee from "@/components/lux/Marquee";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
 
+// All imagery is real Vantage customer output — no stock photography.
 const bx = {
-  hero: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=2400&q=85&auto=format&fit=crop",
-  emptyA: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=2000&q=85&auto=format&fit=crop",
-  stagedA: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=2000&q=85&auto=format&fit=crop",
-  emptyB: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=2000&q=85&auto=format&fit=crop",
-  stagedB: "https://images.unsplash.com/photo-1571055107559-3e67626fa8be?w=2000&q=85&auto=format&fit=crop",
-  pool: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=2000&q=85&auto=format&fit=crop",
+  hero: "/vantage/backyard-slow-reveal/input.jpg",
+  emptyA: "/vantage/ranch-clean/before.webp",
+  stagedA: "/vantage/listing-bundle/2.webp",
+  emptyB: "/vantage/setup/before.webp",
+  stagedB: "/vantage/setup/after.jpeg",
+  pool: "/vantage/backyard-slow-reveal/input.jpg",
 };
 
 const AirbnbLanding = () => {
@@ -142,6 +143,19 @@ const AirbnbLanding = () => {
               </div>
             </div>
           </section>
+
+          {/* Sticky Bottom CTA */}
+          <div
+            className="fixed bottom-0 left-0 right-0 z-40 lux-bg-ink"
+            style={{ borderTop: "1px solid var(--lux-hairline-strong)", color: "var(--lux-bone)" }}
+          >
+            <div className="lux-container flex items-center justify-between gap-4 py-4">
+              <span className="lux-eyebrow hidden sm:inline" style={{ color: "var(--lux-champagne)" }}>50 free credits · No card required</span>
+              <Link to={destination} className="lux-btn lux-btn-bone" style={{ padding: "12px 22px", fontSize: "0.7rem" }}>
+                {isLoggedIn ? "ENTER STUDIO →" : "BEGIN FREE →"}
+              </Link>
+            </div>
+          </div>
         </main>
 
         <LuxuryFooter />

@@ -12,18 +12,19 @@ import Marquee from "@/components/lux/Marquee";
 import SectionHeading from "@/components/lux/SectionHeading";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
 
+// All imagery is real Vantage customer output — no stock photography.
 const px = {
-  hero: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=2400&q=85&auto=format&fit=crop",
-  intHero: "https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=1800&q=85&auto=format&fit=crop",
-  empty1: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=2000&q=85&auto=format&fit=crop",
-  empty2: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=2000&q=85&auto=format&fit=crop",
-  empty3: "https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=2000&q=85&auto=format&fit=crop",
-  staged1: "https://images.unsplash.com/photo-1600210492493-0946911123ea?w=2000&q=85&auto=format&fit=crop",
-  staged2: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=2000&q=85&auto=format&fit=crop",
-  staged3: "https://images.unsplash.com/photo-1571055107559-3e67626fa8be?w=2000&q=85&auto=format&fit=crop",
-  exterior: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=2400&q=85&auto=format&fit=crop",
-  studio: "https://images.unsplash.com/photo-1604014237800-1c9102c219da?w=1600&q=85&auto=format&fit=crop",
-  bedroom: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=2000&q=85&auto=format&fit=crop",
+  hero: "/vantage/ranch-build/input.png",
+  intHero: "/vantage/sketch/original.webp",
+  empty1: "/vantage/setup/before.webp",
+  empty2: "/vantage/ranch-clean/before.webp",
+  empty3: "/vantage/backyard-slow-reveal/before.jpg",
+  staged1: "/vantage/setup/after.jpeg",
+  staged2: "/vantage/listing-bundle/1.webp",
+  staged3: "/vantage/listing-bundle/2.webp",
+  exterior: "/vantage/backyard-slow-reveal/input.jpg",
+  studio: "/vantage/ranch-clean/input.png",
+  bedroom: "/vantage/listing-bundle/3.webp",
 };
 
 const RealEstatePhotographers = () => {
@@ -95,7 +96,7 @@ const RealEstatePhotographers = () => {
                 </h2>
               </div>
               <div className="lg:col-span-7">
-                <p className="lux-prose" style={{ fontSize: 19, lineHeight: 1.65 }}>
+                <p className="lux-prose" style={{ fontSize: 19, lineHeight: 1.65, color: "var(--lux-ink)" }}>
                   A proper cinematic listing film used to require a second shooter, a gimbal operator,
                   five hours of additional time on site, and seven to ten days of post — for an upsell
                   that maxed out at $1,800 and generated thirty hours of edit time.
@@ -442,6 +443,19 @@ const RealEstatePhotographers = () => {
               </div>
             </div>
           </section>
+
+          {/* Sticky Bottom CTA */}
+          <div
+            className="fixed bottom-0 left-0 right-0 z-40 lux-bg-ink"
+            style={{ borderTop: "1px solid var(--lux-hairline-strong)", color: "var(--lux-bone)" }}
+          >
+            <div className="lux-container flex items-center justify-between gap-4 py-4">
+              <span className="lux-eyebrow hidden sm:inline" style={{ color: "var(--lux-champagne)" }}>50 free credits · No card required</span>
+              <Link to={destination} className="lux-btn lux-btn-bone" style={{ padding: "12px 22px", fontSize: "0.7rem" }}>
+                {isLoggedIn ? "ENTER STUDIO →" : "BEGIN FREE →"}
+              </Link>
+            </div>
+          </div>
         </main>
 
         <LuxuryFooter />

@@ -41,7 +41,9 @@ const cols = [
 
 const LuxuryFooter = () => {
   return (
-    <footer className="lux-bg-ink lux-grain" style={{ color: "var(--lux-bone)" }}>
+    /* Bottom padding accounts for the sticky CTA bar (~72px) overlaying the viewport
+       bottom on landing pages. Without it, the copyright line gets cropped. */
+    <footer className="lux-bg-ink lux-grain" style={{ color: "var(--lux-bone)", paddingBottom: 88 }}>
       <div className="lux-container" style={{ paddingTop: 96, paddingBottom: 48 }}>
         <div className="grid lg:grid-cols-12 gap-12 mb-20">
           <div className="lg:col-span-4">

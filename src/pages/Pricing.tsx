@@ -119,7 +119,7 @@ const Pricing = () => {
                   </h1>
                 </div>
                 <div className="lg:col-span-5">
-                  <p className="lux-prose" style={{ fontSize: 19 }}>
+                  <p className="lux-prose" style={{ fontSize: 19, color: "var(--lux-ink)" }}>
                     Pay once. Use for months. Top up anytime the studio's busy. No subscriptions to cancel, no expiry dates, no hidden tiers.
                   </p>
                   {creditBalance !== null && (
