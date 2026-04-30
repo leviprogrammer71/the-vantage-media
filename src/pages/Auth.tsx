@@ -37,10 +37,8 @@ const Auth = () => {
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // Safely read a returnUrl: must be same-origin path (starts with /) — guards against open-redirects
-  // Default lands users on the Listing Bundle flow — the done-for-you reel that
-  // gives the strongest first impression.
   const rawReturn = searchParams.get("returnUrl") || searchParams.get("redirect") || "";
-  let safeReturn = "/video?mode=listing";
+  let safeReturn = "/video?mode=transform";
   if (rawReturn) {
     try {
       const decoded = decodeURIComponent(rawReturn);

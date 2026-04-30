@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/hooks/useCredits";
+import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
 import { supabase } from "@/integrations/supabase/client";
 import { InsufficientCreditsModal } from "./InsufficientCreditsModal";
 import { ShotTypePicker } from "./ShotTypePicker";
@@ -107,6 +108,11 @@ function calculateListingCost(category: ListingCategory, effectId: EffectId): nu
 export function ListingVideoFlow() {
   const { user } = useAuth();
   const { credits, refreshCredits, deductCredits } = useCredits();
+  const { isPaid } = useSubscriptionTier();
+  // Free users always see the watermark (baked-in deal). Paid users default to off,
+  // but can opt-in via the toggle on the result screen if they want the credibility.
+  const [showBranding, setShowBranding] = useState<boolean>(false);
+  const watermarkVisible = !isPaid || showBranding;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Wizard state
@@ -1307,21 +1313,23 @@ export function ListingVideoFlow() {
                 </div>
               </>
             )}
-            {/* Watermark overlay */}
-            <div
-              className="absolute bottom-4 right-4 lux-eyebrow z-20"
-              style={{
-                color: "var(--lux-bone)",
-                opacity: 0.6,
-                background: "rgba(14,14,12,0.6)",
-                padding: "4px 8px",
-                backdropFilter: "blur(4px)",
-                fontSize: "0.65rem",
-                letterSpacing: "0.05em",
-              }}
-            >
-              AI · THE VANTAGE
-            </div>
+            {/* Watermark overlay — free tier: always visible. Paid: opt-in toggle. */}
+            {watermarkVisible && (
+              <div
+                className="absolute bottom-4 right-4 lux-eyebrow z-20"
+                style={{
+                  color: "var(--lux-bone)",
+                  opacity: 0.6,
+                  background: "rgba(14,14,12,0.6)",
+                  padding: "4px 8px",
+                  backdropFilter: "blur(4px)",
+                  fontSize: "0.65rem",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                AI · THE VANTAGE
+              </div>
+            )}
             {clipUrls.length > 1 && !stitchedUrl && (
               <>
                 {/* Clip progress indicator at top */}
@@ -1426,6 +1434,51 @@ export function ListingVideoFlow() {
               >
                 Copy Caption
               </button>
+            </div>
+          )}
+
+          {/* Branding toggle — paid users only. Free tier gets the watermark baked in. */}
+          {isPaid ? (
+            <div
+              className="p-5 mb-6 flex items-center justify-between gap-4"
+              style={{ background: "var(--lux-parchment)", border: "1px solid var(--lux-hairline)" }}
+            >
+              <div>
+                <div className="lux-eyebrow mb-1" style={{ color: "var(--lux-brass)" }}>VANTAGE BRANDING</div>
+                <p className="lux-prose text-sm" style={{ color: "var(--lux-ink)" }}>
+                  Off by default for paid plans. Toggle on if you want the "AI · The Vantage" credibility mark on this film.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowBranding((v) => !v)}
+                className="lux-eyebrow flex-shrink-0"
+                style={{
+                  padding: "10px 16px",
+                  background: showBranding ? "var(--lux-ink)" : "var(--lux-bone)",
+                  color: showBranding ? "var(--lux-bone)" : "var(--lux-ink)",
+                  border: "1px solid var(--lux-ink)",
+                  fontSize: "0.7rem",
+                  letterSpacing: "0.18em",
+                }}
+              >
+                {showBranding ? "ON" : "OFF"}
+              </button>
+            </div>
+          ) : (
+            <div
+              className="p-5 mb-6"
+              style={{ background: "var(--lux-parchment)", border: "1px solid var(--lux-hairline)" }}
+            >
+              <div className="flex gap-3 items-start">
+                <span className="lux-eyebrow flex-shrink-0 mt-0.5" style={{ color: "var(--lux-brass)" }}>FREE TIER</span>
+                <p className="lux-prose text-sm" style={{ color: "var(--lux-ink)" }}>
+                  This film carries the subtle "AI · The Vantage" mark. Upgrade to a paid pack to remove it on every film going forward.
+                  {" "}
+                  <Link to="/pricing" style={{ color: "var(--lux-rust)", textDecoration: "underline", textUnderlineOffset: "3px" }}>
+                    See pricing →
+                  </Link>
+                </p>
+              </div>
             </div>
           )}
 

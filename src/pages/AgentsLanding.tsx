@@ -68,7 +68,7 @@ const AgentsLanding = () => {
           />
 
           {/* Why */}
-          <section className="lux-section lux-bg-bone">
+          <section className="lux-section lg:py-32 lux-bg-bone">
             <div className="lux-container grid lg:grid-cols-12 gap-12 lg:gap-20 items-start">
               <div className="lg:col-span-5">
                 <SectionHeading
@@ -121,16 +121,17 @@ const AgentsLanding = () => {
                 eyebrow="REAL CUSTOMER LISTINGS · APRIL 2026"
                 title="What 12 seconds looks like."
                 clips={[
-                  { src: "/videos/transform-1.mp4", label: "1132 Elm Court", byline: "AUSTIN · LISTED $1.2M" },
-                  { src: "/videos/transform-2.mp4", label: "84 Olive Drive", byline: "LOS ANGELES · LISTED $2.4M" },
-                  { src: "/videos/transform-3.mp4", label: "62 Cedar Crest", byline: "BOSTON · LISTED $3.1M" },
+                  { src: "/vantage/just-listed/video.mp4", label: "1132 Elm Court", byline: "JUST LISTED · $1.2M" },
+                  { src: "/vantage/sketch/result.mp4", label: "84 Olive Drive — Sketch Reveal", byline: "LOS ANGELES · $2.4M" },
+                  { src: "/vantage/ranch-build/result.mp4", label: "62 Cedar Crest — Build Story", byline: "BOSTON · $3.1M" },
+                  { src: "/vantage/setup/video.mp4", label: "Open House Setup", byline: "DRESSED FROM EMPTY" },
                 ]}
               />
             </div>
           </section>
 
           {/* ROI */}
-          <section className="lux-section lux-bg-bone">
+          <section className="lux-section lg:py-32 lux-bg-bone">
             <div className="lux-container grid lg:grid-cols-12 gap-12 lg:gap-16 items-start">
               <div className="lg:col-span-5">
                 <SectionHeading
@@ -157,10 +158,10 @@ const AgentsLanding = () => {
           />
 
           {/* Invitation */}
-          <section className="lux-section relative overflow-hidden lux-bg-ink lux-grain" style={{ color: "var(--lux-bone)" }}>
+          <section className="lux-section lg:py-44 relative overflow-hidden lux-bg-ink lux-grain" style={{ color: "var(--lux-bone)" }}>
             <div className="absolute inset-0 opacity-25" style={{ backgroundImage: `url(${ax.exterior})`, backgroundSize: "cover", backgroundPosition: "center" }} />
             <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(14,14,12,0.85), rgba(14,14,12,0.95))" }} />
-            <div className="relative lux-container text-center py-32">
+            <div className="relative lux-container text-center py-32 md:py-44">
               <h2 className="lux-display" style={{ fontSize: "clamp(2.8rem, 7vw, 6rem)", lineHeight: 0.92, color: "var(--lux-bone)" }}>
                 Make your next listing
                 <br />

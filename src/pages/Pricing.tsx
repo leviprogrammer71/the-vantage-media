@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import LuxuryHeader from "@/components/lux/LuxuryHeader";
 import LuxuryFooter from "@/components/lux/LuxuryFooter";
 import Marquee from "@/components/lux/Marquee";
@@ -26,6 +26,7 @@ const productLines = [
 
 const Pricing = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   // Default to annual — anchors higher AOV + lower churn, and the cents-per-month math reads better
@@ -46,7 +47,9 @@ const Pricing = () => {
 
   const startCheckout = async (label: string, priceType: string, isSubscription: boolean) => {
     if (!user) {
-      toast.error("Please sign in to continue.");
+      // Redirect to sign-in, preserving the user's intent to return to /pricing
+      const returnUrl = encodeURIComponent("/pricing");
+      navigate(`/login?returnUrl=${returnUrl}`);
       return;
     }
     setLoadingPlan(priceType);
@@ -201,68 +204,136 @@ const Pricing = () => {
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-4xl mx-auto">
                 {CREDIT_PACKS.map((p) => {
                   const featured = p.popular;
                   return (
                     <div
                       key={p.id}
-                      className={`p-8 ${featured ? "lux-bg-ink" : "lux-bg-bone"} relative flex flex-col`}
+                      className="p-8 lg:p-10 relative flex flex-col"
                       style={{
-                        border: "1px solid var(--lux-hairline)",
+                        background: featured ? "var(--lux-ink)" : "var(--lux-cream)",
+                        border: `1px solid ${featured ? "var(--lux-ink)" : "var(--lux-hairline-strong)"}`,
                         color: featured ? "var(--lux-bone)" : "var(--lux-ink)",
+                        minHeight: "480px",
+                        boxShadow: featured ? "0 14px 40px rgba(14,14,12,0.18)" : "none",
                       }}
                     >
                       {featured && (
                         <span
-                          className="lux-eyebrow absolute -top-3 left-8"
+                          className="lux-eyebrow absolute -top-3 left-7"
                           style={{
                             color: "var(--lux-ink)",
                             background: "var(--lux-champagne)",
                             padding: "6px 12px",
+                            fontSize: "0.62rem",
+                            letterSpacing: "0.18em",
+                            zIndex: 2,
                           }}
                         >
                           ✦ MOST CHOSEN
                         </span>
                       )}
-                      <div className="lux-eyebrow" style={{ color: featured ? "var(--lux-champagne)" : "var(--lux-brass)" }}>
+
+                      {/* Pack name */}
+                      <div
+                        className="lux-eyebrow"
+                        style={{
+                          color: featured ? "var(--lux-champagne)" : "var(--lux-rust)",
+                          fontSize: "0.72rem",
+                          letterSpacing: "0.2em",
+                        }}
+                      >
                         {p.name}
                       </div>
-                      <div className="lux-display mt-4" style={{ fontSize: "clamp(2.4rem, 4vw, 3.4rem)", lineHeight: 1 }}>
+
+                      {/* PRICE — large, explicit color, never invisible */}
+                      <div
+                        className="lux-display mt-3"
+                        style={{
+                          fontSize: "clamp(2.6rem, 5vw, 3.6rem)",
+                          lineHeight: 1,
+                          color: featured ? "var(--lux-bone)" : "var(--lux-ink)",
+                          fontWeight: 600,
+                        }}
+                      >
                         ${p.price}
                       </div>
+
+                      {/* Credits count */}
                       <div
-                        className="lux-display-italic mt-3"
-                        style={{ color: featured ? "rgba(244,239,230,0.8)" : "var(--lux-ink)", fontSize: 18 }}
+                        className="mt-2"
+                        style={{
+                          color: featured ? "rgba(244,239,230,0.85)" : "var(--lux-ink)",
+                          fontSize: "1.05rem",
+                          fontFamily: "Inter, sans-serif",
+                          fontWeight: 500,
+                        }}
                       >
-                        {p.credits} credits
-                      </div>
-                      <div className="lux-eyebrow mt-2" style={{ color: featured ? "var(--lux-champagne)" : "var(--lux-rust)" }}>
-                        {p.perCredit} / credit {p.savings ? `· ${p.savings.toUpperCase()}` : ""}
+                        {p.credits.toLocaleString()} credits
                       </div>
 
-                      <ul className="mt-8 flex flex-col gap-3 flex-1">
+                      {/* Per-credit + savings */}
+                      <div
+                        className="mt-1"
+                        style={{
+                          color: featured ? "var(--lux-champagne)" : "var(--lux-rust)",
+                          fontSize: "0.78rem",
+                          fontFamily: "Inter, sans-serif",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {p.perCredit} per credit{p.savings ? ` · ${p.savings}` : ""}
+                      </div>
+
+                      {/* Divider */}
+                      <div
+                        className="mt-5 mb-4"
+                        style={{
+                          borderTop: `1px solid ${featured ? "rgba(244,239,230,0.18)" : "var(--lux-hairline)"}`,
+                        }}
+                      />
+
+                      {/* Features */}
+                      <ul className="flex flex-col gap-2.5 flex-1">
                         {p.features.slice(0, 4).map((f, i) => (
                           <li
                             key={i}
-                            className="flex items-start gap-3 text-sm"
-                            style={{ color: featured ? "rgba(244,239,230,0.85)" : "var(--lux-ink)", fontFamily: "Inter, sans-serif" }}
+                            className="flex items-start gap-2"
+                            style={{
+                              color: featured ? "rgba(244,239,230,0.92)" : "var(--lux-ink)",
+                              fontFamily: "Inter, sans-serif",
+                              fontSize: "0.85rem",
+                              lineHeight: 1.45,
+                            }}
                           >
-                            <span style={{ color: featured ? "var(--lux-champagne)" : "var(--lux-rust)", marginTop: 4 }}>—</span>
-                            {f}
+                            <span
+                              className="flex-shrink-0"
+                              style={{
+                                color: featured ? "var(--lux-champagne)" : "var(--lux-rust)",
+                                marginTop: 2,
+                                fontWeight: 700,
+                              }}
+                            >
+                              —
+                            </span>
+                            <span>{f}</span>
                           </li>
                         ))}
                       </ul>
 
+                      {/* CTA */}
                       <button
                         onClick={() => startCheckout(p.name, p.priceType, false)}
                         disabled={loadingPlan === p.priceType}
-                        className="lux-eyebrow w-full mt-10 inline-flex items-center justify-center gap-3 transition-colors"
+                        className="w-full mt-6 inline-flex items-center justify-center gap-3 transition-colors lux-eyebrow"
                         style={{
-                          padding: "16px 20px",
+                          padding: "14px 18px",
                           background: featured ? "var(--lux-bone)" : "var(--lux-ink)",
                           color: featured ? "var(--lux-ink)" : "var(--lux-bone)",
                           border: featured ? "1px solid var(--lux-bone)" : "1px solid var(--lux-ink)",
+                          fontSize: "0.7rem",
+                          letterSpacing: "0.18em",
                           opacity: loadingPlan === p.priceType ? 0.6 : 1,
                           cursor: loadingPlan === p.priceType ? "wait" : "pointer",
                         }}
@@ -415,9 +486,9 @@ const Pricing = () => {
 
           {/* SUBSCRIPTION */}
           {SUBSCRIPTION_PLANS.length > 0 && (
-            <section className="lux-section lux-bg-bone">
+            <section className="lux-section lg:py-32 lux-bg-bone">
               <div className="lux-container">
-                <div className="grid lg:grid-cols-12 gap-12 items-center">
+                <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-center">
                   <div className="lg:col-span-5">
                     <SectionHeading
                       eyebrow="MONTHLY RETAINER"
@@ -430,7 +501,7 @@ const Pricing = () => {
                     {SUBSCRIPTION_PLANS.map((plan) => (
                       <div
                         key={plan.id}
-                        className="p-10 lux-bg-cream"
+                        className="p-10 lg:p-14 lux-bg-cream"
                         style={{ border: "1px solid var(--lux-hairline)" }}
                       >
                         <div className="flex justify-between items-baseline mb-6">

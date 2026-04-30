@@ -84,35 +84,46 @@ const Demo = () => {
               </div>
             </section>
 
-            {/* Section 2 — Video 1 */}
+            {/* Section 2 — Ranch Build */}
             <section className="relative w-full" style={{ height: "100vh" }}>
-              <video src="/videos/transform-1.mp4" autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" />
+              <video src="/vantage/ranch-build/result.mp4" autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" />
               <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%)" }} />
               <div className="absolute bottom-0 left-0 right-0 p-6 pb-10">
-                <h2 className="font-display font-bold text-[32px]" style={{ color: "#fff" }}>BACKYARD BUILD</h2>
-                <p className="font-mono text-[11px] mt-1" style={{ color: "#AAAAAA" }}>Generated in 4 minutes from one photo</p>
+                <h2 className="font-display font-bold text-[32px]" style={{ color: "#fff" }}>RANCH BUILD</h2>
+                <p className="font-mono text-[11px] mt-1" style={{ color: "#AAAAAA" }}>Full-home construction · One photo in</p>
                 <p className="font-mono text-[10px] mt-4" style={{ color: "#555" }}>↑ See another</p>
               </div>
             </section>
 
-            {/* Section 3 — Video 2 */}
+            {/* Section 3 — Backyard Slow Reveal */}
             <section className="relative w-full" style={{ height: "100vh" }}>
-              <video src="/videos/transform-2.mp4" autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" />
+              <video src="/vantage/backyard-slow-reveal/result.mp4" autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" />
               <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%)" }} />
               <div className="absolute bottom-0 left-0 right-0 p-6 pb-10">
-                <h2 className="font-display font-bold text-[32px]" style={{ color: "#fff" }}>FULL RENOVATION</h2>
-                <p className="font-mono text-[11px] mt-1" style={{ color: "#AAAAAA" }}>Generated in 4 minutes from one photo</p>
+                <h2 className="font-display font-bold text-[32px]" style={{ color: "#fff" }}>BACKYARD · SLOW REVEAL</h2>
+                <p className="font-mono text-[11px] mt-1" style={{ color: "#AAAAAA" }}>Landscaping transformation · Cinematic motion</p>
                 <p className="font-mono text-[10px] mt-4" style={{ color: "#555" }}>↑ See another</p>
               </div>
             </section>
 
-            {/* Section 3b — Video 3 */}
+            {/* Section 3b — Sketch to Reality */}
             <section className="relative w-full" style={{ height: "100vh" }}>
-              <video src="/videos/transform-3.mp4" autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" />
+              <video src="/vantage/sketch/result.mp4" autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" />
               <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%)" }} />
               <div className="absolute bottom-0 left-0 right-0 p-6 pb-10">
-                <h2 className="font-display font-bold text-[32px]" style={{ color: "#fff" }}>CEDAR CREST ESTATE</h2>
-                <p className="font-mono text-[11px] mt-1" style={{ color: "#AAAAAA" }}>Generated in 4 minutes from one photo</p>
+                <h2 className="font-display font-bold text-[32px]" style={{ color: "#fff" }}>SKETCH TO REALITY</h2>
+                <p className="font-mono text-[11px] mt-1" style={{ color: "#AAAAAA" }}>Hand-drawn reveal · Property photo input</p>
+                <p className="font-mono text-[10px] mt-4" style={{ color: "#555" }}>↑ See another</p>
+              </div>
+            </section>
+
+            {/* Section 3c — Setup */}
+            <section className="relative w-full" style={{ height: "100vh" }}>
+              <video src="/vantage/setup/video.mp4" autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%)" }} />
+              <div className="absolute bottom-0 left-0 right-0 p-6 pb-10">
+                <h2 className="font-display font-bold text-[32px]" style={{ color: "#fff" }}>EVENT SETUP</h2>
+                <p className="font-mono text-[11px] mt-1" style={{ color: "#AAAAAA" }}>Venue dressed from empty · Setup transformation</p>
                 <p className="font-mono text-[10px] mt-4" style={{ color: "#555" }}>↑ Get started</p>
               </div>
             </section>
@@ -149,19 +160,23 @@ const Demo = () => {
               </p>
             </div>
 
-            {/* Three phones */}
-            <div className="flex items-end justify-center gap-8 pb-4 flex-wrap">
+            {/* Phone gallery */}
+            <div className="flex items-end justify-center gap-6 pb-4 flex-wrap">
               <div className="flex flex-col items-center">
-                <p className="font-mono text-[10px] tracking-[2px] mb-3" style={{ color: "#E8C547" }}>VIDEO 1</p>
-                <PhoneMockup videoSrc="/videos/transform-1.mp4" label="BACKYARD BUILD · 4 CREDITS" />
+                <p className="font-mono text-[10px] tracking-[2px] mb-3" style={{ color: "#E8C547" }}>RANCH BUILD</p>
+                <PhoneMockup videoSrc="/vantage/ranch-build/result.mp4" label="FULL HOME · CONSTRUCTION" />
               </div>
               <div className="flex flex-col items-center">
-                <p className="font-mono text-[10px] tracking-[2px] mb-3" style={{ color: "#E8C547" }}>VIDEO 2</p>
-                <PhoneMockup videoSrc="/videos/transform-2.mp4" label="FULL RENOVATION · 4 CREDITS" />
+                <p className="font-mono text-[10px] tracking-[2px] mb-3" style={{ color: "#E8C547" }}>BACKYARD</p>
+                <PhoneMockup videoSrc="/vantage/backyard-slow-reveal/result.mp4" label="SLOW REVEAL · LANDSCAPING" />
               </div>
               <div className="flex flex-col items-center">
-                <p className="font-mono text-[10px] tracking-[2px] mb-3" style={{ color: "#E8C547" }}>VIDEO 3</p>
-                <PhoneMockup videoSrc="/videos/transform-3.mp4" label="CEDAR CREST · 4 CREDITS" />
+                <p className="font-mono text-[10px] tracking-[2px] mb-3" style={{ color: "#E8C547" }}>SKETCH REVEAL</p>
+                <PhoneMockup videoSrc="/vantage/sketch/result.mp4" label="HAND-DRAWN · REAL PHOTO" />
+              </div>
+              <div className="flex flex-col items-center">
+                <p className="font-mono text-[10px] tracking-[2px] mb-3" style={{ color: "#E8C547" }}>EVENT SETUP</p>
+                <PhoneMockup videoSrc="/vantage/setup/video.mp4" label="DRESSED FROM EMPTY" />
               </div>
             </div>
 

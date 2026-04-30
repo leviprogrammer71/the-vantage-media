@@ -80,7 +80,7 @@ const RealEstatePhotographers = () => {
           />
 
           {/* THE PROBLEM */}
-          <section className="lux-section lux-bg-bone">
+          <section className="lux-section lg:py-32 lux-bg-bone">
             <div className="lux-container grid lg:grid-cols-12 gap-12 lg:gap-20 items-start">
               <div className="lg:col-span-5">
                 <div className="lux-eyebrow mb-6" style={{ color: "var(--lux-rust)" }}>
@@ -181,9 +181,10 @@ const RealEstatePhotographers = () => {
                 eyebrow="THE PHOTOGRAPHERS' DISPATCH · REAL CUSTOMER OUTPUT"
                 title="Three films delivered this week."
                 clips={[
-                  { src: "/videos/transform-1.mp4", label: "The Beacon Residence", byline: "ATWOOD STUDIO · BOSTON" },
-                  { src: "/videos/transform-2.mp4", label: "Olive & 14th Pool House", byline: "MERIDIAN · LOS ANGELES" },
-                  { src: "/videos/transform-3.mp4", label: "Cedar Crest Estate", byline: "VANTAGE STUDIO · NORTHEAST" },
+                  { src: "/vantage/ranch-build/result.mp4", label: "The Beacon Residence", byline: "ATWOOD STUDIO · BOSTON" },
+                  { src: "/vantage/sketch/result.mp4", label: "Olive & 14th — Sketch Reveal", byline: "MERIDIAN · LOS ANGELES" },
+                  { src: "/vantage/backyard-slow-reveal/result.mp4", label: "Cedar Crest Estate", byline: "VANTAGE STUDIO · NORTHEAST" },
+                  { src: "/vantage/just-listed/video.mp4", label: "Open House — Just Listed", byline: "MASS. · BADGE OVERLAY" },
                 ]}
               />
             </div>
@@ -201,7 +202,7 @@ const RealEstatePhotographers = () => {
                 className="mb-20"
               />
 
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px" style={{ background: "var(--lux-hairline-strong)" }}>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px lg:gap-6" style={{ background: "var(--lux-hairline-strong)" }}>
                 {[
                   { tag: "01", h: "Brand presets", b: "Lock your studio color, watermark, intro card. One tap per film. Standardize in seconds." },
                   { tag: "02", h: "Private agent gallery", b: "A white-label gallery for each agent. They review, download, share. You never lose the client." },
@@ -215,7 +216,7 @@ const RealEstatePhotographers = () => {
                 ].map((f) => (
                   <div
                     key={f.tag}
-                    className="lux-bg-bone p-8 md:p-10 transition-colors hover:bg-cream"
+                    className="lux-bg-bone p-8 md:p-10 lg:p-10 transition-colors hover:bg-cream"
                   >
                     <div className="flex items-baseline gap-4 mb-6">
                       <span className="lux-eyebrow" style={{ color: "var(--lux-rust)" }}>№ {f.tag}</span>
@@ -230,7 +231,7 @@ const RealEstatePhotographers = () => {
           </section>
 
           {/* THE ECONOMICS */}
-          <section className="lux-section lux-bg-parchment">
+          <section className="lux-section lg:py-32 lux-bg-parchment">
             <div className="lux-container grid lg:grid-cols-12 gap-12 lg:gap-16 items-start">
               <div className="lg:col-span-5">
                 <SectionHeading
@@ -247,7 +248,7 @@ const RealEstatePhotographers = () => {
           </section>
 
           {/* CASE STUDIES */}
-          <section className="lux-section lux-bg-bone">
+          <section className="lux-section lg:py-32 lux-bg-bone">
             <div className="lux-container">
               <SectionHeading
                 eyebrow="CASE STUDIES"
@@ -316,7 +317,7 @@ const RealEstatePhotographers = () => {
           />
 
           {/* COMPARISON — vs Rendy & friends */}
-          <section className="lux-section lux-bg-bone">
+          <section className="lux-section lg:py-32 lux-bg-bone">
             <div className="lux-container">
               <SectionHeading
                 eyebrow="THE COMPARISON"

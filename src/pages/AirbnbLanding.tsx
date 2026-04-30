@@ -64,7 +64,7 @@ const AirbnbLanding = () => {
             ]}
           />
 
-          <section className="lux-section lux-bg-bone">
+          <section className="lux-section lg:py-32 lux-bg-bone">
             <div className="lux-container grid lg:grid-cols-12 gap-12 lg:gap-20 items-start">
               <div className="lg:col-span-5">
                 <SectionHeading
@@ -108,9 +108,9 @@ const AirbnbLanding = () => {
                 eyebrow="REAL HOST OUTPUT · APRIL 2026"
                 title="A booking, in 12 seconds."
                 clips={[
-                  { src: "/videos/transform-1.mp4", label: "The Walden Pool House", byline: "JOSHUA TREE · 96% OCC." },
-                  { src: "/videos/transform-2.mp4", label: "Olive & 14th", byline: "TOPANGA · 89% OCC." },
-                  { src: "/videos/transform-3.mp4", label: "Cedar Cabin Retreat", byline: "BIG BEAR · 92% OCC." },
+                  { src: "/vantage/ranch-build/result.mp4", label: "The Walden Pool House", byline: "JOSHUA TREE · 96% OCC." },
+                  { src: "/vantage/backyard-slow-reveal/result.mp4", label: "Olive & 14th", byline: "TOPANGA · 89% OCC." },
+                  { src: "/vantage/setup/video.mp4", label: "Cedar Cabin Retreat", byline: "BIG BEAR · 92% OCC." },
                 ]}
               />
             </div>
@@ -126,10 +126,10 @@ const AirbnbLanding = () => {
             ]}
           />
 
-          <section className="lux-section relative overflow-hidden lux-bg-ink lux-grain" style={{ color: "var(--lux-bone)" }}>
+          <section className="lux-section lg:py-44 relative overflow-hidden lux-bg-ink lux-grain" style={{ color: "var(--lux-bone)" }}>
             <div className="absolute inset-0 opacity-25" style={{ backgroundImage: `url(${bx.pool})`, backgroundSize: "cover", backgroundPosition: "center" }} />
             <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(14,14,12,0.85), rgba(14,14,12,0.95))" }} />
-            <div className="relative lux-container text-center py-32">
+            <div className="relative lux-container text-center py-32 md:py-44">
               <h2 className="lux-display" style={{ fontSize: "clamp(2.8rem, 7vw, 6rem)", lineHeight: 0.92, color: "var(--lux-bone)" }}>
                 The next booking
                 <br />

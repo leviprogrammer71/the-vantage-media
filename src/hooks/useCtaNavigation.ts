@@ -6,10 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
  * Centralised CTA routing used across the site.
  *
  * Rules:
- *   - Any "Create Video" / "Get Started" / "New Film" CTA defaults to the
- *     Listing Bundle flow (the done-for-you reel — highest first-impression value):
- *       logged out  →  /login?returnUrl=/video?mode=listing
- *       logged in   →  /video?mode=listing
+ *   - Any "Create Video" / "Get Started" / "New Film" CTA:
+ *       logged out  →  /login?returnUrl=/video?mode=transform
+ *       logged in   →  /video?mode=transform
  *   - Any "See Demo" CTA → /demo (both states)
  *   - Any pricing/credits CTA:
  *       logged out  →  /login?returnUrl=/credits
@@ -36,8 +35,8 @@ export const useCtaNavigation = () => {
         case "create":
         default:
           return isLoggedIn
-            ? "/video?mode=listing"
-            : "/login?returnUrl=%2Fvideo%3Fmode%3Dlisting";
+            ? "/video?mode=transform"
+            : "/login?returnUrl=%2Fvideo%3Fmode%3Dtransform";
       }
     },
     [isLoggedIn]

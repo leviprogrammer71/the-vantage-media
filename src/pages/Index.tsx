@@ -85,7 +85,7 @@ const Index = () => {
           />
 
           {/* THE STUDIO — manifesto + powered by section */}
-          <section className="lux-section lux-bg-bone">
+          <section className="lux-section lg:py-32 lux-bg-bone">
             <div className="lux-container grid lg:grid-cols-12 gap-12 lg:gap-16 items-start">
               <div className="lg:col-span-5">
                 <SectionHeading
@@ -93,17 +93,17 @@ const Index = () => {
                   title={<>A new genre of <span className="lux-display-italic">listing film.</span></>}
                   lede="The Vantage is a single-frame transformation studio. We turn one photograph — the one your client actually shot — into a cinematic vertical film built for Reels, TikTok, and the algorithm."
                 />
-                <div className="mt-12 p-6 lux-bg-cream" style={{ border: "1px solid var(--lux-hairline)" }}>
+                <div className="mt-12 p-8 lux-bg-cream" style={{ border: "1px solid var(--lux-hairline)" }}>
                   <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-rust)" }}>POWERED BY</div>
                   <p className="text-sm" style={{ color: "var(--lux-ink)", lineHeight: 1.6 }}>ByteDance Seedance 2.0, Kling 2.5 Turbo Pro, Flux Kontext Pro, OpenAI gpt-image-2. Not open-source slop. The same models top studios license separately.</p>
                 </div>
-                <div className="mt-6 p-6" style={{ background: "var(--lux-ink)", color: "var(--lux-bone)" }}>
+                <div className="mt-6 p-8" style={{ background: "var(--lux-ink)", color: "var(--lux-bone)" }}>
                   <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-champagne)" }}>WHAT WE HAND BACK</div>
                   <p className="text-sm" style={{ lineHeight: 1.6 }}>One finished MP4. 1080p vertical. Your price, location, realtor name, and brokerage burned in as cinematic overlays. Multi-clip reels stitched into a single download — done-for-you, post-ready. Drop it on Reels and walk away.</p>
                 </div>
               </div>
               <div className="lg:col-span-7">
-                <div className="grid sm:grid-cols-2 gap-6">
+                <div className="grid sm:grid-cols-2 gap-6 lg:gap-8">
                   {[
                     {
                       tag: "I.",
@@ -128,11 +128,11 @@ const Index = () => {
                   ].map((p) => (
                     <div
                       key={p.tag}
-                      className="p-8 lux-bg-parchment"
+                      className="p-10 lux-bg-parchment"
                       style={{ border: "1px solid var(--lux-hairline)" }}
                     >
-                      <div className="lux-display-italic mb-4" style={{ fontSize: 22, color: "var(--lux-rust)" }}>{p.tag}</div>
-                      <div className="lux-display text-2xl mb-3">{p.h}</div>
+                      <div className="lux-display-italic mb-4" style={{ fontSize: 24, color: "var(--lux-rust)" }}>{p.tag}</div>
+                      <div className="lux-display text-2xl md:text-3xl mb-3">{p.h}</div>
                       <p className="lux-prose text-sm" style={{ lineHeight: 1.65 }}>{p.b}</p>
                     </div>
                   ))}
@@ -155,20 +155,20 @@ const Index = () => {
 
               <div className="grid md:grid-cols-2 gap-8 md:gap-12">
                 <BeforeAfterSlider
-                  before={ux.empty1}
-                  after={ux.kitchen1}
+                  before="/vantage/backyard-slow-reveal/before.jpg"
+                  after="/vantage/backyard-slow-reveal/input.jpg"
                   beforeLabel="MOMENT 00:00"
                   afterLabel="FRAME 04:18"
                   ratio="4/5"
-                  caption="KITCHEN · BEACON HILL · 18-SECOND FILM"
+                  caption="BACKYARD BUILD · REAL CUSTOMER OUTPUT"
                 />
                 <BeforeAfterSlider
-                  before={ux.empty2}
-                  after={ux.livingRoom}
+                  before="/vantage/setup/before.webp"
+                  after="/vantage/setup/after.jpeg"
                   beforeLabel="MOMENT 00:00"
                   afterLabel="FRAME 03:52"
                   ratio="4/5"
-                  caption="LIVING ROOM · NOLITA · 14-SECOND FILM"
+                  caption="EVENT SETUP · DRESSED FROM EMPTY"
                 />
               </div>
 
@@ -225,11 +225,67 @@ const Index = () => {
                 eyebrow="REAL CUSTOMER OUTPUT · NOT STOCK FOOTAGE"
                 title="The 04.26 Selection"
                 clips={[
-                  { src: "/videos/transform-1.mp4", label: "The Beacon Residence", byline: "ATWOOD STUDIO · MASS." },
-                  { src: "/videos/transform-2.mp4", label: "Olive & 14th Pool House", byline: "MERIDIAN · LOS ANGELES" },
-                  { src: "/videos/transform-3.mp4", label: "Cedar Crest Estate", byline: "VANTAGE STUDIO · NORTHEAST" },
+                  { src: "/vantage/ranch-build/result.mp4", label: "Ranch Build · Full Home", byline: "CONSTRUCTION · NORTHEAST" },
+                  { src: "/vantage/backyard-slow-reveal/result.mp4", label: "Backyard · Slow Reveal", byline: "LANDSCAPING · BACKYARD BUILD" },
+                  { src: "/vantage/ranch-clean/video.mp4", label: "Ranch · Cleanup", byline: "RUBBISH REMOVAL · BEFORE-AFTER" },
+                  { src: "/vantage/setup/video.mp4", label: "Event Setup · Venue Styling", byline: "VENUE · DRESSED FROM EMPTY" },
+                  { src: "/vantage/sketch/result.mp4", label: "Sketch to Reality", byline: "PROPERTY PHOTO · HAND-DRAWN REVEAL" },
+                  { src: "/vantage/just-listed/video.mp4", label: "Just Listed · Single Photo", byline: "LISTING · BADGE OVERLAY" },
                 ]}
               />
+            </div>
+          </section>
+
+          {/* THE LISTING BUNDLE — six photos, six clips, one stitched reel */}
+          <section className="lux-section lux-bg-bone">
+            <div className="lux-container">
+              <SectionHeading
+                eyebrow="THE LISTING BUNDLE · WHAT YOU GET"
+                title="Six photos in."
+                italic="One stitched reel out."
+                lede="Each photo becomes a 5-second Seedance 2.0 clip with a different camera move. We hand back the individual clips AND the stitched MP4 with your price burned in."
+                align="center"
+                className="mb-12"
+              />
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6 max-w-5xl mx-auto">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div
+                    key={i}
+                    className="relative overflow-hidden"
+                    style={{ aspectRatio: "9/16", background: "var(--lux-ink)", border: "1px solid var(--lux-hairline)" }}
+                  >
+                    <img
+                      src={`/vantage/listing-bundle/${i}.webp`}
+                      alt={`Source photo ${i}`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      style={{ opacity: 0.35 }}
+                    />
+                    <video
+                      src={`/vantage/listing-bundle/${i}.mp4`}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <div
+                      className="lux-eyebrow absolute top-2 left-2 px-2 py-1"
+                      style={{
+                        background: "rgba(14,14,12,0.7)",
+                        color: "var(--lux-bone)",
+                        fontSize: "0.6rem",
+                        backdropFilter: "blur(6px)",
+                      }}
+                    >
+                      CLIP {i} / 6
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-center mt-8 lux-prose" style={{ color: "var(--lux-ink)", maxWidth: 640, marginInline: "auto" }}>
+                Real bundle output. Six 5-second cinematic clips, one source photo each, different shot type per clip. Stitched together into a single 30-second reel ready for Reels and TikTok.
+              </p>
             </div>
           </section>
 
@@ -316,10 +372,10 @@ const Index = () => {
                     { value: "92%", label: "ATTACH RATE" },
                     { value: "0 hrs", label: "POST-PRODUCTION" },
                   ]}
-                  before={ux.empty1}
-                  after={ux.interior1}
-                  beforeLabel="THE BARE FRAME"
-                  afterLabel="THE COMPOSED FRAME"
+                  before="/vantage/ranch-clean/before.webp"
+                  after="/vantage/ranch-clean/input.png"
+                  beforeLabel="THE NEGLECTED FRAME"
+                  afterLabel="THE CLEANED FRAME"
                 />
 
                 <CaseStudy
@@ -334,9 +390,9 @@ const Index = () => {
                     { value: "+62%", label: "AGENT BOOKINGS" },
                     { value: "$28k", label: "Q1 UPLIFT" },
                   ]}
-                  before={ux.empty2}
-                  after={ux.exterior1}
-                  beforeLabel="UNFURNISHED"
+                  before="/vantage/setup/before.webp"
+                  after="/vantage/setup/after.jpeg"
+                  beforeLabel="UNDRESSED"
                   afterLabel="DELIVERED"
                 />
 
@@ -399,14 +455,14 @@ const Index = () => {
           </section>
 
           {/* FOR WHOM */}
-          <section className="lux-section lux-bg-ink lux-grain" style={{ color: "var(--lux-bone)" }}>
+          <section className="lux-section lg:py-32 lux-bg-ink lux-grain" style={{ color: "var(--lux-bone)" }}>
             <div className="lux-container">
-              <div className="grid lg:grid-cols-12 gap-10 mb-20">
+              <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 mb-20">
                 <div className="lg:col-span-7">
                   <div className="lux-eyebrow mb-6" style={{ color: "var(--lux-champagne)" }}>
                     ✦ FOR WHOM IT IS MADE
                   </div>
-                  <h2 className="lux-display" style={{ fontSize: "clamp(2.6rem, 5.4vw, 5rem)", color: "var(--lux-bone)", lineHeight: 0.95 }}>
+                  <h2 className="lux-display" style={{ fontSize: "clamp(2.6rem, 5.2vw, 4.8rem)", color: "var(--lux-bone)", lineHeight: 0.95 }}>
                     Six trades.
                     <br />
                     <span className="lux-display-italic" style={{ color: "var(--lux-champagne)" }}>One quiet weapon.</span>

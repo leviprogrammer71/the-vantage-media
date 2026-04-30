@@ -96,7 +96,7 @@ const LuxuryHeader = ({ variant = "bone" }: LuxuryHeaderProps) => {
                 {credits ?? 0} CREDITS
               </Link>
               <Link
-                to="/video?mode=listing"
+                to="/video?mode=transform"
                 className="lux-eyebrow inline-flex items-center gap-3"
                 style={{
                   color: variant === "ink" ? "var(--lux-ink)" : "var(--lux-bone)",
