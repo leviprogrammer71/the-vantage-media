@@ -143,6 +143,7 @@ const Pricing = () => {
                 </div>
               </div>
             </div>
+          </section>
 
           {/* TESTIMONIAL STRIP */}
           <section className="lux-section lux-bg-bone" style={{ paddingTop: 0 }}>
