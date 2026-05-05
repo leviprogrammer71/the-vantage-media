@@ -16,9 +16,9 @@ const REPLICATE = "https://api.replicate.com/v1"
 const MODEL_KLING = "kwaivgi/kling-v2.5-turbo-pro"
 const MODEL_SEEDANCE = "bytedance/seedance-1-pro"
 
-// Long-form (≥6s) clips always route to Seedance for cleaner physics + sharper
-// architectural pans. Short clips (3s bundle clips) can use Kling for snap.
-const LONG_FORM_THRESHOLD_SECONDS = 6
+// Force Seedance 2.0 for every clip. Quality over snap — users complained about
+// Kling output and we standardise on the higher-quality model.
+const LONG_FORM_THRESHOLD_SECONDS = 0
 
 const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: string }> = {
   slow_push: {
@@ -668,77 +668,64 @@ serve(async (req) => {
     // (~30-45s for 3 parallel gpt-image-2 calls), then KICK OFF the two Kling
     // transitions and immediately return prediction_ids for client-side polling.
     // Without this, total wall time exceeds the 60s edge timeout.
+    // Category: sun_to_sun — single Seedance 2.0 day-cycle render.
+    //
+    // Old approach was 3 parallel gpt-image-2 frames + 2 Kling transitions = 5
+    // Replicate calls and ~120s wall time, which kept hitting the 60s edge
+    // timeout and burning credits even when it didn't fail. Seedance 2.0 can
+    // animate a full sunrise→golden→dusk cycle from a single source photo with
+    // a rich descriptive prompt — one call, higher quality, no timeout risk.
     if (category === "sun_to_sun") {
-      const firstPhotoUrl = photo_urls[0]
+      const exteriorUrl = photo_urls[0]
 
-      const sunrisePrompt = `Render this same scene at SUNRISE — sun just above the eastern horizon, warm pink-and-amber sky, long cool shadows pointing west, soft rosy light on east-facing surfaces. Lock all architecture, landscaping, and the camera angle exactly as in the source.`
-      const goldenPrompt = `Render this same scene at GOLDEN HOUR — late afternoon, sun low in the west, warm orange light on the building, long shadows across the lawn, sky in amber-to-pink. Lock all architecture, landscaping, and the camera angle exactly as in the source.`
-      const duskPrompt = `Render this same scene at DUSK / BLUE HOUR — sun just set, sky in deep cobalt with warm horizon glow, interior windows glowing warm from inside, exterior lights coming on. Lock all architecture, landscaping, and the camera angle exactly as in the source.`
+      const dayCyclePrompt =
+        "Cinematic real-estate time-lapse: the same exterior scene transitions smoothly through a full day cycle. " +
+        "Open at SUNRISE — soft pink-and-amber sky, sun just above the eastern horizon, long cool shadows pointing west. " +
+        "Mid-clip moves through GOLDEN HOUR — warm orange light raking across the building, shadows lengthening across the lawn, sky shifting amber to pink. " +
+        "Closes at DUSK / BLUE HOUR — sky in deep cobalt with a warm horizon glow, interior windows beginning to glow warm yellow from inside. " +
+        "Sun arcs continuously across the sky, shadows track its motion, light temperature warms then cools. " +
+        "No camera movement — static lock-off. Architecture, landscaping, framing all stay identical to the source. " +
+        "1080p photorealistic, magazine-quality, smooth physically-plausible lighting transition."
 
-      // 3 parallel image renders (~30-45s)
-      console.log("[sun_to_sun] rendering sunrise + golden + dusk in parallel")
-      const [sunriseUrl, goldenUrl, duskUrl] = await Promise.all([
-        generateWithNanoBanana(firstPhotoUrl, sunrisePrompt, REPLICATE_TOKEN),
-        generateWithNanoBanana(firstPhotoUrl, goldenPrompt, REPLICATE_TOKEN),
-        generateWithNanoBanana(firstPhotoUrl, duskPrompt, REPLICATE_TOKEN),
-      ])
+      console.log("[sun_to_sun] kicking off single Seedance 2.0 day-cycle prediction (10s)")
+      const result = await startSeedanceFromImage(
+        exteriorUrl,
+        dayCyclePrompt,
+        10,
+        REPLICATE_TOKEN
+      )
 
-      // KICK OFF both Kling transitions in parallel without awaiting completion.
-      // Use start_image + end_image; return prediction_ids in the bundle-style
-      // response shape so the client's existing poll loop handles it.
-      console.log("[sun_to_sun] kicking off morning + evening Kling predictions")
-      const [morningStart, eveningStart] = await Promise.all([
-        startKlingTransitionPrediction(
-          sunriseUrl,
-          goldenUrl,
-          "Smooth cinematic time-lapse from sunrise into late afternoon golden hour. Sun arcs across the sky, light warms gradually. No camera movement.",
-          6,
-          REPLICATE_TOKEN
-        ),
-        startKlingTransitionPrediction(
-          goldenUrl,
-          duskUrl,
-          "Smooth cinematic time-lapse from golden hour into dusk and blue hour. Sun sets, sky shifts amber to cobalt, interior windows glow warm. No camera movement.",
-          6,
-          REPLICATE_TOKEN
-        ),
-      ])
-
-      // If both happened to complete during Replicate's wait window, return synchronously
-      if (morningStart.videoUrl && eveningStart.videoUrl) {
-        const clipUrls = [morningStart.videoUrl, eveningStart.videoUrl]
-        const clipPaths: string[] = []
-        for (let i = 0; i < clipUrls.length; i++) {
-          try {
-            const clipFetch = await fetch(clipUrls[i])
-            const clipBuffer = await clipFetch.arrayBuffer()
-            const clipPath = `listing-videos/${Date.now()}/sun-clip-${i}.mp4`
-            await supabase.storage
-              .from("project-submissions")
-              .upload(clipPath, clipBuffer, { contentType: "video/mp4", upsert: true })
-            clipPaths.push(clipPath)
-          } catch (storageErr) {
-            console.error(`[sun_to_sun] storage clip ${i} failed:`, storageErr)
-          }
+      // Synchronous success
+      if (result.videoUrl) {
+        let outputVideoPath: string | null = null
+        try {
+          const videoFetch = await fetch(result.videoUrl)
+          const videoBuffer = await videoFetch.arrayBuffer()
+          const videoPath = `listing-videos/${Date.now()}/sun-cycle.mp4`
+          await supabase.storage.from("project-submissions").upload(videoPath, videoBuffer, {
+            contentType: "video/mp4",
+            upsert: true,
+          })
+          outputVideoPath = videoPath
+        } catch (storageErr) {
+          console.error("[sun_to_sun] storage failed:", storageErr)
         }
+
         return new Response(JSON.stringify({
           status: "complete",
           category,
-          video_url: clipUrls[0],
-          clip_urls: clipUrls,
-          output_clip_paths: clipPaths,
+          video_url: result.videoUrl,
+          clip_urls: [result.videoUrl],
+          output_video_path: outputVideoPath,
           listing,
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
       }
 
-      // Async path — return prediction_ids array, client polls (mirrors bundle shape)
+      // Async path — single prediction_id, client polls
       return new Response(JSON.stringify({
         status: "processing",
+        prediction_id: result.predictionId,
         category,
-        prediction_ids: [
-          { index: 0, prediction_id: morningStart.predictionId, video_url: morningStart.videoUrl || null },
-          { index: 1, prediction_id: eveningStart.predictionId, video_url: eveningStart.videoUrl || null },
-        ],
         listing,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
@@ -858,24 +845,35 @@ serve(async (req) => {
 
       const vibePromptSuffix = vibeSuffix(vibe)
 
-      // FIRE-AND-POLL: kick off both Kling predictions in parallel, return prediction_ids
-      // Two clips:
-      // (A) STAGING TRANSITION — empty room → fully furnished morph
-      // (B) WALKTHROUGH — slow_push through the staged room
-      const stagingTransitionPrompt = `An empty interior room becomes fully styled, matching the end frame exactly. Furniture and decor settle smoothly into their final positions as shown in the end image. Soft natural light warms the room. The space dresses itself. No camera movement, no zoom, no pan. ${vibePromptSuffix}`
+      // BOTH clips on Seedance 2.0:
+      // (A) STAGING TRANSITION — Seedance from the empty room with a prompt that
+      //     drives the dressing morph into the styled state.
+      // (B) WALKTHROUGH — Seedance slow push through the staged room.
+      const stagingTransitionPrompt =
+        `Cinematic transformation: an empty, undressed interior room becomes fully styled and furnished. ` +
+        `Furniture pieces, area rug, lamps, art, and decor lift into place and settle into their final positions. ` +
+        `Soft natural light warms the room as it fills with life. ${stylePrompt} ` +
+        `Walls, windows, doors, floors, ceiling, and architectural features stay locked exactly as in the source. ` +
+        `No camera movement, no zoom, no pan — static lock-off. ` +
+        `1080p photorealistic, magazine-quality interior styling. ${vibePromptSuffix}`
 
-      console.log("[virtual_staging] kicking off staging transition + walkthrough predictions")
+      const walkthroughPrompt =
+        `Slow dolly camera push-in, steady and cinematic. ` +
+        `Cinematic 9:16 vertical real-estate listing reel of a fully styled interior. ` +
+        `Photorealistic, magazine-quality. Smooth physically-plausible camera motion only. ` +
+        `Subject, architecture, and lighting locked. ${vibePromptSuffix}`
+
+      console.log("[virtual_staging] kicking off Seedance dressing morph + Seedance walkthrough")
       const [stageStart, walkStart] = await Promise.all([
-        startKlingTransitionPrediction(
+        startSeedanceFromImage(
           emptyRoomUrl,
-          stagedImageUrl,
           stagingTransitionPrompt,
           5,
           REPLICATE_TOKEN
         ),
-        startVideoGeneration(
+        startSeedanceFromImage(
           stagedImageUrl,
-          "slow_push",
+          walkthroughPrompt,
           5,
           REPLICATE_TOKEN
         ),
@@ -949,25 +947,38 @@ serve(async (req) => {
       console.log("[sketch_to_real] generating sketch-on-desk via nano-banana")
       const sketchOnDeskUrl = await generateSketchWithNanoBanana(propertyPhotoUrl, sketchPrompt, REPLICATE_TOKEN)
 
-      // Step 2: TRANSFORMATION CLIP — Kling animates sketch-on-desk → real photo
-      // The pencil drawing comes alive and becomes the actual property.
+      // Step 2 + 3 in parallel — BOTH on Seedance 2.0 (per user spec):
+      // (A) TRANSFORMATION clip — Seedance starts FROM the sketch-on-desk and
+      //     animates the pencil drawing coming alive into the real property.
+      // (B) REVEAL clip — Seedance slow push through the real property photo.
       const transformPrompt = sketch_intent === "interior"
-        ? `The pencil architectural sketch on the desk gradually fills with realistic colour, light, materials, and furniture, then opens up to fill the full frame as the actual photorealistic interior shown in the end image. Hand and desk fade gently to the edges. Smooth dreamlike crossfade — the drawing comes alive. No camera movement. ${vibeLine}`
-        : `The pencil architectural sketch on the desk gradually fills with realistic materials, sky, landscaping, and natural light, then opens up to fill the full frame as the actual photorealistic building exterior shown in the end image. Hand and desk fade gently to the edges. Smooth dreamlike crossfade — the drawing comes alive. No camera movement. ${vibeLine}`
+        ? `Cinematic morph: a pencil architectural sketch on a wooden desk transforms into the photorealistic interior it depicts. ` +
+          `Pencil shading fades into colour, walls gain texture, light fills the room, furniture lifts and settles. ` +
+          `Hand and desk dissolve gently to the edges as the room expands to fill the frame. ` +
+          `Architectural geometry from the drawing — wall lines, window placements, room proportions — stays anchored. ` +
+          `No camera movement, static lock-off. Dreamlike crossfade tempo. 1080p photorealistic, magazine-quality. ${vibeLine}`
+        : `Cinematic morph: a pencil architectural sketch on a wooden desk transforms into the photorealistic building exterior it depicts. ` +
+          `Pencil shading fades into materials, sky fills with daylight, landscaping settles into place. ` +
+          `Hand and desk dissolve gently to the edges as the building expands to fill the frame. ` +
+          `Architectural geometry from the drawing — façade composition, window placements, rooflines — stays anchored. ` +
+          `No camera movement, static lock-off. Dreamlike crossfade tempo. 1080p photorealistic, magazine-quality. ${vibeLine}`
 
-      // FIRE-AND-POLL: kick off both predictions, return prediction_ids
-      console.log("[sketch_to_real] kicking off sketch-reveal + property-walk predictions")
+      const revealPrompt =
+        `Slow dolly camera push-in, steady and cinematic. ` +
+        `Cinematic 9:16 vertical real-estate listing reel. Photorealistic, magazine-quality. ` +
+        `Smooth physically-plausible camera motion only. Subject, architecture, and lighting locked. ${vibeLine}`
+
+      console.log("[sketch_to_real] kicking off Seedance morph + Seedance reveal")
       const [transformStart, revealStart] = await Promise.all([
-        startKlingTransitionPrediction(
-          sketchOnDeskUrl,       // start = the sketch-on-desk image
-          propertyPhotoUrl,      // end   = the actual property photo (becomes real)
+        startSeedanceFromImage(
+          sketchOnDeskUrl,
           transformPrompt,
           5,
           REPLICATE_TOKEN
         ),
-        startVideoGeneration(
-          propertyPhotoUrl,      // walk through the real property
-          "slow_push",
+        startSeedanceFromImage(
+          propertyPhotoUrl,
+          revealPrompt,
           5,
           REPLICATE_TOKEN
         ),
@@ -1035,25 +1046,35 @@ serve(async (req) => {
         REPLICATE_TOKEN
       )
 
-      // Step 2 + 3 in parallel:
-      // (A) TRANSFORMATION clip — Kling animates floor plan → photoreal interior
-      //     This is the "magic moment" from the user's reference reels: the drawing
-      //     becomes a real room before your eyes.
-      // (B) WALKTHROUGH clip — chosen camera move through the photoreal interior.
-      const transformPrompt = `The architectural floor plan / axonometric drawing in the start frame gradually fills with realistic colour, light, materials, and furniture, then opens up to fill the full frame as the photorealistic interior shown in the end frame. Drawing lines fade gracefully. Smooth dreamlike crossfade — the plan becomes real. No camera movement. ${vibeLine}`
+      // Step 2 + 3 in parallel — BOTH clips on Seedance 2.0 (per user spec):
+      // (A) TRANSFORMATION clip — Seedance starts from the FLOOR PLAN with a
+      //     prompt that tells it to morph into the photoreal interior. Single
+      //     model, single style, no codec mismatch when stitched.
+      // (B) WALKTHROUGH clip — Seedance from the photoreal with the user's
+      //     chosen camera move.
+      const transformPrompt =
+        `Cinematic morph: this 2D architectural floor plan / axonometric drawing transforms into a fully photorealistic, magazine-quality interior of the same room. ` +
+        `Pencil-and-line drafting fades smoothly into colour, light, materials, and furniture. Walls gain texture, windows fill with daylight, floor materials reveal grain, furniture lifts and settles into place. ` +
+        `Architectural geometry from the drawing — wall positions, window and door placements, room proportions — stays locked. ` +
+        `No camera movement, static lock-off. Dreamlike crossfade tempo. ` +
+        `1080p photorealistic. ${vibeLine}`
 
-      console.log("[floor_plan_pan] kicking off transformation + walkthrough predictions")
+      const walkPrompt =
+        `${SHOT_CONFIG[selectedShotType]?.motionHint || "Slow dolly camera push-in, steady and cinematic."} ` +
+        `Cinematic 9:16 vertical real-estate listing reel. Photorealistic, magazine-quality. ` +
+        `Smooth physically-plausible camera motion only. Subject, architecture, and lighting locked. ${vibeLine}`
+
+      console.log("[floor_plan_pan] kicking off Seedance morph + Seedance walkthrough")
       const [transformStart, walkStart] = await Promise.all([
-        startKlingTransitionPrediction(
+        startSeedanceFromImage(
           floorPlanUrl,
-          photorealUrl,
           transformPrompt,
           5,
           REPLICATE_TOKEN
         ),
-        startVideoGeneration(
+        startSeedanceFromImage(
           photorealUrl,
-          selectedShotType,
+          walkPrompt,
           5,
           REPLICATE_TOKEN
         ),
@@ -1119,6 +1140,52 @@ serve(async (req) => {
     )
   }
 })
+
+// Helper: Kick off a Seedance 2.0 prediction WITHOUT awaiting completion.
+// Single image input + descriptive prompt. Use for sun-cycles, sketch reveals,
+// floor plan transformations — anything where Seedance's single-image cinematic
+// motion handles the transformation better than Kling's start+end interpolation.
+async function startSeedanceFromImage(
+  imageUrl: string,
+  prompt: string,
+  duration: number,
+  token: string
+): Promise<{ videoUrl?: string; predictionId?: string }> {
+  const res = await fetch(
+    `${REPLICATE}/models/${MODEL_SEEDANCE}/predictions`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${token}`,
+        "Content-Type": "application/json",
+        Prefer: "wait=60",
+      },
+      body: JSON.stringify({
+        input: {
+          prompt,
+          image: imageUrl,
+          duration,
+          aspect_ratio: "9:16",
+          resolution: "1080p",
+        },
+      }),
+    }
+  )
+
+  const prediction = await res.json()
+  if (!res.ok || !prediction.id) {
+    const detail = prediction?.detail || prediction?.error?.message || JSON.stringify(prediction).slice(0, 400)
+    throw new Error(`Seedance 2.0 rejected (HTTP ${res.status}): ${detail}`)
+  }
+
+  if (prediction.status === "succeeded" && prediction.output) {
+    const out = prediction.output
+    const url = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : null)
+    if (url) return { videoUrl: url }
+  }
+
+  return { predictionId: prediction.id }
+}
 
 // Helper: Kick off a Kling start→end transition WITHOUT awaiting completion.
 // Returns videoUrl if Replicate finished within the wait=60 window, otherwise

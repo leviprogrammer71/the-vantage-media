@@ -63,16 +63,32 @@ interface SignedUrls {
   [key: string]: string;
 }
 
+// Defensive resolver. Accepts:
+//  - a full http(s) URL (already signed or public) → passthrough
+//  - a `bucket/path/to/file.ext` style key → tries the named bucket first
+//  - a bare path like `userId/timestamp/file.ext` → tries project-submissions
+//    then property-photos (listing flow uploads land in property-photos)
 async function signPath(path: string | null | undefined): Promise<string | null> {
   if (!path) return null;
-  try {
-    const { data } = await supabase.storage
-      .from("project-submissions")
-      .createSignedUrl(path, 3600);
-    return data?.signedUrl ?? null;
-  } catch {
-    return null;
+
+  // Already a URL? Just use it. (Listing flow stores signed URLs in
+  // after_photo_paths after stripping query params.)
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
   }
+
+  const buckets = ["project-submissions", "property-photos"];
+  for (const bucket of buckets) {
+    try {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(path, 3600);
+      if (!error && data?.signedUrl) return data.signedUrl;
+    } catch {
+      // try next bucket
+    }
+  }
+  return null;
 }
 
 async function downloadFile(path: string, filename: string) {
@@ -201,7 +217,11 @@ const Gallery = () => {
         if (s.after_photo_paths?.[0]) {
           tasks.push(signPath(s.after_photo_paths[0]).then((url) => { if (url) urlMap[`after-${s.id}`] = url; }));
         }
-        if (s.output_video_path) {
+        // Prefer the saved URL (listing flow stores a Replicate URL or signed
+        // URL directly). Fall back to signing the storage path.
+        if (s.output_video_url) {
+          urlMap[`video-${s.id}`] = s.output_video_url;
+        } else if (s.output_video_path) {
           tasks.push(signPath(s.output_video_path).then((url) => { if (url) urlMap[`video-${s.id}`] = url; }));
         }
       }

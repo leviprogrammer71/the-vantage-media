@@ -26,7 +26,8 @@ type EffectId = "none" | "just_listed" | "open_house" | "for_sale" | "sold";
 interface Photo {
   file: File;
   preview: string;
-  url?: string;
+  url?: string;   // signed URL for Replicate (24h)
+  path?: string;  // storage path for gallery persistence (never expires)
 }
 
 const CATEGORY_CARDS = [
@@ -147,7 +148,7 @@ export function ListingVideoFlow() {
   const creditCost = calculateListingCost(category || "animate_single", effectId);
   const hasEnoughCredits = credits !== null && credits >= creditCost;
 
-  const uploadFile = async (file: File): Promise<string> => {
+  const uploadFile = async (file: File): Promise<{ url: string; path: string }> => {
     const normalized = await normalizeImageForUpload(file);
     const timestamp = Date.now();
     const fileExt = normalized.name.split(".").pop();
@@ -164,7 +165,7 @@ export function ListingVideoFlow() {
       .createSignedUrl(filePath, 86400);
 
     if (signedUrlError || !urlData?.signedUrl) throw signedUrlError;
-    return urlData.signedUrl;
+    return { url: urlData.signedUrl, path: filePath };
   };
 
   const handlePhotoSelect = async (files: FileList | null) => {
@@ -173,8 +174,8 @@ export function ListingVideoFlow() {
       const newPhotos: Photo[] = [];
       for (const file of Array.from(files)) {
         const preview = URL.createObjectURL(file);
-        const url = await uploadFile(file);
-        newPhotos.push({ file, preview, url });
+        const { url, path } = await uploadFile(file);
+        newPhotos.push({ file, preview, url, path });
       }
 
       if (category === "animate_single" || category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan") {
@@ -339,7 +340,10 @@ export function ListingVideoFlow() {
           video_type: "listing",
           status: "delivered",
           prompt_status: "complete",
-          after_photo_paths: photoUrls.map((u) => u.split("?")[0]).filter(Boolean),
+          // Store the storage paths (never expire), not the signed URLs (which do).
+          // The Gallery's defensive signPath() can re-sign these on demand from
+          // the property-photos bucket.
+          after_photo_paths: photos.map((p) => p.path).filter(Boolean) as string[],
           output_video_url: finalVideoUrl,
           output_video_path: finalClipPaths[0] || null,
         });
@@ -377,8 +381,22 @@ export function ListingVideoFlow() {
     setIsStitching(true);
     setError(null);
 
+    const unwrapErr = (resp: any): string => {
+      let m = resp.error?.message || "Stitching failed";
+      try {
+        const ctx: any = (resp.error as any)?.context;
+        if (ctx?.body) {
+          const parsed = typeof ctx.body === "string" ? JSON.parse(ctx.body) : ctx.body;
+          if (parsed?.error) m = parsed.error;
+        }
+      } catch {}
+      if (resp.data?.error) m = resp.data.error;
+      return m;
+    };
+
     try {
-      const stitchResponse = await supabase.functions.invoke("stitch-listing-reel", {
+      // Step 1: kick off the stitch
+      const startResp = await supabase.functions.invoke("stitch-listing-reel", {
         body: {
           clip_urls: clipUrls,
           listing: {
@@ -392,26 +410,43 @@ export function ListingVideoFlow() {
         },
       });
 
-      if (stitchResponse.error) {
-        let detailedMsg = stitchResponse.error.message || "Stitching failed";
-        try {
-          const errCtx: any = (stitchResponse.error as any).context;
-          if (errCtx?.body) {
-            const parsed = typeof errCtx.body === "string" ? JSON.parse(errCtx.body) : errCtx.body;
-            if (parsed?.error) detailedMsg = parsed.error;
+      if (startResp.error) throw new Error(unwrapErr(startResp));
+
+      // Synchronous success
+      if (startResp.data?.status === "complete" && startResp.data?.stitched_url) {
+        setStitchedUrl(startResp.data.stitched_url);
+        toast.success("Stitching complete! Download your final cut.");
+        return;
+      }
+
+      // Async — client polls
+      if (startResp.data?.status === "processing" && startResp.data?.prediction_id) {
+        const predictionId = startResp.data.prediction_id;
+        const maxAttempts = 60; // 60 × 5s = 5 min
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          await new Promise((r) => setTimeout(r, 5000));
+          const pollResp = await supabase.functions.invoke("stitch-listing-reel", {
+            body: {
+              prediction_id: predictionId,
+              clip_count: clipUrls.length,
+              submission_id: undefined,
+            },
+          });
+          if (pollResp.error) throw new Error(`Polling failed: ${unwrapErr(pollResp)}`);
+          if (pollResp.data?.status === "complete" && pollResp.data?.stitched_url) {
+            setStitchedUrl(pollResp.data.stitched_url);
+            toast.success("Stitching complete! Download your final cut.");
+            return;
           }
-        } catch {}
-        if (stitchResponse.data?.error) detailedMsg = stitchResponse.data.error;
-        throw new Error(detailedMsg);
+          if (pollResp.data?.status === "failed") {
+            throw new Error(pollResp.data.error || "Stitching failed");
+          }
+          // status === "processing" — keep polling
+        }
+        throw new Error("Stitching took longer than 5 minutes. Try again or contact support.");
       }
 
-      const stitched = stitchResponse.data?.stitched_url;
-      if (!stitched) {
-        throw new Error("No stitched URL returned");
-      }
-
-      setStitchedUrl(stitched);
-      toast.success("Stitching complete! Download your final cut.");
+      throw new Error("Unexpected response from stitcher");
     } catch (err) {
       const msg = (err as Error).message;
       console.error("[ListingVideoFlow] stitching error:", err);
