@@ -829,90 +829,59 @@ serve(async (req) => {
       }
 
       const emptyRoomUrl = photo_urls[0]
-
-      // Build furnishing prompt — the style descriptor drives the furniture
-      // selection. Avoid hardcoding pieces (a sectional fights a luxury_modern
-      // brief) — let the model pick what fits the aesthetic + room scale.
       const stylePrompt = STAGING_STYLES[staging_style]
-      const furnishingPrompt = `Furnish this empty room in the ${staging_style} aesthetic. ${stylePrompt} Pick furniture, art, lighting, and props that fit both the room's scale and the aesthetic above. Match the existing room's natural light. Keep walls, windows, doors, floors, ceiling, and architectural features identical. Photorealistic, magazine-quality interior styling.`
+      const vibePromptSuffix = vibeSuffix(vibe)
+      // Single Seedance call handles the entire transformation — no separate
+      // gpt-image-2 staging step. The style prompt drives the furnishing.
 
-      // Generate staged version with gpt-image-2
-      const stagedImageUrl = await generateWithNanoBanana(
+      // SINGLE 10s Seedance 2.0 clip — covers the full transformation in one shot.
+      // First half: empty room dresses itself with furniture and decor settling
+      // into place. Second half: slow camera push-in through the now-styled space.
+      // No stitching needed — the prompt describes both phases inside one render.
+      const fullTransformPrompt =
+        `Cinematic 9:16 vertical real-estate reel. First five seconds: an empty, undressed interior room becomes fully styled. ` +
+        `Furniture, area rug, lamps, art, and decor lift smoothly into their final positions. Soft natural light warms the room. ${stylePrompt} ` +
+        `Last five seconds: a slow dolly camera push-in through the now-styled interior, revealing the finished composition. ` +
+        `Walls, windows, doors, floors, ceiling, and architectural features stay locked exactly as in the source throughout. ` +
+        `1080p photorealistic, magazine-quality interior styling. Smooth physically-plausible motion. ${vibePromptSuffix}`
+
+      console.log("[virtual_staging] kicking off SINGLE 10s Seedance dressing+walkthrough")
+      const result = await startSeedanceFromImage(
         emptyRoomUrl,
-        furnishingPrompt,
+        fullTransformPrompt,
+        10,
         REPLICATE_TOKEN
       )
 
-      const vibePromptSuffix = vibeSuffix(vibe)
-
-      // BOTH clips on Seedance 2.0:
-      // (A) STAGING TRANSITION — Seedance from the empty room with a prompt that
-      //     drives the dressing morph into the styled state.
-      // (B) WALKTHROUGH — Seedance slow push through the staged room.
-      const stagingTransitionPrompt =
-        `Cinematic transformation: an empty, undressed interior room becomes fully styled and furnished. ` +
-        `Furniture pieces, area rug, lamps, art, and decor lift into place and settle into their final positions. ` +
-        `Soft natural light warms the room as it fills with life. ${stylePrompt} ` +
-        `Walls, windows, doors, floors, ceiling, and architectural features stay locked exactly as in the source. ` +
-        `No camera movement, no zoom, no pan — static lock-off. ` +
-        `1080p photorealistic, magazine-quality interior styling. ${vibePromptSuffix}`
-
-      const walkthroughPrompt =
-        `Slow dolly camera push-in, steady and cinematic. ` +
-        `Cinematic 9:16 vertical real-estate listing reel of a fully styled interior. ` +
-        `Photorealistic, magazine-quality. Smooth physically-plausible camera motion only. ` +
-        `Subject, architecture, and lighting locked. ${vibePromptSuffix}`
-
-      console.log("[virtual_staging] kicking off Seedance dressing morph + Seedance walkthrough")
-      const [stageStart, walkStart] = await Promise.all([
-        startSeedanceFromImage(
-          emptyRoomUrl,
-          stagingTransitionPrompt,
-          5,
-          REPLICATE_TOKEN
-        ),
-        startSeedanceFromImage(
-          stagedImageUrl,
-          walkthroughPrompt,
-          5,
-          REPLICATE_TOKEN
-        ),
-      ])
-
-      // Synchronous success
-      if (stageStart.videoUrl && walkStart.videoUrl) {
-        const clipUrls = [stageStart.videoUrl, walkStart.videoUrl]
-        const clipPaths: string[] = []
-        for (let i = 0; i < clipUrls.length; i++) {
-          try {
-            const clipFetch = await fetch(clipUrls[i])
-            const clipBuffer = await clipFetch.arrayBuffer()
-            const clipPath = `listing-videos/${Date.now()}/staging-${i}.mp4`
-            await supabase.storage.from("project-submissions").upload(clipPath, clipBuffer, {
-              contentType: "video/mp4", upsert: true,
-            })
-            clipPaths.push(clipPath)
-          } catch (storageErr) {
-            console.error(`[virtual_staging] storage clip ${i} failed:`, storageErr)
-          }
+      // Single-clip path — same shape as animate_single
+      if (result.videoUrl) {
+        let outputVideoPath: string | null = null
+        try {
+          const videoFetch = await fetch(result.videoUrl)
+          const videoBuffer = await videoFetch.arrayBuffer()
+          const videoPath = `listing-videos/${Date.now()}/staging.mp4`
+          await supabase.storage.from("project-submissions").upload(videoPath, videoBuffer, {
+            contentType: "video/mp4", upsert: true,
+          })
+          outputVideoPath = videoPath
+        } catch (storageErr) {
+          console.error("[virtual_staging] storage failed:", storageErr)
         }
+
         return new Response(JSON.stringify({
           status: "complete",
           category,
-          video_url: clipUrls[0],
-          clip_urls: clipUrls,
-          output_clip_paths: clipPaths,
+          video_url: result.videoUrl,
+          clip_urls: [result.videoUrl],
+          output_video_path: outputVideoPath,
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
       }
 
-      // Async — return prediction_ids array, client polls
+      // Async — single prediction_id, client polls (single-clip shape)
       return new Response(JSON.stringify({
         status: "processing",
+        prediction_id: result.predictionId,
         category,
-        prediction_ids: [
-          { index: 0, prediction_id: stageStart.predictionId, video_url: stageStart.videoUrl || null },
-          { index: 1, prediction_id: walkStart.predictionId, video_url: walkStart.videoUrl || null },
-        ],
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
@@ -947,76 +916,54 @@ serve(async (req) => {
       console.log("[sketch_to_real] generating sketch-on-desk via nano-banana")
       const sketchOnDeskUrl = await generateSketchWithNanoBanana(propertyPhotoUrl, sketchPrompt, REPLICATE_TOKEN)
 
-      // Step 2 + 3 in parallel — BOTH on Seedance 2.0 (per user spec):
-      // (A) TRANSFORMATION clip — Seedance starts FROM the sketch-on-desk and
-      //     animates the pencil drawing coming alive into the real property.
-      // (B) REVEAL clip — Seedance slow push through the real property photo.
-      const transformPrompt = sketch_intent === "interior"
-        ? `Cinematic morph: a pencil architectural sketch on a wooden desk transforms into the photorealistic interior it depicts. ` +
-          `Pencil shading fades into colour, walls gain texture, light fills the room, furniture lifts and settles. ` +
-          `Hand and desk dissolve gently to the edges as the room expands to fill the frame. ` +
-          `Architectural geometry from the drawing — wall lines, window placements, room proportions — stays anchored. ` +
-          `No camera movement, static lock-off. Dreamlike crossfade tempo. 1080p photorealistic, magazine-quality. ${vibeLine}`
-        : `Cinematic morph: a pencil architectural sketch on a wooden desk transforms into the photorealistic building exterior it depicts. ` +
-          `Pencil shading fades into materials, sky fills with daylight, landscaping settles into place. ` +
-          `Hand and desk dissolve gently to the edges as the building expands to fill the frame. ` +
-          `Architectural geometry from the drawing — façade composition, window placements, rooflines — stays anchored. ` +
-          `No camera movement, static lock-off. Dreamlike crossfade tempo. 1080p photorealistic, magazine-quality. ${vibeLine}`
+      // SINGLE 10s Seedance 2.0 clip — sketch-on-desk morphs into the real
+      // property AND the camera pushes through it, all in one render. No
+      // stitching, no codec mismatch, no second Replicate call.
+      const fullSketchPrompt = sketch_intent === "interior"
+        ? `Cinematic 9:16 vertical reel. First five seconds: a pencil architectural sketch on a wooden desk gradually fills with colour, light, and texture as it transforms into the photorealistic interior it depicts. Pencil shading fades, walls gain materials, light fills the room, furniture settles into place. Hand and desk dissolve gently. ` +
+          `Last five seconds: a slow dolly camera push-in through the now-photoreal interior, revealing the finished space. ` +
+          `Architectural geometry from the drawing — wall lines, window placements, room proportions — stays anchored throughout. ` +
+          `1080p photorealistic, magazine-quality, smooth physically-plausible motion. ${vibeLine}`
+        : `Cinematic 9:16 vertical reel. First five seconds: a pencil architectural sketch on a wooden desk gradually fills with realistic materials, sky, and landscaping as it transforms into the photoreal building exterior it depicts. Hand and desk dissolve gently. ` +
+          `Last five seconds: a slow cinematic move across the now-photoreal exterior, revealing the finished composition. ` +
+          `Façade geometry from the drawing — window placements, rooflines, massing — stays anchored throughout. ` +
+          `1080p photorealistic, magazine-quality, smooth physically-plausible motion. ${vibeLine}`
 
-      const revealPrompt =
-        `Slow dolly camera push-in, steady and cinematic. ` +
-        `Cinematic 9:16 vertical real-estate listing reel. Photorealistic, magazine-quality. ` +
-        `Smooth physically-plausible camera motion only. Subject, architecture, and lighting locked. ${vibeLine}`
+      console.log("[sketch_to_real] kicking off SINGLE 10s Seedance morph+reveal")
+      const result = await startSeedanceFromImage(
+        sketchOnDeskUrl,
+        fullSketchPrompt,
+        10,
+        REPLICATE_TOKEN
+      )
 
-      console.log("[sketch_to_real] kicking off Seedance morph + Seedance reveal")
-      const [transformStart, revealStart] = await Promise.all([
-        startSeedanceFromImage(
-          sketchOnDeskUrl,
-          transformPrompt,
-          5,
-          REPLICATE_TOKEN
-        ),
-        startSeedanceFromImage(
-          propertyPhotoUrl,
-          revealPrompt,
-          5,
-          REPLICATE_TOKEN
-        ),
-      ])
-
-      // Synchronous success
-      if (transformStart.videoUrl && revealStart.videoUrl) {
-        const clipUrls = [transformStart.videoUrl, revealStart.videoUrl]
-        const clipPaths: string[] = []
-        for (let i = 0; i < clipUrls.length; i++) {
-          try {
-            const clipFetch = await fetch(clipUrls[i])
-            const clipBuffer = await clipFetch.arrayBuffer()
-            const clipPath = `listing-videos/${Date.now()}/sketch-${i}.mp4`
-            await supabase.storage.from("project-submissions").upload(clipPath, clipBuffer, {
-              contentType: "video/mp4", upsert: true,
-            })
-            clipPaths.push(clipPath)
-          } catch (storageErr) {
-            console.error(`[sketch_to_real] storage clip ${i} failed:`, storageErr)
-          }
+      if (result.videoUrl) {
+        let outputVideoPath: string | null = null
+        try {
+          const videoFetch = await fetch(result.videoUrl)
+          const videoBuffer = await videoFetch.arrayBuffer()
+          const videoPath = `listing-videos/${Date.now()}/sketch.mp4`
+          await supabase.storage.from("project-submissions").upload(videoPath, videoBuffer, {
+            contentType: "video/mp4", upsert: true,
+          })
+          outputVideoPath = videoPath
+        } catch (storageErr) {
+          console.error("[sketch_to_real] storage failed:", storageErr)
         }
+
         return new Response(JSON.stringify({
           status: "complete",
           category,
-          video_url: clipUrls[0],
-          clip_urls: clipUrls,
-          output_clip_paths: clipPaths,
+          video_url: result.videoUrl,
+          clip_urls: [result.videoUrl],
+          output_video_path: outputVideoPath,
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
       }
 
       return new Response(JSON.stringify({
         status: "processing",
+        prediction_id: result.predictionId,
         category,
-        prediction_ids: [
-          { index: 0, prediction_id: transformStart.predictionId, video_url: transformStart.videoUrl || null },
-          { index: 1, prediction_id: revealStart.predictionId, video_url: revealStart.videoUrl || null },
-        ],
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
@@ -1036,82 +983,50 @@ serve(async (req) => {
       const floorPlanUrl = photo_urls[0]
       const vibeLine = vibeSuffix(selectedVibe)
 
-      // Step 1: Render the floor plan / axonometric drawing into a photorealistic
-      // interior. flux-kontext preserves the layout while adding light + materials.
-      const renderPrompt = `Render this floor plan or axonometric drawing as a photorealistic interior at natural eye level. Lock the room geometry, walls, window and door placements, and circulation from the drawing. Furnish naturally, add realistic materials, finishes, and soft daylight in a ${selectedVibe} aesthetic. Magazine-quality interior photography, soft shadows, depth of field. ${vibeLine}`
+      // SINGLE 10s Seedance 2.0 clip — floor plan morphs into photoreal interior
+      // AND the camera moves through it, all in one render. No stitching.
+      const cameraHint = SHOT_CONFIG[selectedShotType]?.motionHint || "Slow dolly camera push-in, steady and cinematic."
+      const fullFloorPlanPrompt =
+        `Cinematic 9:16 vertical reel. First five seconds: this 2D architectural floor plan / axonometric drawing transforms into a fully photorealistic, magazine-quality interior of the same room. ` +
+        `Drafting lines fade as walls gain texture, daylight fills windows, floor materials reveal grain, furniture lifts and settles into place. Architectural geometry from the drawing stays anchored. ` +
+        `Last five seconds: ${cameraHint.toLowerCase()} The camera moves through the now-photoreal interior, revealing the finished space. ` +
+        `1080p photorealistic, smooth physically-plausible motion. ${vibeLine}`
 
-      const photorealUrl = await renderSketchToPhotoreal(
+      console.log("[floor_plan_pan] kicking off SINGLE 10s Seedance morph+walkthrough")
+      const result = await startSeedanceFromImage(
         floorPlanUrl,
-        renderPrompt,
+        fullFloorPlanPrompt,
+        10,
         REPLICATE_TOKEN
       )
 
-      // Step 2 + 3 in parallel — BOTH clips on Seedance 2.0 (per user spec):
-      // (A) TRANSFORMATION clip — Seedance starts from the FLOOR PLAN with a
-      //     prompt that tells it to morph into the photoreal interior. Single
-      //     model, single style, no codec mismatch when stitched.
-      // (B) WALKTHROUGH clip — Seedance from the photoreal with the user's
-      //     chosen camera move.
-      const transformPrompt =
-        `Cinematic morph: this 2D architectural floor plan / axonometric drawing transforms into a fully photorealistic, magazine-quality interior of the same room. ` +
-        `Pencil-and-line drafting fades smoothly into colour, light, materials, and furniture. Walls gain texture, windows fill with daylight, floor materials reveal grain, furniture lifts and settles into place. ` +
-        `Architectural geometry from the drawing — wall positions, window and door placements, room proportions — stays locked. ` +
-        `No camera movement, static lock-off. Dreamlike crossfade tempo. ` +
-        `1080p photorealistic. ${vibeLine}`
-
-      const walkPrompt =
-        `${SHOT_CONFIG[selectedShotType]?.motionHint || "Slow dolly camera push-in, steady and cinematic."} ` +
-        `Cinematic 9:16 vertical real-estate listing reel. Photorealistic, magazine-quality. ` +
-        `Smooth physically-plausible camera motion only. Subject, architecture, and lighting locked. ${vibeLine}`
-
-      console.log("[floor_plan_pan] kicking off Seedance morph + Seedance walkthrough")
-      const [transformStart, walkStart] = await Promise.all([
-        startSeedanceFromImage(
-          floorPlanUrl,
-          transformPrompt,
-          5,
-          REPLICATE_TOKEN
-        ),
-        startSeedanceFromImage(
-          photorealUrl,
-          walkPrompt,
-          5,
-          REPLICATE_TOKEN
-        ),
-      ])
-
-      if (transformStart.videoUrl && walkStart.videoUrl) {
-        const clipUrls = [transformStart.videoUrl, walkStart.videoUrl]
-        const clipPaths: string[] = []
-        for (let i = 0; i < clipUrls.length; i++) {
-          try {
-            const clipFetch = await fetch(clipUrls[i])
-            const clipBuffer = await clipFetch.arrayBuffer()
-            const clipPath = `listing-videos/${Date.now()}/floorplan-${i}.mp4`
-            await supabase.storage.from("project-submissions").upload(clipPath, clipBuffer, {
-              contentType: "video/mp4", upsert: true,
-            })
-            clipPaths.push(clipPath)
-          } catch (storageErr) {
-            console.error(`[floor_plan_pan] storage clip ${i} failed:`, storageErr)
-          }
+      if (result.videoUrl) {
+        let outputVideoPath: string | null = null
+        try {
+          const videoFetch = await fetch(result.videoUrl)
+          const videoBuffer = await videoFetch.arrayBuffer()
+          const videoPath = `listing-videos/${Date.now()}/floorplan.mp4`
+          await supabase.storage.from("project-submissions").upload(videoPath, videoBuffer, {
+            contentType: "video/mp4", upsert: true,
+          })
+          outputVideoPath = videoPath
+        } catch (storageErr) {
+          console.error("[floor_plan_pan] storage failed:", storageErr)
         }
+
         return new Response(JSON.stringify({
           status: "complete",
           category,
-          video_url: clipUrls[0],
-          clip_urls: clipUrls,
-          output_clip_paths: clipPaths,
+          video_url: result.videoUrl,
+          clip_urls: [result.videoUrl],
+          output_video_path: outputVideoPath,
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
       }
 
       return new Response(JSON.stringify({
         status: "processing",
+        prediction_id: result.predictionId,
         category,
-        prediction_ids: [
-          { index: 0, prediction_id: transformStart.predictionId, video_url: transformStart.videoUrl || null },
-          { index: 1, prediction_id: walkStart.predictionId, video_url: walkStart.videoUrl || null },
-        ],
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 

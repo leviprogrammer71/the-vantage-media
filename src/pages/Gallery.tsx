@@ -91,42 +91,87 @@ async function signPath(path: string | null | undefined): Promise<string | null>
   return null;
 }
 
-async function downloadFile(path: string, filename: string) {
+// Download from a storage path or full URL. Works on desktop, Android, and iOS.
+// On iOS we prefer the Web Share API (Files / Photos integration) over a blob
+// click, since iOS Safari ignores the `download` attribute.
+async function downloadFile(pathOrUrl: string, filename: string) {
+  const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isMobile = isiOS || /Android/i.test(navigator.userAgent);
+
+  // 1. Get the actual bytes. Try our two buckets if it's a path; just fetch if it's a URL.
+  let blob: Blob | null = null;
   try {
-    // On mobile, programmatic downloads via blob URLs often fail.
-    // Use signed URL + window.open as fallback for mobile.
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      // Get a signed URL with download disposition
-      const { data } = await supabase.storage
-        .from("project-submissions")
-        .createSignedUrl(path, 300, { download: filename });
-      if (data?.signedUrl) {
-        window.open(data.signedUrl, "_blank");
-        return;
+    if (pathOrUrl.startsWith("http")) {
+      const res = await fetch(pathOrUrl);
+      if (res.ok) blob = await res.blob();
+    } else {
+      for (const bucket of ["project-submissions", "property-photos"]) {
+        const { data } = await supabase.storage.from(bucket).download(pathOrUrl);
+        if (data) {
+          blob = data;
+          break;
+        }
       }
     }
-    
-    // Desktop: use blob download
-    const { data } = await supabase.storage
-      .from("project-submissions")
-      .download(path);
-    if (!data) {
-      toast({ title: "Error", description: "Download failed", variant: "destructive" });
-      return;
+  } catch {
+    /* fall through */
+  }
+
+  // 2. iOS Safari: Web Share API gives the user a real Save-to-Files / Save-to-Photos sheet.
+  if (isiOS && blob && (navigator as any).canShare) {
+    try {
+      const file = new File([blob], filename, { type: blob.type || "video/mp4" });
+      const shareData = { files: [file], title: filename } as any;
+      if ((navigator as any).canShare(shareData)) {
+        await (navigator as any).share(shareData);
+        return;
+      }
+    } catch {
+      /* fall through to anchor click */
     }
-    const url = URL.createObjectURL(data);
+  }
+
+  // 3. Anchor with download attribute — works on desktop and Android Chrome.
+  if (blob) {
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
+    a.rel = "noopener";
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  } catch {
-    toast({ title: "Error", description: "Download failed", variant: "destructive" });
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 1000);
+
+    // iOS without Web Share — open the blob in a new tab so user can long-press to save.
+    if (isiOS) window.open(url, "_blank");
+    return;
   }
+
+  // 4. Last-resort fallback: signed URL with download disposition, opened in a new tab.
+  if (!pathOrUrl.startsWith("http")) {
+    for (const bucket of ["project-submissions", "property-photos"]) {
+      const { data } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(pathOrUrl, 300, { download: filename });
+      if (data?.signedUrl) {
+        if (isMobile) window.open(data.signedUrl, "_blank");
+        else {
+          const a = document.createElement("a");
+          a.href = data.signedUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
+        return;
+      }
+    }
+  }
+
+  toast({ title: "Error", description: "Download failed — try opening the video and long-pressing to save", variant: "destructive" });
 }
 
 const getStatusBadge = (status: string, promptStatus: string) => {
@@ -417,9 +462,12 @@ const Gallery = () => {
                       </p>
 
                       <div className="flex gap-2 pt-1 flex-wrap">
-                        {submission.output_video_path && (
+                        {(submission.output_video_path || submission.output_video_url) && (
                           <Button size="sm" variant="outline" className="gap-1.5 text-xs"
-                            onClick={() => downloadFile(submission.output_video_path!, `vantage-${submission.video_type || "video"}-${submission.id}.mp4`)}>
+                            onClick={() => downloadFile(
+                              submission.output_video_path || submission.output_video_url!,
+                              `vantage-${submission.video_type || "video"}-${submission.id}.mp4`
+                            )}>
                             <Download className="h-3.5 w-3.5" /> Video
                           </Button>
                         )}

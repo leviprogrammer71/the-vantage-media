@@ -9,6 +9,7 @@ import { VibePicker } from "./VibePicker";
 import { SettingTooltip } from "./SettingTooltip";
 import { TransformationProcessing } from "./TransformationProcessing";
 import { normalizeImageForUpload } from "@/lib/normalize-image";
+import { stitchClipsClientSide, downloadBlobOrUrl } from "@/lib/client-stitch";
 import { SHOT_TYPES, STAGING_STYLES } from "@/lib/shot-types";
 import { VIBES } from "@/lib/vibes";
 import { toast } from "sonner";
@@ -20,7 +21,51 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-type ListingCategory = "animate_single" | "sun_to_sun" | "listing_bundle" | "virtual_staging" | "sketch_to_real" | "floor_plan_pan";
+type ListingCategory =
+  | "animate_single"
+  | "sun_to_sun"
+  | "listing_bundle"
+  | "done_for_you_reel"
+  | "virtual_staging"
+  | "sketch_to_real"
+  | "floor_plan_pan";
+
+type DfyStyle = "editorial" | "snappy" | "cinema" | "minimal";
+
+interface DfyStylePreset {
+  id: DfyStyle;
+  title: string;
+  description: string;
+  // Shot rotation tuned for this style — different camera language per style
+  shotRotation: ("slow_push" | "parallax_pan" | "reveal_rise" | "architectural" | "establishing" | "drone_orbit")[];
+}
+
+const DFY_STYLES: DfyStylePreset[] = [
+  {
+    id: "editorial",
+    title: "Editorial",
+    description: "Refined fashion-house typography. Serif price reveal. Slow, magazine-grade pacing.",
+    shotRotation: ["slow_push", "architectural", "reveal_rise", "establishing", "parallax_pan", "drone_orbit"],
+  },
+  {
+    id: "snappy",
+    title: "Snappy",
+    description: "Bold caps, high-contrast yellow price, fast cuts. Built for TikTok and Reels feed.",
+    shotRotation: ["parallax_pan", "drone_orbit", "slow_push", "reveal_rise", "establishing", "architectural"],
+  },
+  {
+    id: "cinema",
+    title: "Cinema",
+    description: "Letterboxed crops, restrained type, premium energy. Looks like a luxury auto ad.",
+    shotRotation: ["establishing", "drone_orbit", "slow_push", "architectural", "reveal_rise", "parallax_pan"],
+  },
+  {
+    id: "minimal",
+    title: "Minimal",
+    description: "Just the price chip. Nothing else. The reel does the talking.",
+    shotRotation: ["slow_push", "parallax_pan", "reveal_rise", "architectural", "establishing", "drone_orbit"],
+  },
+];
 type EffectId = "none" | "just_listed" | "open_house" | "for_sale" | "sold";
 
 interface Photo {
@@ -48,30 +93,37 @@ const CATEGORY_CARDS = [
   {
     id: "listing_bundle" as const,
     title: "The Listing Bundle",
-    eyebrow: "DONE-FOR-YOU REEL · MOST POPULAR",
-    description: "Upload 3-6 photos. We render each as a Seedance 2.0 cinematic clip, stitch them into one finished MP4 with your price and realtor name burned in, and hand back a post-ready film. The full white-glove deliverable.",
-    details: "15-30s · From 90 credits · Stitched + branded",
+    eyebrow: "MULTI-PHOTO REEL",
+    description: "Upload 3-6 photos. We render each as a Seedance 2.0 cinematic clip and hand back the individual clips for you to mix in your editor.",
+    details: "15-30s · From 90 credits · Per-clip delivery",
+  },
+  {
+    id: "done_for_you_reel" as const,
+    title: "Done-For-You Reel",
+    eyebrow: "DONE-FOR-YOU · AUTO-STITCHED · 4 STYLES",
+    description: "Upload 3-6 photos. We render each as a cinematic Seedance 2.0 clip, then auto-stitch into a single finished MP4 with your price, realtor name, location, and optional caption baked in via your chosen style preset. Editorial, Snappy, Cinema, or Minimal.",
+    details: "15-30s · From 110 credits · Auto-stitched · Pick a style",
   },
   {
     id: "virtual_staging" as const,
     title: "Virtual Staging",
     eyebrow: "EMPTY ROOM TO FULLY FURNISHED",
-    description: "Upload one empty room photo. We furnish it in your chosen style, then deliver a 2-clip reel: the room dressing itself + a slow walk-through. Listings sell 73% faster when staged.",
-    details: "10s reel · 2 clips · From 50 credits",
+    description: "Upload one empty room photo. One 10-second cinematic film: the room dresses itself in your chosen style, then the camera glides through the finished space. No stitching — single download.",
+    details: "10s film · Single download · From 50 credits",
   },
   {
     id: "sketch_to_real" as const,
     title: "Sketch to Reality",
     eyebrow: "PROPERTY PHOTO · HAND-DRAWN REVEAL",
-    description: "Upload your property photo. We render a pencil sketch of the same property being hand-drawn on a wooden desk, then animate the drawing morphing into the real photo. Magic moment + reveal walk.",
-    details: "10s reel · 2 clips · From 60 credits",
+    description: "Upload your property photo. One 10-second cinematic film: a pencil sketch of the same property hand-drawn on a desk transforms into the real photo, then the camera reveals the space. Single download.",
+    details: "10s film · Single download · From 60 credits",
   },
   {
     id: "floor_plan_pan" as const,
     title: "Floor Plan to Walkthrough",
     eyebrow: "FLOOR PLAN · PHOTOREAL WALK-THROUGH",
-    description: "Upload a floor plan or axonometric drawing. 2-clip reel: the plan transforming into a photoreal interior + a cinematic camera move through the space.",
-    details: "10s reel · 2 clips · From 30 credits",
+    description: "Upload a floor plan or axonometric drawing. One 10-second cinematic film: the plan transforms into a photoreal interior, then the camera moves through the space. Single download.",
+    details: "10s film · Single download · From 30 credits",
   },
 ];
 
@@ -97,12 +149,13 @@ function calculateListingCost(category: ListingCategory, effectId: EffectId): nu
   let base = 0;
   if (category === "animate_single") base = 25;
   else if (category === "sun_to_sun") base = 60;
-  else if (category === "listing_bundle") base = 90;
+  else if ((category === "listing_bundle" || category === "done_for_you_reel")) base = 90;
+  else if (category === "done_for_you_reel") base = 110; // bundle + auto-stitch + style preset
   else if (category === "virtual_staging") base = 50;
   else if (category === "sketch_to_real") base = 60;
   else if (category === "floor_plan_pan") base = 30;
 
-  if (effectId !== "none" && (category === "animate_single" || category === "listing_bundle")) base += 10;
+  if (effectId !== "none" && (category === "animate_single" || (category === "listing_bundle" || category === "done_for_you_reel") || category === "done_for_you_reel")) base += 10;
   return base;
 }
 
@@ -144,6 +197,10 @@ export function ListingVideoFlow() {
   const [error, setError] = useState<string | null>(null);
   const [isStitching, setIsStitching] = useState(false);
   const [stitchedUrl, setStitchedUrl] = useState<string | null>(null);
+  const [stitchedBlob, setStitchedBlob] = useState<Blob | null>(null);
+  const [stitchedExt, setStitchedExt] = useState<"mp4" | "webm">("mp4");
+  const [stitchProgress, setStitchProgress] = useState(0);
+  const [stitchStyle, setStitchStyle] = useState<"editorial" | "snappy" | "cinema" | "minimal">("editorial");
 
   const creditCost = calculateListingCost(category || "animate_single", effectId);
   const hasEnoughCredits = credits !== null && credits >= creditCost;
@@ -180,7 +237,7 @@ export function ListingVideoFlow() {
 
       if (category === "animate_single" || category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan") {
         setPhotos([newPhotos[0]]);
-      } else if (category === "listing_bundle") {
+      } else if ((category === "listing_bundle" || category === "done_for_you_reel")) {
         if (newPhotos.length < 3) {
           toast.error("Bundle requires at least 3 photos");
           return;
@@ -202,7 +259,7 @@ export function ListingVideoFlow() {
     }
 
     // Check required fields based on category
-    if ((category === "animate_single" || category === "sun_to_sun" || category === "listing_bundle") && (!realtorName || !location)) {
+    if ((category === "animate_single" || category === "sun_to_sun" || (category === "listing_bundle" || category === "done_for_you_reel")) && (!realtorName || !location)) {
       toast.error("Missing required information");
       return;
     }
@@ -217,9 +274,13 @@ export function ListingVideoFlow() {
 
     try {
       const photoUrls = photos.map((p) => p.url!);
+      // Done-For-You Reel reuses the listing_bundle backend pipeline — same
+      // 3-6 photos → 6 Seedance clips. The frontend then auto-stitches into a
+      // single MP4 with the user's chosen style preset.
+      const backendCategory = category === "done_for_you_reel" ? "listing_bundle" : category;
       const response = await supabase.functions.invoke("generate-listing-video", {
         body: {
-          category,
+          category: backendCategory,
           photo_urls: photoUrls,
           shot_type: category === "animate_single" ? shotType : category === "virtual_staging" ? "slow_push" : category === "floor_plan_pan" ? shotType : undefined,
           staging_style: category === "virtual_staging" ? stagingStyle : undefined,
@@ -354,6 +415,20 @@ export function ListingVideoFlow() {
       await deductCredits(creditCost);
       await refreshCredits();
       setStep(7);
+
+      // For Done-For-You Reel, AUTO-STITCH the clips into a single MP4 with the
+      // chosen style preset. The user paid for the white-glove deliverable —
+      // they shouldn't have to click an extra button.
+      if (category === "done_for_you_reel" && allClips.length > 1) {
+        // Don't await — let the user see the per-clip player while stitching runs
+        // in the background. The result screen swaps to the stitched MP4 when ready.
+        setTimeout(() => {
+          handleStitchReel().catch((e) => {
+            console.error("[done_for_you_reel] auto-stitch failed:", e);
+            toast.error("Auto-stitch failed — tap 'Stitch into Single MP4' to retry");
+          });
+        }, 500);
+      }
     } catch (err) {
       const msg = (err as Error).message;
       console.error("[ListingVideoFlow] generation error:", err);
@@ -371,7 +446,9 @@ export function ListingVideoFlow() {
     brokerage ? `, ${brokerage}` : ""
   }`;
 
-  // Stitch multi-clip reel into single MP4 with text overlays
+  // Client-side stitch — runs entirely in the browser via Canvas + MediaRecorder.
+  // No server dependency, no edge timeout, no Replicate FFmpeg. The user gets a
+  // single Blob with text overlays burned in that they can download immediately.
   const handleStitchReel = async () => {
     if (!clipUrls || clipUrls.length < 2) {
       toast.error("Stitching requires multiple clips");
@@ -380,73 +457,29 @@ export function ListingVideoFlow() {
 
     setIsStitching(true);
     setError(null);
-
-    const unwrapErr = (resp: any): string => {
-      let m = resp.error?.message || "Stitching failed";
-      try {
-        const ctx: any = (resp.error as any)?.context;
-        if (ctx?.body) {
-          const parsed = typeof ctx.body === "string" ? JSON.parse(ctx.body) : ctx.body;
-          if (parsed?.error) m = parsed.error;
-        }
-      } catch {}
-      if (resp.data?.error) m = resp.data.error;
-      return m;
-    };
+    setStitchProgress(0);
 
     try {
-      // Step 1: kick off the stitch
-      const startResp = await supabase.functions.invoke("stitch-listing-reel", {
-        body: {
-          clip_urls: clipUrls,
-          listing: {
-            price: showPrice ? price : undefined,
-            realtor_name: realtorName,
-            location,
-            brokerage,
-            show_price: showPrice,
-          },
-          watermark: true,
+      const result = await stitchClipsClientSide({
+        clips: clipUrls,
+        listing: {
+          price: showPrice ? price : undefined,
+          realtor_name: realtorName,
+          location,
+          brokerage,
+          show_price: showPrice,
+          caption: caption || undefined,
         },
+        watermark: !isPaid || showBranding,
+        style: stitchStyle,
+        onProgress: (frac) => setStitchProgress(frac),
       });
 
-      if (startResp.error) throw new Error(unwrapErr(startResp));
-
-      // Synchronous success
-      if (startResp.data?.status === "complete" && startResp.data?.stitched_url) {
-        setStitchedUrl(startResp.data.stitched_url);
-        toast.success("Stitching complete! Download your final cut.");
-        return;
-      }
-
-      // Async — client polls
-      if (startResp.data?.status === "processing" && startResp.data?.prediction_id) {
-        const predictionId = startResp.data.prediction_id;
-        const maxAttempts = 60; // 60 × 5s = 5 min
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-          await new Promise((r) => setTimeout(r, 5000));
-          const pollResp = await supabase.functions.invoke("stitch-listing-reel", {
-            body: {
-              prediction_id: predictionId,
-              clip_count: clipUrls.length,
-              submission_id: undefined,
-            },
-          });
-          if (pollResp.error) throw new Error(`Polling failed: ${unwrapErr(pollResp)}`);
-          if (pollResp.data?.status === "complete" && pollResp.data?.stitched_url) {
-            setStitchedUrl(pollResp.data.stitched_url);
-            toast.success("Stitching complete! Download your final cut.");
-            return;
-          }
-          if (pollResp.data?.status === "failed") {
-            throw new Error(pollResp.data.error || "Stitching failed");
-          }
-          // status === "processing" — keep polling
-        }
-        throw new Error("Stitching took longer than 5 minutes. Try again or contact support.");
-      }
-
-      throw new Error("Unexpected response from stitcher");
+      setStitchedUrl(result.url);
+      setStitchedBlob(result.blob);
+      setStitchedExt(result.ext);
+      toast.success("Final cut ready. Tap download to save.");
+      return;
     } catch (err) {
       const msg = (err as Error).message;
       console.error("[ListingVideoFlow] stitching error:", err);
@@ -750,10 +783,106 @@ export function ListingVideoFlow() {
     );
   }
 
+  // STEP 2d: Done-For-You Reel — style preset picker (4 looks).
+  // Fires when category is done_for_you_reel AND photos are uploaded.
+  if (step === 2 && category === "done_for_you_reel" && photos.length >= 3) {
+    return (
+      <div className="lux-section lux-bg-bone">
+        <div className="lux-container max-w-3xl">
+          <button
+            onClick={() => setStep(1)}
+            className="lux-eyebrow mb-8"
+            style={{ color: "var(--lux-ash)", background: "none", border: "none", cursor: "pointer" }}
+          >
+            ← Back
+          </button>
+          <div className="mb-10">
+            <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-rust)" }}>
+              DONE-FOR-YOU · STEP 2 OF 3
+            </div>
+            <h2 className="lux-display mb-3" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
+              Pick your <span className="lux-display-italic">style</span>
+            </h2>
+            <p className="lux-prose" style={{ color: "var(--lux-ink)", maxWidth: 620 }}>
+              We'll auto-stitch your 6 clips into one finished MP4 with this overlay treatment baked in. Pick the look that matches the listing.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-10">
+            {DFY_STYLES.map((s) => {
+              const isSelected = stitchStyle === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setStitchStyle(s.id)}
+                  className="text-left p-6 rounded-none transition-all relative"
+                  style={isSelected ? {
+                    background: "var(--lux-ink)",
+                    color: "var(--lux-bone)",
+                    border: "1px solid var(--lux-ink)",
+                    boxShadow: "0 14px 40px rgba(14,14,12,0.18)",
+                  } : {
+                    background: "var(--lux-cream)",
+                    color: "var(--lux-ink)",
+                    border: "1px solid var(--lux-hairline-strong)",
+                  }}
+                >
+                  {isSelected && (
+                    <div
+                      className="lux-eyebrow absolute -top-2.5 left-6 px-2.5 py-1"
+                      style={{
+                        background: "var(--lux-champagne)",
+                        color: "var(--lux-ink)",
+                        fontSize: "0.6rem",
+                        letterSpacing: "0.18em",
+                      }}
+                    >
+                      ✦ SELECTED
+                    </div>
+                  )}
+                  <div
+                    className="lux-eyebrow mb-2"
+                    style={{ color: isSelected ? "var(--lux-champagne)" : "var(--lux-rust)", fontSize: "0.65rem" }}
+                  >
+                    {s.id.toUpperCase()}
+                  </div>
+                  <h3
+                    className="lux-display mb-2"
+                    style={{ fontSize: "1.6rem", lineHeight: 1.05, color: isSelected ? "var(--lux-bone)" : "var(--lux-ink)" }}
+                  >
+                    {s.title}
+                  </h3>
+                  <p
+                    className="lux-prose"
+                    style={{
+                      fontSize: "0.875rem",
+                      lineHeight: 1.5,
+                      color: isSelected ? "rgba(244,239,230,0.85)" : "var(--lux-ink)",
+                    }}
+                  >
+                    {s.description}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={() => setStep(3)}
+            className="lux-btn w-full"
+            style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "18px 24px" }}
+          >
+            Continue to Listing Details →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // STEP 2: Photo upload
   if (step === 2 && category) {
-    const maxPhotos = category === "listing_bundle" ? 6 : 1;
-    const minPhotos = category === "listing_bundle" ? 3 : 1;
+    const maxPhotos = (category === "listing_bundle" || category === "done_for_you_reel") ? 6 : 1;
+    const minPhotos = (category === "listing_bundle" || category === "done_for_you_reel") ? 3 : 1;
     const isComplete = photos.length >= minPhotos;
 
     return (
@@ -771,14 +900,14 @@ export function ListingVideoFlow() {
             <h2 className="lux-display mb-2" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
               {category === "animate_single" && "Upload your hero shot"}
               {category === "sun_to_sun" && "Upload exterior photo"}
-              {category === "listing_bundle" && "Upload 3-6 property photos"}
+              {(category === "listing_bundle" || category === "done_for_you_reel") && "Upload 3-6 property photos"}
               {category === "sketch_to_real" && "Upload the property photo"}
               {category === "floor_plan_pan" && "Upload your floor plan or axonometric drawing"}
             </h2>
             <p className="lux-prose" style={{ color: "var(--lux-ash)" }}>
               {category === "animate_single" && "High-res horizontal or vertical photos work best."}
               {category === "sun_to_sun" && "A bright daytime exterior. We'll render it at sunrise, golden hour, and dusk."}
-              {category === "listing_bundle" && "Mix of exterior, interior, and detail shots. We'll stitch them into one reel."}
+              {(category === "listing_bundle" || category === "done_for_you_reel") && "Mix of exterior, interior, and detail shots. We'll stitch them into one reel."}
               {category === "sketch_to_real" && "Upload the actual property photo (interior or exterior). We'll render a pencil sketch of the same scene being hand-drawn on a desk, then animate the sketch becoming real. Best with sharp, well-lit photos."}
               {category === "floor_plan_pan" && "Floor plans, axonometric drawings, or 3D-isometric room views all work. We'll render the plan as a photoreal interior, then move the camera through it."}
             </p>
@@ -818,7 +947,7 @@ export function ListingVideoFlow() {
           <input
             ref={fileInputRef}
             type="file"
-            multiple={category === "listing_bundle"}
+            multiple={(category === "listing_bundle" || category === "done_for_you_reel")}
             accept="image/jpeg,image/png,image/heic,image/heif,image/webp"
             onChange={(e) => handlePhotoSelect(e.target.files)}
             className="hidden"
@@ -862,9 +991,9 @@ export function ListingVideoFlow() {
 
   // STEP 3: Listing details form / vibe picker
   if (step === 3 && category) {
-    const showListingMetadata = category === "animate_single" || category === "sun_to_sun" || category === "listing_bundle";
+    const showListingMetadata = category === "animate_single" || category === "sun_to_sun" || (category === "listing_bundle" || category === "done_for_you_reel");
     const showShotPicker = category === "animate_single";
-    const showEffectPicker = category === "animate_single" || category === "sun_to_sun" || category === "listing_bundle";
+    const showEffectPicker = category === "animate_single" || category === "sun_to_sun" || (category === "listing_bundle" || category === "done_for_you_reel");
     const showVibePicker = true;
 
     return (
@@ -1211,7 +1340,7 @@ export function ListingVideoFlow() {
             </div>
           )}
 
-          {(category === "animate_single" || category === "sun_to_sun" || category === "listing_bundle") && (!realtorName || !location) && (
+          {(category === "animate_single" || category === "sun_to_sun" || (category === "listing_bundle" || category === "done_for_you_reel")) && (!realtorName || !location) && (
             <div
               className="p-4 mb-8 border-l-4"
               style={{ borderColor: "var(--lux-ash)", background: "rgba(107, 103, 96, 0.05)" }}
@@ -1234,7 +1363,7 @@ export function ListingVideoFlow() {
             </button>
             <button
               onClick={handleGenerate}
-              disabled={!hasEnoughCredits || isGenerating || ((category === "animate_single" || category === "sun_to_sun" || category === "listing_bundle") && (!realtorName || !location))}
+              disabled={!hasEnoughCredits || isGenerating || ((category === "animate_single" || category === "sun_to_sun" || (category === "listing_bundle" || category === "done_for_you_reel")) && (!realtorName || !location))}
               className="lux-btn flex-1"
               style={{
                 background: (hasEnoughCredits && !isGenerating && (category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan" || (realtorName && location))) ? "var(--lux-ink)" : "var(--lux-ash)",
@@ -1271,11 +1400,34 @@ export function ListingVideoFlow() {
 
           <div className="mb-8 aspect-[9/16] overflow-hidden relative" style={{ background: "var(--lux-ink)" }}>
             {isStitching && (
-              <div className="absolute inset-0 flex items-center justify-center z-50" style={{ background: "rgba(14,14,12,0.9)" }}>
-                <div className="text-center">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" style={{ color: "var(--lux-champagne)" }} />
-                  <p className="lux-eyebrow" style={{ color: "var(--lux-bone)" }}>
+              <div className="absolute inset-0 flex items-center justify-center z-50" style={{ background: "rgba(14,14,12,0.92)" }}>
+                <div className="text-center px-8" style={{ width: "100%", maxWidth: 360 }}>
+                  <Loader2 className="w-9 h-9 animate-spin mx-auto mb-4" style={{ color: "var(--lux-champagne)" }} />
+                  <p className="lux-eyebrow mb-3" style={{ color: "var(--lux-bone)", fontSize: "0.7rem" }}>
                     Stitching your final cut…
+                  </p>
+                  <div
+                    style={{
+                      height: 4,
+                      background: "rgba(244,239,230,0.16)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: `${Math.round(stitchProgress * 100)}%`,
+                        height: "100%",
+                        background: "var(--lux-champagne)",
+                        transition: "width 200ms ease-out",
+                      }}
+                    />
+                  </div>
+                  <p className="lux-prose mt-3" style={{ color: "rgba(244,239,230,0.6)", fontSize: "0.7rem" }}>
+                    {stitchProgress < 0.2
+                      ? "Loading clips…"
+                      : stitchProgress < 1
+                      ? `Recording frame ${Math.round(stitchProgress * 100)}%`
+                      : "Finalising…"}
                   </p>
                 </div>
               </div>
@@ -1298,7 +1450,7 @@ export function ListingVideoFlow() {
               className="w-full h-full object-cover"
             />
             {/* Listing metadata overlay (price, location, brokerage) — matches Reels-style branding */}
-            {(category === "listing_bundle" || category === "animate_single" || category === "sun_to_sun") && (location || (showPrice && price) || brokerage) && (
+            {((category === "listing_bundle" || category === "done_for_you_reel") || category === "animate_single" || category === "sun_to_sun") && (location || (showPrice && price) || brokerage) && (
               <>
                 {/* Top-left location badge */}
                 {location && (
@@ -1418,7 +1570,7 @@ export function ListingVideoFlow() {
               <div className="lux-eyebrow" style={{ color: "var(--lux-ash)" }}>
                 ✦ {clipUrls.length}-CLIP REEL · {clipUrls.length * 5}s
               </div>
-              {musicVibe && musicVibe !== "No music (you'll add yours)" && (category === "listing_bundle" || category === "animate_single" || category === "sun_to_sun") && (
+              {musicVibe && musicVibe !== "No music (you'll add yours)" && ((category === "listing_bundle" || category === "done_for_you_reel") || category === "animate_single" || category === "sun_to_sun") && (
                 <div className="lux-prose text-sm" style={{ color: "var(--lux-brass)" }}>
                   ♫ Suggested music: <span style={{ color: "var(--lux-ink)" }}>{musicVibe}</span> — drop a track in this style in your editor
                 </div>
@@ -1531,15 +1683,28 @@ export function ListingVideoFlow() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <a
-              href={stitchedUrl || videoUrl}
-              download
+            <button
+              onClick={async () => {
+                const safeName = (location || "vantage")
+                  .replace(/[^A-Za-z0-9]+/g, "-")
+                  .replace(/^-+|-+$/g, "")
+                  .toLowerCase() || "vantage";
+                const filename = stitchedBlob
+                  ? `${safeName}-final-cut.${stitchedExt}`
+                  : `${safeName}-vantage.mp4`;
+                try {
+                  const target = stitchedBlob ?? (videoUrl as string);
+                  await downloadBlobOrUrl(target, filename);
+                } catch (e) {
+                  toast.error("Download failed — try long-press on the video to save");
+                }
+              }}
               className="lux-btn text-center w-full inline-flex items-center justify-center"
               style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "16px 20px" }}
             >
               <Download className="mr-2 w-5 h-5" />
               Download {stitchedUrl ? "Final Cut" : ""}
-            </a>
+            </button>
             <Link
               to="/gallery"
               className="lux-btn text-center w-full inline-flex items-center justify-center"
