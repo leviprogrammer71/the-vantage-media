@@ -250,16 +250,16 @@ const Index = () => {
                 eyebrow="REAL CUSTOMER OUTPUT · NOT STOCK FOOTAGE"
                 title="The 04.26 Selection"
                 clips={[
-                  { src: "/vantage/contractor/result.mp4", label: "Contractor Build", byline: "GENERAL CONSTRUCTION" },
-                  { src: "/vantage/build/result.mp4", label: "Build Reveal", byline: "FULL-HOME RENOVATION" },
-                  { src: "/vantage/cleanup/result.mp4", label: "Site Cleanup", byline: "BEFORE/AFTER · LISTING-READY" },
-                  { src: "/vantage/ranch-build/result.mp4", label: "Ranch Build · Full Home", byline: "CONSTRUCTION · NORTHEAST" },
-                  { src: "/vantage/backyard-slow-reveal/result.mp4", label: "Backyard Slow Reveal", byline: "LANDSCAPING · BACKYARD BUILD" },
-                  { src: "/vantage/ranch-clean/video.mp4", label: "Ranch Cleanup", byline: "RUBBISH REMOVAL · BEFORE-AFTER" },
-                  { src: "/vantage/setup/video.mp4", label: "Event Setup", byline: "VENUE · DRESSED FROM EMPTY" },
-                  { src: "/vantage/sketch/result.mp4", label: "Sketch to Reality", byline: "PROPERTY PHOTO · HAND-DRAWN REVEAL" },
-                  { src: "/vantage/airbnb/transform-1.mp4", label: "Short-Term Rental", byline: "AIRBNB · BOOKING-OPTIMISED" },
-                  { src: "/vantage/just-listed/video.mp4", label: "Just Listed", byline: "LISTING · BADGE OVERLAY" },
+                  { src: "/vantage/contractor/result.mp4", poster: "/vantage/contractor/before.jpg", fallback: "/vantage/contractor/before.jpg", label: "Contractor Build", byline: "GENERAL CONSTRUCTION" },
+                  { src: "/vantage/build/result.mp4", poster: "/vantage/ranch-build/input.png", fallback: "/vantage/ranch-build/input.png", label: "Build Reveal", byline: "FULL-HOME RENOVATION" },
+                  { src: "/vantage/cleanup/result.mp4", poster: "/vantage/cleanup/mo.jpg", fallback: "/vantage/cleanup/mo.jpg", label: "Site Cleanup", byline: "BEFORE/AFTER · LISTING-READY" },
+                  { src: "/vantage/ranch-build/result.mp4", poster: "/vantage/ranch-build/input.png", fallback: "/vantage/ranch-build/input.png", label: "Ranch Build · Full Home", byline: "CONSTRUCTION · NORTHEAST" },
+                  { src: "/vantage/backyard-slow-reveal/result.mp4", poster: "/vantage/backyard-slow-reveal/input.jpg", fallback: "/vantage/backyard-slow-reveal/input.jpg", label: "Backyard Slow Reveal", byline: "LANDSCAPING · BACKYARD BUILD" },
+                  { src: "/vantage/ranch-clean/video.mp4", poster: "/vantage/ranch-clean/input.png", fallback: "/vantage/ranch-clean/input.png", label: "Ranch Cleanup", byline: "RUBBISH REMOVAL · BEFORE-AFTER" },
+                  { src: "/vantage/setup/video.mp4", poster: "/vantage/setup/after.jpeg", fallback: "/vantage/setup/after.jpeg", label: "Event Setup", byline: "VENUE · DRESSED FROM EMPTY" },
+                  { src: "/vantage/sketch/result.mp4", poster: "/vantage/sketch/original.webp", fallback: "/vantage/sketch/original.webp", label: "Sketch to Reality", byline: "PROPERTY PHOTO · HAND-DRAWN REVEAL" },
+                  { src: "/vantage/airbnb/transform-1.mp4", poster: "/vantage/airbnb/hero-still.jpg", fallback: "/vantage/airbnb/hero-still.jpg", label: "Short-Term Rental", byline: "AIRBNB · BOOKING-OPTIMISED" },
+                  { src: "/vantage/just-listed/video.mp4", poster: "/vantage/listing-bundle/1.webp", fallback: "/vantage/listing-bundle/1.webp", label: "Just Listed", byline: "LISTING · BADGE OVERLAY" },
                 ]}
               />
             </div>
@@ -287,16 +287,19 @@ const Index = () => {
                       src={`/vantage/listing-bundle/${i}.webp`}
                       alt={`Source photo ${i}`}
                       className="absolute inset-0 w-full h-full object-cover"
-                      style={{ opacity: 0.35 }}
                       loading="lazy"
                     />
                     <video
                       src={`/vantage/listing-bundle/${i}.mp4`}
+                      poster={`/vantage/listing-bundle/${i}.webp`}
                       autoPlay
                       muted
                       loop
                       playsInline
                       preload="metadata"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLVideoElement).style.display = "none";
+                      }}
                       className="absolute inset-0 w-full h-full object-cover"
                     />
                     <div

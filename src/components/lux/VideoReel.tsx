@@ -6,6 +6,9 @@ interface ReelClip {
   poster?: string;
   label: string;
   byline?: string;
+  /** Optional fallback still image used when the video can't load (e.g. asset
+   *  missing on Vercel deploy or upstream timeout). */
+  fallback?: string;
 }
 
 interface VideoReelProps {
@@ -23,6 +26,7 @@ const VideoReel = ({ clips, className = "", eyebrow = "FILM REEL", title = "Rece
   const [active, setActive] = useState(0);
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(true);
+  const [failedSrcs, setFailedSrcs] = useState<Record<string, boolean>>({});
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -70,18 +74,33 @@ const VideoReel = ({ clips, className = "", eyebrow = "FILM REEL", title = "Rece
             className="relative w-full overflow-hidden lux-bg-ink"
             style={{ paddingBottom: "56.25%", boxShadow: "var(--lux-shadow-deep)" }}
           >
-            <video
-              ref={videoRef}
-              key={current.src}
-              src={current.src}
-              poster={current.poster}
-              className="absolute inset-0 w-full h-full object-cover"
-              autoPlay
-              loop
-              playsInline
-              muted={muted}
-              preload="metadata"
-            />
+            {failedSrcs[current.src] ? (
+              <img
+                src={current.fallback ?? current.poster ?? ""}
+                alt={current.label}
+                className="absolute inset-0 w-full h-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <video
+                ref={videoRef}
+                key={current.src}
+                src={current.src}
+                poster={current.poster ?? current.fallback}
+                className="absolute inset-0 w-full h-full object-cover"
+                autoPlay
+                loop
+                playsInline
+                muted={muted}
+                preload="metadata"
+                onError={() =>
+                  setFailedSrcs((m) => ({ ...m, [current.src]: true }))
+                }
+                onStalled={() =>
+                  setFailedSrcs((m) => ({ ...m, [current.src]: true }))
+                }
+              />
+            )}
             {/* Bottom hairline overlay */}
             <div className="absolute inset-x-0 bottom-0 p-5 md:p-7 flex items-end justify-between"
               style={{ background: "linear-gradient(to top, rgba(14,14,12,0.78) 0%, rgba(14,14,12,0) 100%)" }}

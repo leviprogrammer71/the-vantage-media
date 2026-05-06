@@ -182,6 +182,12 @@ const RealEstatePhotographers = () => {
                     border: "1px solid var(--lux-hairline)",
                   }}
                 >
+                  <img
+                    src="/vantage/sketch/original.webp"
+                    alt="Sketch to Reality reveal"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    loading="lazy"
+                  />
                   <video
                     src="/vantage/sketch/result.mp4"
                     autoPlay
@@ -189,6 +195,9 @@ const RealEstatePhotographers = () => {
                     loop
                     playsInline
                     poster="/vantage/sketch/original.webp"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLVideoElement).style.display = "none";
+                    }}
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                   <div
@@ -224,10 +233,10 @@ const RealEstatePhotographers = () => {
                 eyebrow="THE PHOTOGRAPHERS' DISPATCH · REAL CUSTOMER OUTPUT"
                 title="Three films delivered this week."
                 clips={[
-                  { src: "/vantage/ranch-build/result.mp4", label: "The Beacon Residence", byline: "ATWOOD STUDIO · BOSTON" },
-                  { src: "/vantage/sketch/result.mp4", label: "Olive & 14th — Sketch Reveal", byline: "MERIDIAN · LOS ANGELES" },
-                  { src: "/vantage/backyard-slow-reveal/result.mp4", label: "Cedar Crest Estate", byline: "VANTAGE STUDIO · NORTHEAST" },
-                  { src: "/vantage/just-listed/video.mp4", label: "Open House — Just Listed", byline: "MASS. · BADGE OVERLAY" },
+                  { src: "/vantage/ranch-build/result.mp4", poster: "/vantage/ranch-build/input.png", fallback: "/vantage/ranch-build/input.png", label: "The Beacon Residence", byline: "ATWOOD STUDIO · BOSTON" },
+                  { src: "/vantage/sketch/result.mp4", poster: "/vantage/sketch/original.webp", fallback: "/vantage/sketch/original.webp", label: "Olive & 14th — Sketch Reveal", byline: "MERIDIAN · LOS ANGELES" },
+                  { src: "/vantage/backyard-slow-reveal/result.mp4", poster: "/vantage/backyard-slow-reveal/input.jpg", fallback: "/vantage/backyard-slow-reveal/input.jpg", label: "Cedar Crest Estate", byline: "VANTAGE STUDIO · NORTHEAST" },
+                  { src: "/vantage/just-listed/video.mp4", poster: "/vantage/listing-bundle/1.webp", fallback: "/vantage/listing-bundle/1.webp", label: "Open House — Just Listed", byline: "MASS. · BADGE OVERLAY" },
                 ]}
               />
             </div>

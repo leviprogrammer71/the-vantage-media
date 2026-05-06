@@ -198,6 +198,19 @@ const Gallery = () => {
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({});
+
+  // Re-sign a single submission's video URL — used when a video <video> tag
+  // fails (signed URL probably expired) to recover without a full reload.
+  const refreshVideoUrl = useCallback(async (submission: Submission) => {
+    const newUrl = submission.output_video_path
+      ? await signPath(submission.output_video_path)
+      : submission.output_video_url ?? null;
+    if (newUrl) {
+      setSignedUrls((prev) => ({ ...prev, [`video-${submission.id}`]: newUrl }));
+      setVideoErrors((prev) => ({ ...prev, [submission.id]: false }));
+    }
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -384,8 +397,25 @@ const Gallery = () => {
                   <Card key={submission.id} className={`overflow-hidden ${isError ? "border-destructive/50" : ""}`}>
                     {/* Video / Status */}
                     <div className="relative aspect-video bg-muted">
-                      {hasVideo ? (
-                        <video src={videoUrl} autoPlay muted loop playsInline className="w-full h-full object-cover" controls />
+                      {hasVideo && !videoErrors[submission.id] ? (
+                        <video
+                          src={videoUrl}
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          className="w-full h-full object-cover"
+                          controls
+                          onError={() => setVideoErrors((prev) => ({ ...prev, [submission.id]: true }))}
+                        />
+                      ) : hasVideo && videoErrors[submission.id] ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-card p-4 text-center">
+                          <Film className="h-8 w-8 text-muted-foreground/50" />
+                          <p className="text-xs text-muted-foreground">Preview unavailable. Try refreshing the link or downloading directly.</p>
+                          <Button size="sm" variant="outline" onClick={() => refreshVideoUrl(submission)} className="gap-1.5 text-xs">
+                            <RefreshCw className="h-3 w-3" /> Refresh link
+                          </Button>
+                        </div>
                       ) : isGenerating ? (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-card">
                           <Loader2 className="h-8 w-8 animate-spin text-primary" />

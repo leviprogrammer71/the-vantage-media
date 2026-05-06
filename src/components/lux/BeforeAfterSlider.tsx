@@ -32,6 +32,7 @@ const BeforeAfterSlider = ({
 }: BeforeAfterSliderProps) => {
   const [pos, setPos] = useState(initial);
   const [dragging, setDragging] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const ratioMap: Record<string, string> = {
@@ -73,8 +74,8 @@ const BeforeAfterSlider = ({
           updateFromClientX(e.clientX);
         }}
       >
-        {/* AFTER — video if provided (autoplays the deliverable), otherwise still image */}
-        {afterVideo ? (
+        {/* AFTER — video if provided and loads successfully, otherwise fall back to still image */}
+        {afterVideo && !videoFailed ? (
           <video
             src={afterVideo}
             poster={after}
@@ -83,6 +84,8 @@ const BeforeAfterSlider = ({
             loop
             playsInline
             preload="metadata"
+            onError={() => setVideoFailed(true)}
+            onStalled={() => setVideoFailed(true)}
             className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (

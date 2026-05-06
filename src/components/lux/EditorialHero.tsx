@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
 
@@ -33,6 +34,7 @@ const EditorialHero = ({
   const { destination, isLoggedIn } = useSmartCTA();
   const pCta = primaryCta ?? { label: isLoggedIn ? "ENTER THE STUDIO →" : "BEGIN FREE — 50 CREDITS →", to: destination };
   const sCta = secondaryCta ?? { label: "VIEW THE REEL", to: "/gallery" };
+  const [videoFailed, setVideoFailed] = useState(false);
 
   return (
     <section className="lux-bg-bone lux-grain relative overflow-hidden">
@@ -132,7 +134,7 @@ const EditorialHero = ({
                 boxShadow: "var(--lux-shadow-deep)",
               }}
             >
-              {rightVideo ? (
+              {rightVideo && !videoFailed ? (
                 <video
                   src={rightVideo}
                   poster={rightImage ?? backgroundImage}
@@ -141,6 +143,8 @@ const EditorialHero = ({
                   loop
                   playsInline
                   preload="metadata"
+                  onError={() => setVideoFailed(true)}
+                  onStalled={() => setVideoFailed(true)}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               ) : (

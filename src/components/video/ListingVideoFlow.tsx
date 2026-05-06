@@ -507,9 +507,9 @@ export function ListingVideoFlow() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
             {CATEGORY_CARDS.map((card) => {
-              const isFeatured = card.id === "listing_bundle";
+              const isFeatured = card.id === "listing_bundle" || card.id === "done_for_you_reel";
               return (
               <button
                 key={card.id}
@@ -517,14 +517,17 @@ export function ListingVideoFlow() {
                   setCategory(card.id);
                   setStep(2);
                 }}
-                className="group text-left p-6 flex flex-col relative"
+                className="group text-left flex flex-col relative"
                 style={{
                   background: isFeatured ? "var(--lux-ink)" : "var(--lux-cream)",
                   color: isFeatured ? "var(--lux-bone)" : "var(--lux-ink)",
                   border: `1px solid ${isFeatured ? "var(--lux-ink)" : "var(--lux-hairline)"}`,
                   transition: "all 0.3s var(--lux-ease)",
+                  // Real width floor — keep content readable even at the smaller
+                  // md breakpoint (768px → 2-up = ~360px each).
                   minWidth: 0,
-                  minHeight: "320px",
+                  minHeight: "360px",
+                  padding: "32px 28px",
                   boxShadow: isFeatured ? "0 14px 40px rgba(14,14,12,0.18)" : "none",
                 }}
                 onMouseEnter={(e) => {
@@ -548,11 +551,12 @@ export function ListingVideoFlow() {
                   </div>
                 )}
                 <div
-                  className="lux-eyebrow mb-3"
+                  className="lux-eyebrow mb-4"
                   style={{
-                    color: isFeatured ? "var(--lux-champagne)" : "var(--lux-brass)",
-                    fontSize: "0.65rem",
-                    lineHeight: 1.3,
+                    color: isFeatured ? "var(--lux-champagne)" : "var(--lux-rust)",
+                    fontSize: "0.7rem",
+                    letterSpacing: "0.16em",
+                    lineHeight: 1.4,
                     wordBreak: "normal",
                     overflowWrap: "break-word",
                   }}
@@ -560,10 +564,13 @@ export function ListingVideoFlow() {
                   {card.eyebrow}
                 </div>
                 <h3
-                  className="lux-display mb-3"
+                  className="lux-display mb-4"
                   style={{
-                    fontSize: "clamp(1.4rem, 2.4vw, 1.85rem)",
-                    lineHeight: 1.05,
+                    // Fixed scale instead of vw clamp — vw was punishing the
+                    // typography at narrow desktop widths and producing 1-char
+                    // line wraps. 1.7rem reads cleanly at all widths.
+                    fontSize: "1.7rem",
+                    lineHeight: 1.1,
                     wordBreak: "normal",
                     overflowWrap: "break-word",
                     hyphens: "manual",
@@ -573,11 +580,11 @@ export function ListingVideoFlow() {
                   {card.title}
                 </h3>
                 <p
-                  className="lux-prose mb-4 flex-1"
+                  className="lux-prose mb-5 flex-1"
                   style={{
-                    fontSize: "0.875rem",
+                    fontSize: "0.95rem",
                     lineHeight: 1.55,
-                    color: isFeatured ? "rgba(244,239,230,0.85)" : "var(--lux-ink)",
+                    color: isFeatured ? "rgba(244,239,230,0.88)" : "var(--lux-ink)",
                   }}
                 >
                   {card.description}
