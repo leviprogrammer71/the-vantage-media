@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 /**
  * /welcome — New-signup celebration screen (Brief Task 9)
  * - Shows animated 50-credit counter
- * - Auto-redirects to ?next= (or /video?mode=transform) after 3s
+ * - Auto-redirects to ?next= (or /video?mode=listing) after 3s
  * - Only intended for accounts created in the last 60s; older users bypass automatically
  */
 const Welcome = () => {
@@ -17,7 +17,7 @@ const Welcome = () => {
 
   // Parse ?next= safely (same-origin path only)
   const rawNext = searchParams.get("next") || "";
-  let next = "/video?mode=transform";
+  let next = "/video?mode=listing";
   try {
     const decoded = decodeURIComponent(rawNext);
     if (decoded.startsWith("/") && !decoded.startsWith("//")) next = decoded;

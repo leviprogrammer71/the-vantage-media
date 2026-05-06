@@ -64,7 +64,7 @@ const Demo = () => {
         {/* Header */}
         <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4" style={{ height: 56, background: "#0A0A0A" }}>
           <Link to="/" className="font-mono text-[14px] font-bold" style={{ color: "#E8C547" }}>THE VANTAGE</Link>
-          <Link to="/login?returnUrl=/video?mode=transform" className="font-mono text-[13px]" style={{ color: "#E8C547" }}>Get Started →</Link>
+          <Link to="/login?returnUrl=/video?mode=listing" className="font-mono text-[13px]" style={{ color: "#E8C547" }}>Get Started →</Link>
         </header>
 
         {isMobile ? (
@@ -133,7 +133,7 @@ const Demo = () => {
               <h2 className="font-display font-bold text-[72px] leading-[0.9] mb-4" style={{ color: "#000" }}>YOUR TURN.</h2>
               <p className="text-[16px] mb-8" style={{ color: "#333" }}>Create your first transformation video.</p>
               <Link
-                to="/login?returnUrl=/video?mode=transform"
+                to="/login?returnUrl=/video?mode=listing"
                 className="block w-full py-4 text-center font-display text-[18px] font-bold mb-3"
                 style={{ background: "#000", color: "#fff", borderRadius: 0 }}
               >
@@ -189,7 +189,7 @@ const Demo = () => {
                 ))}
               </div>
               <Link
-                to="/login?returnUrl=/video?mode=transform"
+                to="/login?returnUrl=/video?mode=listing"
                 className="block w-full py-4 text-center font-display text-[18px] font-bold mb-3"
                 style={{ background: "#E8C547", color: "#000", borderRadius: 0 }}
               >

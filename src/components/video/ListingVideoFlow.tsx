@@ -12,6 +12,7 @@ import { normalizeImageForUpload } from "@/lib/normalize-image";
 import { stitchClipsClientSide, downloadBlobOrUrl } from "@/lib/client-stitch";
 import { SHOT_TYPES, STAGING_STYLES } from "@/lib/shot-types";
 import { VIBES } from "@/lib/vibes";
+import { SUNO_PRESETS, type SunoPreset } from "@/lib/suno-presets";
 import { toast } from "sonner";
 import type { ShotType, StagingStyle } from "@/lib/shot-types";
 import type { Vibe } from "@/lib/vibes";
@@ -44,26 +45,26 @@ const DFY_STYLES: DfyStylePreset[] = [
   {
     id: "editorial",
     title: "Editorial",
-    description: "Refined fashion-house typography. Serif price reveal. Slow, magazine-grade pacing.",
+    description: "Refined fashion-house typography. Serif price reveal. Slow magazine-grade pacing with 0.5s cross-dissolves.",
     shotRotation: ["slow_push", "architectural", "reveal_rise", "establishing", "parallax_pan", "drone_orbit"],
   },
   {
     id: "snappy",
     title: "Snappy",
-    description: "Bold caps, high-contrast yellow price, fast cuts. Built for TikTok and Reels feed.",
+    description: "Bold caps, high-contrast yellow price, sharp 0.3s wipe-left transitions. Built for TikTok and Reels feed.",
     shotRotation: ["parallax_pan", "drone_orbit", "slow_push", "reveal_rise", "establishing", "architectural"],
   },
   {
     id: "cinema",
     title: "Cinema",
-    description: "Letterboxed crops, restrained type, premium energy. Looks like a luxury auto ad.",
+    description: "Letterboxed crops, restrained type, 0.6s fade-through-black transitions. Looks like a luxury auto ad.",
     shotRotation: ["establishing", "drone_orbit", "slow_push", "architectural", "reveal_rise", "parallax_pan"],
   },
   {
     id: "minimal",
     title: "Minimal",
-    description: "Just the price chip. Nothing else. The reel does the talking.",
-    shotRotation: ["slow_push", "parallax_pan", "reveal_rise", "architectural", "establishing", "drone_orbit"],
+    description: "Slow camera moves only — gentle dolly, architectural slider, pull-back. 0.9s extra-long cubic-eased dissolves between every shot. Nothing snaps. Just price, just elegance.",
+    shotRotation: ["slow_push", "architectural", "establishing", "slow_push", "architectural", "establishing"],
   },
 ];
 type EffectId = "none" | "just_listed" | "open_house" | "for_sale" | "sold";
@@ -75,7 +76,46 @@ interface Photo {
   path?: string;  // storage path for gallery persistence (never expires)
 }
 
+// Category order is the marketing order: Done-For-You headlines, then the
+// other multi-photo + single-photo features. Floor Plan is dropped from
+// the homepage showcase but still available here for users who specifically
+// want it.
 const CATEGORY_CARDS = [
+  {
+    id: "done_for_you_reel" as const,
+    title: "Done-For-You Reel",
+    eyebrow: "★ MOST POPULAR · AUTO-STITCHED · 4 STYLES",
+    description: "Upload 3-6 photos in the order you want them to play. We render each as a cinematic clip then auto-stitch into one finished MP4 with your price and realtor name baked in. Editorial, Snappy, Cinema, or Minimal style.",
+    details: "15-30s · From 110 credits · Auto-stitched · Pick a style",
+  },
+  {
+    id: "listing_bundle" as const,
+    title: "The Listing Bundle",
+    eyebrow: "MULTI-PHOTO REEL · PER-CLIP DELIVERY",
+    description: "Upload 3-6 photos. We render each as a Seedance 2.0 cinematic clip and hand back the individual clips for you to mix in your editor.",
+    details: "15-30s · From 90 credits · Per-clip delivery",
+  },
+  {
+    id: "virtual_staging" as const,
+    title: "Virtual Staging",
+    eyebrow: "EMPTY ROOM TO FULLY FURNISHED",
+    description: "Upload one empty room photo. One 10-second cinematic film: the room dresses itself in your chosen style, then the camera glides through the finished space.",
+    details: "10s film · Single download · From 50 credits",
+  },
+  {
+    id: "sun_to_sun" as const,
+    title: "Sun-Up to Sundown",
+    eyebrow: "DAY-TO-DUSK · GOLDEN-HOUR TIMELAPSE",
+    description: "Upload one daytime exterior. We render a static-camera time-lapse through sunrise, golden hour, and dusk in a single 10-second clip.",
+    details: "10s film · Single download · From 60 credits",
+  },
+  {
+    id: "sketch_to_real" as const,
+    title: "Sketch to Reality",
+    eyebrow: "HAND-DRAWN REVEAL · SIGNATURE MOMENT",
+    description: "Upload your property photo. One 10-second cinematic film: a pencil sketch on a desk transforms into the real photo, then the camera reveals the space.",
+    details: "10s film · Single download · From 60 credits",
+  },
   {
     id: "animate_single" as const,
     title: "Animate Single",
@@ -84,45 +124,10 @@ const CATEGORY_CARDS = [
     details: "5–8 seconds · 1080p vertical · From 25 credits",
   },
   {
-    id: "sun_to_sun" as const,
-    title: "Sun-Up to Sundown",
-    eyebrow: "DAY-TO-DUSK · GOLDEN-HOUR TIMELAPSE",
-    description: "Upload one daytime exterior. We render three time-of-day frames (sunrise, golden hour, dusk) and stitch two cinematic transitions through them.",
-    details: "12s reel · 2 clips · From 60 credits",
-  },
-  {
-    id: "listing_bundle" as const,
-    title: "The Listing Bundle",
-    eyebrow: "MULTI-PHOTO REEL",
-    description: "Upload 3-6 photos. We render each as a Seedance 2.0 cinematic clip and hand back the individual clips for you to mix in your editor.",
-    details: "15-30s · From 90 credits · Per-clip delivery",
-  },
-  {
-    id: "done_for_you_reel" as const,
-    title: "Done-For-You Reel",
-    eyebrow: "DONE-FOR-YOU · AUTO-STITCHED · 4 STYLES",
-    description: "Upload 3-6 photos. We render each as a cinematic Seedance 2.0 clip, then auto-stitch into a single finished MP4 with your price, realtor name, location, and optional caption baked in via your chosen style preset. Editorial, Snappy, Cinema, or Minimal.",
-    details: "15-30s · From 110 credits · Auto-stitched · Pick a style",
-  },
-  {
-    id: "virtual_staging" as const,
-    title: "Virtual Staging",
-    eyebrow: "EMPTY ROOM TO FULLY FURNISHED",
-    description: "Upload one empty room photo. One 10-second cinematic film: the room dresses itself in your chosen style, then the camera glides through the finished space. No stitching — single download.",
-    details: "10s film · Single download · From 50 credits",
-  },
-  {
-    id: "sketch_to_real" as const,
-    title: "Sketch to Reality",
-    eyebrow: "PROPERTY PHOTO · HAND-DRAWN REVEAL",
-    description: "Upload your property photo. One 10-second cinematic film: a pencil sketch of the same property hand-drawn on a desk transforms into the real photo, then the camera reveals the space. Single download.",
-    details: "10s film · Single download · From 60 credits",
-  },
-  {
     id: "floor_plan_pan" as const,
     title: "Floor Plan to Walkthrough",
     eyebrow: "FLOOR PLAN · PHOTOREAL WALK-THROUGH",
-    description: "Upload a floor plan or axonometric drawing. One 10-second cinematic film: the plan transforms into a photoreal interior, then the camera moves through the space. Single download.",
+    description: "Upload a floor plan or axonometric drawing. One 10-second cinematic film: the plan transforms into a photoreal interior, then the camera moves through the space.",
     details: "10s film · Single download · From 30 credits",
   },
 ];
@@ -159,7 +164,24 @@ function calculateListingCost(category: ListingCategory, effectId: EffectId): nu
   return base;
 }
 
-export function ListingVideoFlow() {
+interface ListingVideoFlowProps {
+  /** Optional deep-link category — when set, the wizard skips Step 1 (category
+   *  picker) and lands directly on the upload step for that category. Used by
+   *  homepage/landing-page CTAs that send users to a specific feature. */
+  initialCategory?: ListingCategory | null;
+}
+
+const VALID_INITIAL_CATEGORIES: ListingCategory[] = [
+  "animate_single",
+  "sun_to_sun",
+  "listing_bundle",
+  "done_for_you_reel",
+  "virtual_staging",
+  "sketch_to_real",
+  "floor_plan_pan",
+];
+
+export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}) {
   const { user } = useAuth();
   const { credits, refreshCredits, deductCredits } = useCredits();
   const { isPaid } = useSubscriptionTier();
@@ -169,9 +191,16 @@ export function ListingVideoFlow() {
   const watermarkVisible = !isPaid || showBranding;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Honour ?category= deep-links so a CTA pointing at /video?mode=listing&category=
+  // done_for_you_reel jumps straight to the upload step for that feature.
+  const validInitial =
+    initialCategory && VALID_INITIAL_CATEGORIES.includes(initialCategory)
+      ? initialCategory
+      : null;
+
   // Wizard state
-  const [step, setStep] = useState(1);
-  const [category, setCategory] = useState<ListingCategory | null>(null);
+  const [step, setStep] = useState(validInitial ? 2 : 1);
+  const [category, setCategory] = useState<ListingCategory | null>(validInitial);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [shotType, setShotType] = useState<ShotType>("slow_push");
   const [effectId, setEffectId] = useState<EffectId>("none");
@@ -914,7 +943,7 @@ export function ListingVideoFlow() {
             <p className="lux-prose" style={{ color: "var(--lux-ash)" }}>
               {category === "animate_single" && "High-res horizontal or vertical photos work best."}
               {category === "sun_to_sun" && "A bright daytime exterior. We'll render it at sunrise, golden hour, and dusk."}
-              {(category === "listing_bundle" || category === "done_for_you_reel") && "Mix of exterior, interior, and detail shots. We'll stitch them into one reel."}
+              {(category === "listing_bundle" || category === "done_for_you_reel") && "Mix of exterior, interior, and detail shots. The order you upload is the order they'll play in the final reel — start with your strongest exterior, end with your statement room."}
               {category === "sketch_to_real" && "Upload the actual property photo (interior or exterior). We'll render a pencil sketch of the same scene being hand-drawn on a desk, then animate the sketch becoming real. Best with sharp, well-lit photos."}
               {category === "floor_plan_pan" && "Floor plans, axonometric drawings, or 3D-isometric room views all work. We'll render the plan as a photoreal interior, then move the camera through it."}
             </p>
@@ -1107,26 +1136,119 @@ export function ListingVideoFlow() {
                   />
                 </div>
 
-                {/* Music Vibe */}
+                {/* Music — Suno preset picker. Each preset is a copy-pasteable
+                    Suno prompt designed to produce a 15-second cinematic loop
+                    that matches the reel's visual style. */}
                 <div>
-                  <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-brass)" }}>
-                    MUSIC SUGGESTION
+                  <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-ink)", fontWeight: 700 }}>
+                    MUSIC · 30 SUNO PROMPTS
                   </label>
-                  <select
-                    value={musicVibe}
-                    onChange={(e) => setMusicVibe(e.target.value)}
-                    className="w-full px-5 py-4 lux-prose"
-                    style={{ border: "1px solid var(--lux-hairline)", background: "var(--lux-parchment)" }}
+                  <div
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1"
+                    style={{ border: "1px solid var(--lux-hairline-strong)", padding: "8px", background: "var(--lux-bone)" }}
                   >
-                    {MUSIC_OPTIONS.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
+                    {[
+                      { id: "no_music", label: "No music (you'll add yours)", description: "Skip — we'll deliver the reel silent so you can drop your own track.", prompt: "" },
+                      ...SUNO_PRESETS.map((p) => ({
+                        id: p.id,
+                        label: p.label,
+                        description: p.description,
+                        prompt: p.prompt,
+                        bestFor: (p as SunoPreset).bestFor,
+                      })),
+                    ].map((opt) => (
+                      <button
+                        type="button"
+                        key={opt.id}
+                        onClick={() => setMusicVibe(opt.label)}
+                        className="text-left p-3 transition-colors"
+                        style={{
+                          background: musicVibe === opt.label ? "var(--lux-ink)" : "var(--lux-bone)",
+                          color: musicVibe === opt.label ? "var(--lux-bone)" : "var(--lux-ink)",
+                          border: musicVibe === opt.label ? "1px solid var(--lux-ink)" : "1px solid var(--lux-hairline)",
+                        }}
+                      >
+                        <div className="lux-eyebrow" style={{ fontSize: "0.62rem", letterSpacing: "0.18em", fontWeight: 700 }}>
+                          {opt.label}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            opacity: 0.85,
+                            marginTop: 4,
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          {opt.description}
+                        </div>
+                        {(opt as any).bestFor && (
+                          <div
+                            className="lux-eyebrow"
+                            style={{
+                              fontSize: "0.55rem",
+                              letterSpacing: "0.16em",
+                              opacity: 0.65,
+                              marginTop: 6,
+                            }}
+                          >
+                            {(opt as any).bestFor}
+                          </div>
+                        )}
+                      </button>
                     ))}
-                  </select>
-                  <p style={{ fontSize: "0.875rem", color: "var(--lux-ash)", marginTop: "0.75rem" }}>
-                    We'll suggest royalty-free tracks for you to add in your editor.
-                  </p>
+                  </div>
+                  {(() => {
+                    const selected = SUNO_PRESETS.find((p) => p.label === musicVibe);
+                    if (!selected) {
+                      return (
+                        <p
+                          style={{ fontSize: "0.85rem", color: "var(--lux-ink)", opacity: 0.7, marginTop: "0.75rem" }}
+                        >
+                          We'll deliver your reel silent so you can drop your own track.
+                        </p>
+                      );
+                    }
+                    return (
+                      <div className="mt-3 p-4" style={{ border: "1px solid var(--lux-hairline-strong)", background: "var(--lux-cream)" }}>
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <span
+                            className="lux-eyebrow"
+                            style={{ color: "var(--lux-rust)", fontSize: "0.62rem", letterSpacing: "0.2em", fontWeight: 700 }}
+                          >
+                            SUNO PROMPT · COPY & PASTE INTO SUNO
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(selected.prompt);
+                              toast.success("Suno prompt copied — paste into suno.com to generate the track");
+                            }}
+                            className="lux-eyebrow inline-flex items-center gap-1.5 px-2.5 py-1.5"
+                            style={{
+                              background: "var(--lux-ink)",
+                              color: "var(--lux-bone)",
+                              fontSize: "0.6rem",
+                              letterSpacing: "0.18em",
+                            }}
+                          >
+                            COPY
+                          </button>
+                        </div>
+                        <p
+                          className="text-xs"
+                          style={{ color: "var(--lux-ink)", lineHeight: 1.55, fontFamily: "'Inter', sans-serif" }}
+                        >
+                          {selected.prompt}
+                        </p>
+                        <p
+                          className="lux-eyebrow"
+                          style={{ color: "var(--lux-ash)", fontSize: "0.55rem", letterSpacing: "0.18em", marginTop: 10 }}
+                        >
+                          BEST FOR · {selected.bestFor}
+                        </p>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Caption */}
@@ -1573,33 +1695,102 @@ export function ListingVideoFlow() {
           </div>
 
           {clipUrls.length > 1 && !stitchedUrl && (
-            <div className="mb-8 text-center space-y-3">
-              <div className="lux-eyebrow" style={{ color: "var(--lux-ash)" }}>
+            <div className="mb-8 space-y-4 text-center">
+              <div
+                className="lux-eyebrow inline-flex items-center gap-2 px-3 py-2"
+                style={{ color: "var(--lux-ink)", background: "var(--lux-cream)", border: "1px solid var(--lux-hairline-strong)" }}
+              >
                 ✦ {clipUrls.length}-CLIP REEL · {clipUrls.length * 5}s
               </div>
-              {musicVibe && musicVibe !== "No music (you'll add yours)" && ((category === "listing_bundle" || category === "done_for_you_reel") || category === "animate_single" || category === "sun_to_sun") && (
-                <div className="lux-prose text-sm" style={{ color: "var(--lux-brass)" }}>
-                  ♫ Suggested music: <span style={{ color: "var(--lux-ink)" }}>{musicVibe}</span> — drop a track in this style in your editor
+
+              {/* Step-by-step guidance — what to do next */}
+              <div
+                className="text-left mx-auto p-5"
+                style={{
+                  maxWidth: 540,
+                  background: "var(--lux-cream)",
+                  border: "1px solid var(--lux-hairline-strong)",
+                }}
+              >
+                <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-rust)", fontWeight: 700, fontSize: "0.65rem" }}>
+                  TO FINISH YOUR REEL — TWO STEPS
                 </div>
-              )}
+                <ol className="space-y-3">
+                  <li className="flex gap-3">
+                    <span
+                      className="lux-display"
+                      style={{
+                        color: "var(--lux-rust)",
+                        fontSize: "1.4rem",
+                        fontStyle: "italic",
+                        flexShrink: 0,
+                        lineHeight: 1,
+                        marginTop: 2,
+                      }}
+                    >
+                      I.
+                    </span>
+                    <div>
+                      <p style={{ color: "var(--lux-ink)", fontSize: "0.92rem", fontWeight: 600 }}>
+                        Press <span style={{ color: "var(--lux-rust)" }}>Stitch into Single MP4</span> below.
+                      </p>
+                      <p style={{ color: "var(--lux-ink)", opacity: 0.75, fontSize: "0.82rem", marginTop: 2 }}>
+                        We'll dissolve every clip together with a smooth cinematic transition and bake your price + realtor name in.
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex gap-3">
+                    <span
+                      className="lux-display"
+                      style={{
+                        color: "var(--lux-rust)",
+                        fontSize: "1.4rem",
+                        fontStyle: "italic",
+                        flexShrink: 0,
+                        lineHeight: 1,
+                        marginTop: 2,
+                      }}
+                    >
+                      II.
+                    </span>
+                    <div>
+                      <p style={{ color: "var(--lux-ink)", fontSize: "0.92rem", fontWeight: 600 }}>
+                        Add your music in your editor.
+                      </p>
+                      {musicVibe && musicVibe !== "No music (you'll add yours)" ? (
+                        <p style={{ color: "var(--lux-ink)", opacity: 0.75, fontSize: "0.82rem", marginTop: 2 }}>
+                          You picked <span style={{ color: "var(--lux-rust)", fontWeight: 600 }}>{musicVibe}</span>. Generate the track on Suno (the prompt was copied) then drop the WAV/MP3 onto the timeline in CapCut, Premiere, or Final Cut.
+                        </p>
+                      ) : (
+                        <p style={{ color: "var(--lux-ink)", opacity: 0.75, fontSize: "0.82rem", marginTop: 2 }}>
+                          Pick a Suno prompt from Step 3 (Music · 30 Suno Prompts), generate the track at suno.com, then drop the WAV/MP3 onto your timeline.
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                </ol>
+              </div>
+
               <button
                 onClick={handleStitchReel}
                 disabled={isStitching}
                 className="lux-btn mt-4"
                 style={{
-                  background: "var(--lux-brass)",
+                  background: "var(--lux-ink)",
                   color: "var(--lux-bone)",
-                  padding: "12px 24px",
+                  padding: "16px 32px",
+                  fontSize: "0.75rem",
+                  letterSpacing: "0.22em",
                   opacity: isStitching ? 0.6 : 1,
                 }}
               >
                 {isStitching ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 inline-block animate-spin" />
-                    Stitching…
+                    STITCHING…
                   </>
                 ) : (
-                  "Stitch into Single MP4"
+                  "STITCH INTO SINGLE MP4 →"
                 )}
               </button>
             </div>

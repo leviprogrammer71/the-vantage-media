@@ -20,39 +20,105 @@ const MODEL_SEEDANCE = "bytedance/seedance-1-pro"
 // Kling output and we standardise on the higher-quality model.
 const LONG_FORM_THRESHOLD_SECONDS = 0
 
-const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: string }> = {
+// ── SHOT LIBRARY ──
+// motionHint uses standard cinematography vocab Seedance/Kling were trained on:
+// dolly, pan, tilt, tracking, crane, arc, slider, rack focus. Each hint is one
+// declarative sentence — no double moves, no contradictions.
+//
+// pacing affects the timeline beat structure (slow shots get a longer settle,
+// medium pacing keeps the move in motion until the last beat).
+const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: string; pacing: "slow" | "medium" }> = {
   slow_push: {
     model: "kling",
-    motionHint: "Slow dolly camera push-in on the subject, steady and cinematic.",
+    motionHint: "Slow dolly push-in toward the subject from medium-wide to medium close. Gimbal-stabilized, no rotation, no roll.",
+    pacing: "slow",
   },
   drone_orbit: {
     model: "seedance",
-    motionHint: "Slow aerial orbit 60° around the subject at elevated angle, smooth drone motion.",
+    motionHint: "Slow aerial arc — drone orbits 60 degrees around the subject at elevated altitude, gimbal-stabilized, smooth circular path.",
+    pacing: "slow",
   },
   parallax_pan: {
     model: "kling",
-    motionHint: "Lateral parallax pan moving slowly left to right with foreground/background depth shift.",
+    motionHint: "Lateral parallax tracking shot moving slowly left to right, camera at eye level, foreground and background drift at different rates revealing depth.",
+    pacing: "medium",
   },
   reveal_rise: {
     model: "kling",
-    motionHint: "Camera rises vertically from low to eye height, revealing the composition.",
+    motionHint: "Crane up — camera rises vertically from low ground level to eye height, revealing the composition from the bottom up.",
+    pacing: "medium",
   },
   architectural: {
     model: "seedance",
-    motionHint: "Clean architectural slider pan, perfectly horizontal, no rotation.",
+    motionHint: "Clean architectural slider — perfectly horizontal lateral track, no rotation, no tilt, emphasizing symmetry and architectural lines.",
+    pacing: "slow",
   },
   establishing: {
     model: "seedance",
-    motionHint: "Slow pull-back dolly from tight composition to wide establishing shot.",
+    motionHint: "Slow pull-back dolly out from tight composition to a wide establishing frame. The space opens up as the camera retreats.",
+    pacing: "slow",
   },
 }
 
+// Build a timeline-prompted clip prompt. Seedance + Kling perform dramatically
+// better with explicit [0:00–0:0N] beats than with vague "first half / last
+// half" instructions. We open with a 1-second hold (locks the source frame),
+// run the camera move through the middle, and reserve the last beat for a
+// settle so the clip doesn't end mid-motion.
+function buildClipPrompt(
+  motionHint: string,
+  duration: number,
+  vibeLine: string,
+  pacing: "slow" | "medium" = "slow"
+): string {
+  const settleMark = pacing === "slow" ? Math.max(duration - 1, 3) : Math.max(duration - 1, 4)
+  const dd = (n: number) => String(n).padStart(2, "0")
+  // Stability cues at the END of the prompt — Seedance + Kling weight the
+  // tail of the prompt heavily for negative constraints. The "single primary
+  // camera instruction + slow / smooth / stable + gimbal" pattern is the
+  // research-backed jitter-prevention recipe.
+  return (
+    `Cinematic 9:16 vertical real-estate listing reel. 1080p photorealistic, magazine-quality. ` +
+    `[0:00–0:01] Open on the establishing frame; architecture, materials, lighting, and framing locked exactly to the source photo. ` +
+    `[0:01–0:${dd(settleMark)}] ${motionHint} Slow, smooth, stable, gimbal-stabilized motion — single deliberate move, no acceleration changes. ` +
+    `[0:${dd(settleMark)}–0:${dd(duration)}] Settle on the final composition and hold absolutely still. ` +
+    `Subject and architecture stay identical to the source throughout — no morphing, no invented rooms, no added people or animals, no weather change. ` +
+    `Stability constraints: avoid jitter, avoid camera shake, avoid handheld micro-wobble, avoid sudden direction changes, avoid frame drops, avoid flickering, avoid motion blur. ` +
+    `${vibeLine}`
+  )
+}
+
+// Sign overlay prompts. gpt-image-2 (and the nano-banana fallback) handle
+// typography reasoning best when given: subject, exact placement, sign anatomy
+// (post + panel + frame), typography brief, scale anchor, lighting match,
+// and what to leave unchanged. Order matters — placement first, look-and-feel
+// after, "do not modify the rest of the image" last.
 const EFFECT_PROMPTS: Record<string, string> = {
   none: "",
-  just_listed: "Add a clean, professional 'JUST LISTED' real estate yard sign on a metal post, planted upright in the lawn or grass in front of the property. White panel, dark serif text, in scale with the building. Photorealistic, evenly lit, sharp lettering.",
-  open_house: "Add a clean, professional 'OPEN HOUSE' sandwich-board sign on the entrance walkway. White panel, dark serif text, in scale with the property. Photorealistic, evenly lit, sharp lettering.",
-  for_sale: "Add a clean, professional 'FOR SALE' real estate yard sign on a metal post, planted upright in the lawn in front of the property. White panel, dark serif text, in scale with the building. Photorealistic, evenly lit, sharp lettering.",
-  sold: "Add a clean, professional 'SOLD' real estate yard sign — white panel with dark serif text and a bold red 'SOLD' banner across it — planted upright in the lawn. In scale with the building. Photorealistic, evenly lit, sharp lettering.",
+  just_listed:
+    "Add a single 'JUST LISTED' real estate yard sign in the lawn directly in front of the property, post planted upright at ground level, panel facing the camera. " +
+    "Sign anatomy: rigid white aluminum panel approximately 24 inches wide by 18 inches tall, mounted on a 4-foot black metal post with a small finial cap. " +
+    "Typography: 'JUST LISTED' set in clean dark navy serif capitals, evenly weighted, perfectly sharp, no kerning errors, no double letters. Optional small brokerage placeholder line below in lighter text. " +
+    "Scale: post height roughly equal to a fire hydrant, sign panel about waist-high. Cast a soft realistic shadow on the grass matching the existing sun direction. " +
+    "Match the photo's lighting, white balance, and depth of field exactly. Do not alter the building, landscaping, sky, or any other element of the image.",
+  open_house:
+    "Add a single 'OPEN HOUSE' A-frame sandwich-board sign on the entrance walkway, just before the front door, panel angled 30° toward the camera. " +
+    "Sign anatomy: white-painted timber A-frame, sturdy and matte, approximately 36 inches tall, both faces showing the same text. " +
+    "Typography: 'OPEN HOUSE' in bold dark navy serif capitals across the top, with a sharp narrow 'THIS WEEKEND' line beneath in a thinner italic. Letters perfectly crisp, no fuzz, no doubled glyphs. " +
+    "Scale: knee-high, fits naturally on the walkway without obstructing the front entrance. Cast a soft realistic shadow on the path matching the existing sun direction. " +
+    "Match the photo's lighting, white balance, and depth of field exactly. Do not alter the building, landscaping, sky, or any other element of the image.",
+  for_sale:
+    "Add a single 'FOR SALE' real estate yard sign in the lawn in front of the property, post planted upright at ground level, panel facing the camera. " +
+    "Sign anatomy: rigid white aluminum panel approximately 24 inches wide by 18 inches tall, mounted on a 4-foot black metal post with a small finial cap. " +
+    "Typography: 'FOR SALE' set in clean dark navy serif capitals, evenly weighted, perfectly sharp, no kerning errors, no double letters. Small brokerage placeholder line below in lighter weight. " +
+    "Scale: post height roughly equal to a fire hydrant, sign panel about waist-high. Cast a soft realistic shadow on the grass matching the existing sun direction. " +
+    "Match the photo's lighting, white balance, and depth of field exactly. Do not alter the building, landscaping, sky, or any other element of the image.",
+  sold:
+    "Add a single 'SOLD' real estate yard sign in the lawn in front of the property, post planted upright at ground level, panel facing the camera. " +
+    "Sign anatomy: rigid white aluminum panel approximately 24 inches wide by 18 inches tall on a 4-foot black metal post, with a bold red diagonal 'SOLD' banner riding across the panel. " +
+    "Typography: 'SOLD' in heavy white serif capitals on the red banner, perfectly crisp, no fuzz. Smaller brokerage placeholder line in dark navy serif beneath the banner. " +
+    "Scale: post height roughly equal to a fire hydrant. Cast a soft realistic shadow on the grass matching the existing sun direction. " +
+    "Match the photo's lighting, white balance, and depth of field exactly. Do not alter the building, landscaping, sky, or any other element of the image.",
 }
 
 const QUICK_EFFECT_BADGES: Record<string, { label: string; color: string }> = {
@@ -62,13 +128,42 @@ const QUICK_EFFECT_BADGES: Record<string, { label: string; color: string }> = {
   sold: { label: "SOLD", color: "#0E0E0C" },
 }
 
+// Staging style libraries. Each preset names exact materials (with finish
+// callouts), exact placement zones (center, against the longest wall, etc.),
+// and a one-line lighting cue so Seedance can render the right diffuse vs.
+// directional light. Specificity drives realism — vague descriptions read as
+// AI slop, named materials read as a photographer's brief.
 const STAGING_STYLES: Record<string, string> = {
-  modern: "Clean architectural lines, neutral palette of warm white and grey, brushed metal and matte black accents, mid-tone oak floors. Low-profile sofa in linen, glass coffee table, sculptural floor lamp, framed abstract art, one large potted fiddle-leaf fig.",
-  mid_century: "Walnut tones throughout, low-profile teak credenza, tapered legs, atomic-era ceramics, mustard and teal accents. Boucle armchair, geometric area rug, sunburst wall clock, rounded ceramic table lamp.",
-  coastal: "White linen, weathered driftwood, soft sea blues and sandy beiges, woven jute textures. White slipcovered sofa, rope-and-glass pendant, framed shoreline photography, ceramic vase with dried beach grass.",
-  farmhouse: "Shiplap walls, distressed reclaimed wood, vintage iron fixtures, cream-and-forest-green palette. Slipcovered linen sofa, barn-wood coffee table, woven basket, mason-jar lighting, simple cotton throw.",
-  luxury_modern: "Marble and unlacquered brass, deep velvet sofa, sculptural pendant lighting, deep navy and warm gold palette, lacquered surfaces. Black-veined marble coffee table, Italian leather lounge chair, oversized abstract canvas, fluted wood console.",
-  scandinavian: "White walls, blonde oak floors, layered wool throws, minimal furnishings, abundant natural light. Cream linen sofa, oak nesting tables, simple paper-shade pendant, framed graphic prints, one large monstera in a stoneware pot.",
+  modern:
+    "Modern minimalist palette: warm white walls, mid-tone European oak floor, brushed nickel and matte black accents. " +
+    "Furniture: low-profile linen sofa centered against the longest wall, smoked-glass coffee table on a flat-weave wool rug in front of it, sculptural matte-black arc floor lamp arching over the sofa, framed abstract canvas above the sofa back. " +
+    "Accents: one large potted fiddle-leaf fig in a stoneware pot in the corner, two ceramic vessels on the coffee table. " +
+    "Lighting: cool diffuse daylight from the existing windows, soft fill, no hard shadows.",
+  mid_century:
+    "Mid-century modern palette: walnut tones throughout, mustard and teal accents on a cream backdrop. " +
+    "Furniture: low-profile teak credenza on tapered hairpin legs against the longest wall, boucle armchair angled into the room with a small walnut side table, geometric wool area rug centered under the seating. " +
+    "Accents: sunburst wall clock above the credenza, rounded ceramic table lamp on the credenza, atomic-era pottery in mustard and teal. " +
+    "Lighting: warm afternoon side light rakes across the walnut grain, exposing wood texture and ceramic glaze.",
+  coastal:
+    "Coastal palette: weathered driftwood, soft sea blue, sandy beige, layered jute and white linen. " +
+    "Furniture: white slipcovered sofa with linen weave centered against the longest wall, weathered-driftwood coffee table on a chunky woven jute rug, slim raffia armchair angled into the room. " +
+    "Accents: rope-and-clear-glass pendant overhead, framed black-and-white shoreline photography in a whitewashed timber frame, ceramic vase with dried beach grass on the coffee table. " +
+    "Lighting: bright soft diffuse light, slight sun-warm cast, gauzy linen sheers softening the windows.",
+  farmhouse:
+    "Modern farmhouse palette: shiplap accent walls, distressed reclaimed-wood beams, cream and forest green, vintage matte-iron fixtures. " +
+    "Furniture: slipcovered cream linen sofa centered against the longest wall, barn-wood coffee table on a hand-loomed cotton rug, woven-rush armchair angled in. " +
+    "Accents: oversized woven basket beside the sofa, mason-jar pendant lighting, simple cream cotton throw draped over the sofa arm. " +
+    "Lighting: soft warm tungsten interior light supplemented by daylight, gentle long shadows on the shiplap.",
+  luxury_modern:
+    "Luxury modern palette: deep navy, warm gold, ink-veined Calacatta marble, unlacquered brass, lacquered black surfaces. " +
+    "Furniture: deep navy velvet sofa with channel tufting centered against the longest wall, black-veined Calacatta marble coffee table on a high-pile cream wool rug, single Italian-leather lounge chair angled in cognac. " +
+    "Accents: sculptural alabaster pendant overhead, fluted ribbed-wood console along the side wall, oversized abstract canvas above the sofa, unlacquered brass picture light. " +
+    "Lighting: low-angle warm golden side light, deep shadows on velvet pile, controlled highlights on the marble veining and brass.",
+  scandinavian:
+    "Scandinavian palette: bright white walls, blonde oak floors, soft greys, layered creamy wool, abundant natural light. " +
+    "Furniture: cream linen sofa with rounded arms centered against the longest wall, two blonde-oak nesting tables in front, single bouclé accent chair angled into the room. " +
+    "Accents: tall paper-shade floor lamp beside the sofa, three framed graphic black-and-white prints in a clean grid above the sofa, one large monstera in a matte-stoneware pot. " +
+    "Lighting: high-key diffuse daylight, almost shadowless, gentle warm bounce from the oak floor.",
 }
 
 async function pollReplicate(predictionId: string, maxAttempts = 120): Promise<string> {
@@ -93,22 +188,27 @@ async function pollReplicate(predictionId: string, maxAttempts = 120): Promise<s
 }
 
 // ── Vibe → cinematic suffix mapping (single source of truth) ──
+// Each suffix is a four-element brief: lens/depth, lighting quality + colour
+// temperature, motion grammar, finishing aesthetic. Drawn from the
+// Higgsfield / Veo / Seedance prompt guides — naming optical specifics like
+// "shallow depth of field at f/1.8" and "anamorphic widescreen flares" gives
+// the model concrete visual targets that vague mood words don't.
 function vibeSuffix(vibe: string): string {
   switch (vibe) {
     case "luxury":
-      return "Luxury aesthetic, golden-hour warm light, shallow depth of field, slow deliberate motion, editorial magazine cinematic quality."
+      return "Shot on a full-frame cinema camera with a 35mm prime at f/2 — shallow depth of field, creamy bokeh on backgrounds. Golden-hour warm light at 3200K raking across architectural surfaces, deep saturated shadows, controlled specular highlights on metal and stone. Slow deliberate motion. Editorial magazine cinematic finish."
     case "cozy":
-      return "Cozy intimate atmosphere, warm interior tungsten light, soft shadows, lived-in feel, gentle camera movement."
+      return "Shot on a 50mm prime at f/2.8 — natural depth of field, faces and textures in tactile focus. Warm interior tungsten light at 2700K, soft long shadows, low-key fill. Gentle hand-felt camera movement. Lived-in domestic warmth, slight film grain finish."
     case "modern":
-      return "Modern minimalist aesthetic, cool daylight, crisp architectural lines, contemporary design language, clean motion."
+      return "Shot on a 24mm wide prime at f/4 — sharp edge-to-edge, architectural lines crisp. Cool diffuse daylight at 5600K, almost shadowless, clean white balance. Smooth gimbal motion in a single direction. Contemporary minimalist finish, high contrast on geometry."
     case "family":
-      return "Bright friendly atmosphere, midday natural light, family-oriented warmth, welcoming, approachable cinematic feel."
+      return "Shot on a 35mm at f/2.8 — natural perspective, gentle depth of field. Bright midday natural light at 5000K, soft fill from off-camera bounce, no hard shadows. Steady eye-level motion, no parallax distortion. Welcoming approachable finish, slight warmth in the highlights."
     case "investment":
-      return "Practical real-estate showcase, neutral even lighting, emphasis on layout and space, professional documentary style."
+      return "Shot on a 28mm at f/5.6 — deep depth of field, every detail of layout legible. Neutral even lighting at 5200K, no directional drama. Steady documentary motion. Professional real-estate showcase finish — no film grain, no colour grading flourish."
     case "vacation":
-      return "Vacation resort aesthetic, sunset warm palette, light breeze in foliage, escapist holiday mood, smooth gimbal-style motion."
+      return "Shot on a 35mm at f/2 — shallow depth of field, atmospheric backgrounds. Sunset warm palette at 3000K with hot horizon glow, gentle haze, sun flare across foliage. Smooth gimbal motion with light breeze in branches and grasses. Escapist resort finish, lightly warm-graded."
     default:
-      return "Editorial magazine cinematic quality, warm natural light, slow deliberate motion."
+      return "Shot on a 35mm prime at f/2.8 — natural depth of field. Warm diffuse natural light at 3800K, soft shadows. Slow deliberate motion. Editorial magazine cinematic finish."
   }
 }
 
@@ -361,11 +461,11 @@ async function startVideoGeneration(
   // Auto-promote long-form clips to Seedance 2.0 even when the shot type defaults to Kling
   const useSeedance = config.model === "seedance" || duration >= LONG_FORM_THRESHOLD_SECONDS
 
-  // Tight prompt: camera move + scene = listing reel. Locked subject (no morphing,
-  // no invented rooms) is the most important constraint — keep it last so the
-  // model weights it heavily.
-  const prompt = `${config.motionHint} Cinematic 9:16 vertical real-estate listing reel. Photorealistic, magazine-quality. Smooth physically-plausible camera motion only. Subject, architecture, and lighting stay locked exactly as in the source frame.`
-  const negativePrompt = "Invented rooms, new objects, added people or animals, weather changes, morphing or warping geometry, flickering, motion blur, floating objects, lighting changes, added reflections, ghost trails, duplicated surfaces."
+  // Timeline-prompted: explicit [0:00–0:0N] beats guide Seedance/Kling to a
+  // controlled open → move → settle structure. Removes the lingering tail that
+  // shows up when the model improvises pacing.
+  const prompt = buildClipPrompt(config.motionHint, duration, vibeSuffix("luxury"), config.pacing)
+  const negativePrompt = "Invented rooms, new objects, added people or animals, weather changes, morphing or warping geometry, flickering, motion blur, floating objects, lighting changes, added reflections, ghost trails, duplicated surfaces, fast motion, jitter, camera shake."
 
   const endpoint = useSeedance
     ? `${REPLICATE}/models/${MODEL_SEEDANCE}/predictions`
@@ -678,14 +778,16 @@ serve(async (req) => {
     if (category === "sun_to_sun") {
       const exteriorUrl = photo_urls[0]
 
+      // Timeline-prompted day cycle. Each phase gets its own dedicated beat
+      // so the model commits to the full sunrise → golden → dusk arc instead
+      // of dwelling in one phase and dropping the others.
       const dayCyclePrompt =
-        "Cinematic real-estate time-lapse: the same exterior scene transitions smoothly through a full day cycle. " +
-        "Open at SUNRISE — soft pink-and-amber sky, sun just above the eastern horizon, long cool shadows pointing west. " +
-        "Mid-clip moves through GOLDEN HOUR — warm orange light raking across the building, shadows lengthening across the lawn, sky shifting amber to pink. " +
-        "Closes at DUSK / BLUE HOUR — sky in deep cobalt with a warm horizon glow, interior windows beginning to glow warm yellow from inside. " +
-        "Sun arcs continuously across the sky, shadows track its motion, light temperature warms then cools. " +
-        "No camera movement — static lock-off. Architecture, landscaping, framing all stay identical to the source. " +
-        "1080p photorealistic, magazine-quality, smooth physically-plausible lighting transition."
+        "Cinematic 9:16 vertical real-estate time-lapse. 1080p photorealistic, magazine-quality. Static lock-off camera — no movement, no zoom, no parallax. " +
+        "[0:00–0:02] SUNRISE: soft pink-and-amber sky, sun just above the eastern horizon, long cool blue shadows pointing west across the lawn. " +
+        "[0:02–0:05] Sun arcs across the sky toward the south. Light warms into GOLDEN HOUR — orange tones rake across the building, shadows compress and warm, sky shifts from amber to deep gold. " +
+        "[0:05–0:08] Late golden hour transitions into BLUE HOUR / DUSK — sky deepens to cobalt with a warm horizon glow, ambient light cools, building begins to silhouette. " +
+        "[0:08–0:10] Full dusk — interior windows glow warm yellow from inside, exterior reads as a dark blue silhouette with a warm-light interior. " +
+        "Architecture, landscaping, foliage, and framing all stay identical to the source throughout. Sun motion is continuous — no jump cuts, no flicker, no camera shake."
 
       console.log("[sun_to_sun] kicking off single Seedance 2.0 day-cycle prediction (10s)")
       const result = await startSeedanceFromImage(
@@ -834,16 +936,18 @@ serve(async (req) => {
       // Single Seedance call handles the entire transformation — no separate
       // gpt-image-2 staging step. The style prompt drives the furnishing.
 
-      // SINGLE 10s Seedance 2.0 clip — covers the full transformation in one shot.
-      // First half: empty room dresses itself with furniture and decor settling
-      // into place. Second half: slow camera push-in through the now-styled space.
-      // No stitching needed — the prompt describes both phases inside one render.
+      // SINGLE 10s Seedance 2.0 clip — timeline-prompted so the dressing phase
+      // FINISHES by 0:04 and the camera move owns the back half. Without an
+      // explicit completion beat the model lingers in transformation through
+      // the full ten seconds and we never see a fully-styled reveal.
       const fullTransformPrompt =
-        `Cinematic 9:16 vertical real-estate reel. First five seconds: an empty, undressed interior room becomes fully styled. ` +
-        `Furniture, area rug, lamps, art, and decor lift smoothly into their final positions. Soft natural light warms the room. ${stylePrompt} ` +
-        `Last five seconds: a slow dolly camera push-in through the now-styled interior, revealing the finished composition. ` +
+        `Cinematic 9:16 vertical real-estate reel. 1080p photorealistic, magazine-quality interior styling. ` +
+        `[0:00–0:01] Hold on the empty, undressed source room. Walls, windows, doors, floors, ceiling locked to the source frame. ` +
+        `[0:01–0:04] The room dresses itself: furniture, area rug, lamps, art, throw pillows, and decor lift smoothly into their final positions. ${stylePrompt} ` +
+        `[0:04–0:05] Dressing completes — every object settles, soft natural light warms the room, the styling is now fully resolved. No further objects move into place after this beat. ` +
+        `[0:05–0:10] Slow dolly camera push-in through the now-styled interior. Gimbal-stabilized. Reveal the finished composition. ` +
         `Walls, windows, doors, floors, ceiling, and architectural features stay locked exactly as in the source throughout. ` +
-        `1080p photorealistic, magazine-quality interior styling. Smooth physically-plausible motion. ${vibePromptSuffix}`
+        `Smooth physically-plausible motion, single deliberate camera move. ${vibePromptSuffix}`
 
       console.log("[virtual_staging] kicking off SINGLE 10s Seedance dressing+walkthrough")
       const result = await startSeedanceFromImage(
@@ -908,26 +1012,48 @@ serve(async (req) => {
       const propertyPhotoUrl = photo_urls[0]
       const vibeLine = vibeSuffix(selectedVibe)
 
-      // Step 1: nano-banana — generate the sketch-on-desk version of the property
+      // Step 1: nano-banana — generate the sketch-on-desk version of the property.
+      // Highly specific: paper grade, pencil grade, hand position, desk material,
+      // and lighting all named. nano-banana renders sketch + photoreal hybrids
+      // best when given an explicit physical-scene brief instead of an abstract
+      // "architectural sketch" prompt.
       const sketchPrompt = sketch_intent === "interior"
-        ? `Generate a version of the reference image as a pencil architectural sketch on a piece of paper sitting on a wooden desk, with a person's right hand holding a pencil drawing it. The sketch shows the same interior room from the reference image, in clean architectural pencil-sketch style with shading and perspective. Warm desk lighting, shallow depth of field, photorealistic — but the drawing on the paper is a hand-drawn pencil sketch.`
-        : `Generate a version of the reference image as a pencil architectural sketch on a piece of paper sitting on a wooden desk, with a person's right hand holding a pencil drawing it. The sketch shows the same building exterior from the reference image, in clean architectural pencil-sketch style with shading and perspective. Warm desk lighting, shallow depth of field, photorealistic — but the drawing on the paper is a hand-drawn pencil sketch.`
+        ? `Generate a photograph: a piece of warm-cream A3 architectural drafting paper sits on a polished walnut desk, slightly off-centre. ` +
+          `On the paper is a clean 2H pencil architectural sketch of the interior room shown in the reference image — same room, same proportions, same window placements, same key furniture positions. ` +
+          `Sketch style: confident architect's hand, single weight pencil lines, light cross-hatching for shading, soft perspective lines visible at the edges, no colour. ` +
+          `A person's right hand enters from the bottom-right of the frame, holding a graphite pencil with the tip currently touching one of the lines as if mid-stroke. The hand is bare, relaxed, photographed sharply. ` +
+          `Desk surroundings: a mug of coffee just out of focus in the upper-left, a small architect's scale ruler at the top edge, a brass desk lamp casting warm 2900K directional light from the upper-left. ` +
+          `Camera: top-down 3/4 angle, 50mm lens equivalent, shallow depth of field on the pencil tip, paper edges sharp, desk softly defocused. Photoreal background, hand-drawn sketch on the paper.`
+        : `Generate a photograph: a piece of warm-cream A3 architectural drafting paper sits on a polished walnut desk, slightly off-centre. ` +
+          `On the paper is a clean 2H pencil architectural sketch of the building exterior shown in the reference image — same façade, same proportions, same window and door placements, same rooflines. ` +
+          `Sketch style: confident architect's hand, single weight pencil lines, light cross-hatching for stone or siding texture, perspective lines visible at the edges, no colour. ` +
+          `A person's right hand enters from the bottom-right of the frame, holding a graphite pencil with the tip currently touching one of the lines as if mid-stroke. The hand is bare, relaxed, photographed sharply. ` +
+          `Desk surroundings: a mug of coffee just out of focus in the upper-left, a small architect's scale ruler at the top edge, a brass desk lamp casting warm 2900K directional light from the upper-left. ` +
+          `Camera: top-down 3/4 angle, 50mm lens equivalent, shallow depth of field on the pencil tip, paper edges sharp, desk softly defocused. Photoreal background, hand-drawn sketch on the paper.`
 
       console.log("[sketch_to_real] generating sketch-on-desk via nano-banana")
       const sketchOnDeskUrl = await generateSketchWithNanoBanana(propertyPhotoUrl, sketchPrompt, REPLICATE_TOKEN)
 
-      // SINGLE 10s Seedance 2.0 clip — sketch-on-desk morphs into the real
-      // property AND the camera pushes through it, all in one render. No
-      // stitching, no codec mismatch, no second Replicate call.
+      // SINGLE 10s Seedance 2.0 clip — timeline-prompted to FORCE the sketch-
+      // to-real morph to complete by 0:04. The user's previous complaint was
+      // "transition was too slow" — that was the model improvising pacing. By
+      // marking the morph as complete at a specific beat, the model commits
+      // to the transformation and gives us a clean reveal in the back half.
       const fullSketchPrompt = sketch_intent === "interior"
-        ? `Cinematic 9:16 vertical reel. First five seconds: a pencil architectural sketch on a wooden desk gradually fills with colour, light, and texture as it transforms into the photorealistic interior it depicts. Pencil shading fades, walls gain materials, light fills the room, furniture settles into place. Hand and desk dissolve gently. ` +
-          `Last five seconds: a slow dolly camera push-in through the now-photoreal interior, revealing the finished space. ` +
-          `Architectural geometry from the drawing — wall lines, window placements, room proportions — stays anchored throughout. ` +
-          `1080p photorealistic, magazine-quality, smooth physically-plausible motion. ${vibeLine}`
-        : `Cinematic 9:16 vertical reel. First five seconds: a pencil architectural sketch on a wooden desk gradually fills with realistic materials, sky, and landscaping as it transforms into the photoreal building exterior it depicts. Hand and desk dissolve gently. ` +
-          `Last five seconds: a slow cinematic move across the now-photoreal exterior, revealing the finished composition. ` +
-          `Façade geometry from the drawing — window placements, rooflines, massing — stays anchored throughout. ` +
-          `1080p photorealistic, magazine-quality, smooth physically-plausible motion. ${vibeLine}`
+        ? `Cinematic 9:16 vertical real-estate reel. 1080p photorealistic, magazine-quality. ` +
+          `[0:00–0:01] Hold on the pencil architectural sketch sitting on a wooden desk, person's right hand drawing with a pencil. Warm desk lighting. ` +
+          `[0:01–0:04] The sketch on the paper fills with colour, light, texture, and materials as it morphs into the photorealistic interior it depicts. Pencil shading dissolves into real surfaces, walls gain texture, daylight floods through windows, furniture settles into place. The desk and the drawing hand dissolve and fade out completely. ` +
+          `[0:04–0:05] Transition completes — the frame is now a fully photoreal interior. No trace of pencil lines, paper, desk, or hand remains. The styling is fully resolved. ` +
+          `[0:05–0:10] Slow dolly camera push-in through the now-photoreal interior, gimbal-stabilized, revealing the finished space. ` +
+          `Architectural geometry from the original drawing — wall lines, window placements, room proportions — stays anchored throughout. ` +
+          `Smooth physically-plausible motion, single deliberate camera move. ${vibeLine}`
+        : `Cinematic 9:16 vertical real-estate reel. 1080p photorealistic, magazine-quality. ` +
+          `[0:00–0:01] Hold on the pencil architectural sketch sitting on a wooden desk, person's right hand drawing with a pencil. Warm desk lighting. ` +
+          `[0:01–0:04] The sketch on the paper fills with realistic materials, sky, foliage, and landscaping as it morphs into the photoreal building exterior it depicts. Pencil shading dissolves into siding, brick, glass, and roof materials. The desk and the drawing hand dissolve and fade out completely. ` +
+          `[0:04–0:05] Transition completes — the frame is now a fully photoreal exterior. No trace of pencil lines, paper, desk, or hand remains. ` +
+          `[0:05–0:10] Slow cinematic move across the now-photoreal exterior — gentle parallax tracking shot — revealing the finished composition. ` +
+          `Façade geometry from the original drawing — window placements, rooflines, massing — stays anchored throughout. ` +
+          `Smooth physically-plausible motion, single deliberate camera move. ${vibeLine}`
 
       console.log("[sketch_to_real] kicking off SINGLE 10s Seedance morph+reveal")
       const result = await startSeedanceFromImage(
@@ -983,14 +1109,19 @@ serve(async (req) => {
       const floorPlanUrl = photo_urls[0]
       const vibeLine = vibeSuffix(selectedVibe)
 
-      // SINGLE 10s Seedance 2.0 clip — floor plan morphs into photoreal interior
-      // AND the camera moves through it, all in one render. No stitching.
-      const cameraHint = SHOT_CONFIG[selectedShotType]?.motionHint || "Slow dolly camera push-in, steady and cinematic."
+      // Timeline-prompted floor plan morph. The drawing → photoreal transition
+      // is resolved by 0:04 so the camera move owns the back half. Drafting
+      // lines that linger past 0:04 ruin the magic — by fixing a hard
+      // completion beat we get a clean, fully-realized interior reveal.
+      const cameraHint = SHOT_CONFIG[selectedShotType]?.motionHint || "Slow dolly camera push-in, gimbal-stabilized."
       const fullFloorPlanPrompt =
-        `Cinematic 9:16 vertical reel. First five seconds: this 2D architectural floor plan / axonometric drawing transforms into a fully photorealistic, magazine-quality interior of the same room. ` +
-        `Drafting lines fade as walls gain texture, daylight fills windows, floor materials reveal grain, furniture lifts and settles into place. Architectural geometry from the drawing stays anchored. ` +
-        `Last five seconds: ${cameraHint.toLowerCase()} The camera moves through the now-photoreal interior, revealing the finished space. ` +
-        `1080p photorealistic, smooth physically-plausible motion. ${vibeLine}`
+        `Cinematic 9:16 vertical real-estate reel. 1080p photorealistic, magazine-quality. ` +
+        `[0:00–0:01] Hold on the 2D architectural floor plan / axonometric drawing exactly as in the source. Drafting linework, room labels, dimension lines all visible. ` +
+        `[0:01–0:04] The drawing transforms into a fully photorealistic interior of the same room. Drafting lines dissolve, walls gain texture and material, daylight floods through windows, floor materials reveal grain, furniture lifts and settles into final positions. ` +
+        `[0:04–0:05] Transformation completes — the space is now a fully photoreal magazine-quality interior. No drafting marks, dimension lines, or labels remain. The space is fully resolved. ` +
+        `[0:05–0:10] ${cameraHint} The camera moves through the now-photoreal interior, revealing the finished space. ` +
+        `Architectural geometry from the drawing — wall positions, door and window placements, room proportions — stays anchored throughout. ` +
+        `Smooth physically-plausible motion, single deliberate camera move. ${vibeLine}`
 
       console.log("[floor_plan_pan] kicking off SINGLE 10s Seedance morph+walkthrough")
       const result = await startSeedanceFromImage(

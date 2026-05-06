@@ -131,7 +131,7 @@ const Share = () => {
             <img src={logo} alt="The Vantage" className="h-8" />
           </Link>
           <Button asChild size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
-            <Link to="/login?returnUrl=/video?mode=transform">
+            <Link to="/login?returnUrl=/video?mode=listing">
               Create your own <ExternalLink className="h-3.5 w-3.5 ml-1" />
             </Link>
           </Button>
@@ -284,7 +284,7 @@ const Share = () => {
               Create cinematic transformation videos from your after photos. Powered by Kling 2.5 Turbo Pro. Ready in minutes.
             </p>
             <Button asChild size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-bold">
-              <Link to="/login?returnUrl=/video?mode=transform">CREATE YOUR OWN VIDEO →</Link>
+              <Link to="/login?returnUrl=/video?mode=listing">CREATE YOUR OWN VIDEO →</Link>
             </Button>
           </div>
 

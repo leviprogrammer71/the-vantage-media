@@ -35,7 +35,7 @@ const ux = {
 };
 
 const Index = () => {
-  const { destination, isLoggedIn } = useSmartCTA();
+  const { destination, destinationFor, isLoggedIn } = useSmartCTA();
 
   // Live counter: base 47 + 3 per hour since midnight
   const [liveCount, setLiveCount] = useState(47);
@@ -106,6 +106,263 @@ const Index = () => {
               "Forbes Real Estate",
             ]}
           />
+
+          {/* THE PITCH — One-stop shop for social listing content. The whole company in one paragraph. */}
+          <section className="lux-section lux-bg-ink lux-grain" style={{ color: "var(--lux-bone)" }}>
+            <div className="lux-container">
+              <div className="grid lg:grid-cols-12 gap-10 lg:gap-16 items-center">
+                <div className="lg:col-span-7">
+                  <div className="lux-eyebrow mb-6 flex items-center gap-3" style={{ color: "var(--lux-champagne)" }}>
+                    <span style={{ display: "inline-block", width: 36, height: 1, background: "var(--lux-champagne)" }} />
+                    THE PITCH · ONE-STOP SHOP
+                  </div>
+                  <h2 className="lux-display" style={{ fontSize: "clamp(2.5rem, 7vw, 6rem)", lineHeight: 0.94, letterSpacing: "-0.022em", color: "var(--lux-bone)" }}>
+                    Your listing photos.
+                    <br />
+                    <span className="lux-display-italic" style={{ color: "var(--lux-champagne)" }}>Every social format,</span>
+                    <br />
+                    in three minutes.
+                  </h2>
+                  <p
+                    className="lux-prose mt-8"
+                    style={{ color: "rgba(244,239,230,0.86)", maxWidth: 560, fontSize: "1.05rem", lineHeight: 1.6 }}
+                  >
+                    You shoot the listing. We turn each photo into a scroll-stopping cinematic clip — vertical, 1080p, ready to <span style={{ color: "var(--lux-champagne)", fontStyle: "italic" }}>post on your story, push to your feed, paste into your Reels grid, send to your client.</span> One photo, six camera moves. Six photos, one stitched reel. A done-for-you video package every time you list.
+                  </p>
+                  <div className="mt-10 flex flex-wrap gap-4 items-center">
+                    <Link to={destinationFor("done_for_you_reel")} className="lux-btn lux-btn-bone">
+                      START WITH DONE-FOR-YOU REEL →
+                    </Link>
+                    <Link
+                      to={destination}
+                      className="lux-eyebrow inline-flex items-center gap-3"
+                      style={{ color: "var(--lux-bone)" }}
+                    >
+                      <span style={{ display: "inline-block", width: 24, height: 1, background: "var(--lux-bone)" }} />
+                      EXPLORE ALL FEATURES
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Right column — vertical phone-mockup grid showing where the videos live */}
+                <div className="lg:col-span-5">
+                  <div
+                    className="grid grid-cols-3 gap-2"
+                    style={{ aspectRatio: "3/4" }}
+                  >
+                    {[
+                      { label: "STORY", src: "/vantage/listing-bundle/1.mp4", poster: "/vantage/listing-bundle/1.webp" },
+                      { label: "REELS", src: "/vantage/listing-bundle/2.mp4", poster: "/vantage/listing-bundle/2.webp" },
+                      { label: "FEED", src: "/vantage/listing-bundle/3.mp4", poster: "/vantage/listing-bundle/3.webp" },
+                      { label: "TIKTOK", src: "/vantage/listing-bundle/4.mp4", poster: "/vantage/listing-bundle/4.webp" },
+                      { label: "DM", src: "/vantage/listing-bundle/5.mp4", poster: "/vantage/listing-bundle/5.webp" },
+                      { label: "MLS", src: "/vantage/listing-bundle/6.mp4", poster: "/vantage/listing-bundle/6.webp" },
+                    ].map((p, i) => (
+                      <div
+                        key={i}
+                        className="relative overflow-hidden"
+                        style={{ aspectRatio: "9/16", background: "var(--lux-ink)", border: "1px solid rgba(244,239,230,0.12)" }}
+                      >
+                        <img
+                          src={p.poster}
+                          alt={`${p.label} placement`}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        <video
+                          src={p.src}
+                          poster={p.poster}
+                          autoPlay muted loop playsInline preload="metadata"
+                          onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = "none"; }}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                        <span
+                          className="lux-eyebrow absolute bottom-1 left-1 px-1.5 py-0.5"
+                          style={{
+                            background: "rgba(14,14,12,0.7)",
+                            color: "var(--lux-bone)",
+                            fontSize: "0.5rem",
+                            letterSpacing: "0.18em",
+                            backdropFilter: "blur(4px)",
+                          }}
+                        >
+                          {p.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p
+                    className="lux-eyebrow mt-4 text-center"
+                    style={{ color: "rgba(244,239,230,0.5)", fontSize: "0.6rem", letterSpacing: "0.2em" }}
+                  >
+                    SAME SOURCE PHOTOS · SIX SOCIAL FORMATS · ONE UPLOAD
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* THE FEATURES — Direct-click product cards. Each goes to its specific upload step. */}
+          <section className="lux-section lux-bg-bone" id="features">
+            <div className="lux-container">
+              <SectionHeading
+                eyebrow="THE PRODUCT MENU · CLICK ANY CARD TO BEGIN"
+                title="Six films."
+                italic="One upload each."
+                lede="Pick the moment your listing needs. Every card below is a one-click entry into a finished cinematic clip."
+                align="center"
+                className="mb-14"
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
+                {[
+                  {
+                    id: "done_for_you_reel" as const,
+                    eyebrow: "AUTO-STITCHED · 4 STYLES",
+                    title: "Done-For-You Reel",
+                    description: "Upload 3–6 photos. We render each as a cinematic clip then auto-stitch into a finished MP4 with your price and realtor name. Editorial, Snappy, Cinema, or Minimal style. The order you upload is the order they play.",
+                    cost: "From 110 credits",
+                    media: "/vantage/listing-bundle/1.mp4",
+                    poster: "/vantage/listing-bundle/1.webp",
+                    featured: true,
+                  },
+                  {
+                    id: "listing_bundle" as const,
+                    eyebrow: "MULTI-PHOTO REEL",
+                    title: "The Listing Bundle",
+                    description: "Upload 3–6 photos. Per-clip delivery — six 5-second cinematic clips with rotating camera moves. Mix in your editor or post individually.",
+                    cost: "From 90 credits",
+                    media: "/vantage/listing-bundle/4.mp4",
+                    poster: "/vantage/listing-bundle/4.webp",
+                  },
+                  {
+                    id: "virtual_staging" as const,
+                    eyebrow: "EMPTY ROOM TO FULLY FURNISHED",
+                    title: "Virtual Staging",
+                    description: "Upload one empty room. The room dresses itself in your chosen style — modern, mid-century, coastal, farmhouse, luxury, or scandi — then the camera glides through.",
+                    cost: "From 50 credits",
+                    media: "/vantage/setup/video.mp4",
+                    poster: "/vantage/setup/after.jpeg",
+                  },
+                  {
+                    id: "sun_to_sun" as const,
+                    eyebrow: "DAY-TO-DUSK TIMELAPSE",
+                    title: "Sun-Up to Sundown",
+                    description: "Upload one daytime exterior. We render a static-camera time-lapse through sunrise, golden hour, and dusk in a single 10-second clip.",
+                    cost: "From 60 credits",
+                    media: "/vantage/ranch-build/result.mp4",
+                    poster: "/vantage/ranch-build/input.png",
+                  },
+                  {
+                    id: "sketch_to_real" as const,
+                    eyebrow: "HAND-DRAWN REVEAL",
+                    title: "Sketch to Reality",
+                    description: "Upload your property photo. A pencil sketch on a wooden desk transforms into the real photo, then the camera reveals the finished space. The signature reveal moment.",
+                    cost: "From 60 credits",
+                    media: "/vantage/sketch/result.mp4",
+                    poster: "/vantage/sketch/original.webp",
+                  },
+                  {
+                    id: "animate_single" as const,
+                    eyebrow: "ONE PHOTO · ONE SHOT",
+                    title: "Animate Single",
+                    description: "Pick any hero shot. Choose from six camera moves — slow push, drone orbit, parallax pan, crane reveal, architectural slider, pull-back establishing.",
+                    cost: "From 25 credits",
+                    media: "/vantage/build/result.mp4",
+                    poster: "/vantage/ranch-build/input.png",
+                  },
+                ].map((card) => (
+                  <Link
+                    key={card.id}
+                    to={destinationFor(card.id)}
+                    className="group lux-bg-bone overflow-hidden flex flex-col transition-all"
+                    style={{
+                      border: card.featured ? "1px solid var(--lux-rust)" : "1px solid var(--lux-hairline-strong)",
+                      boxShadow: card.featured ? "0 24px 48px -28px rgba(140,63,46,0.35)" : "0 16px 32px -24px rgba(14,14,12,0.18)",
+                    }}
+                  >
+                    <div
+                      className="relative w-full overflow-hidden lux-bg-ink"
+                      style={{ aspectRatio: "4/5" }}
+                    >
+                      <img
+                        src={card.poster}
+                        alt={card.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <video
+                        src={card.media}
+                        poster={card.poster}
+                        autoPlay muted loop playsInline preload="metadata"
+                        onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = "none"; }}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                      {card.featured && (
+                        <span
+                          className="lux-eyebrow absolute top-4 left-4 px-3 py-1.5"
+                          style={{
+                            background: "var(--lux-rust)",
+                            color: "var(--lux-bone)",
+                            fontSize: "0.55rem",
+                            letterSpacing: "0.22em",
+                          }}
+                        >
+                          ★ MOST POPULAR
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-7 flex-1 flex flex-col">
+                      <span
+                        className="lux-eyebrow mb-3"
+                        style={{ color: "var(--lux-brass)", fontSize: "0.6rem", letterSpacing: "0.2em" }}
+                      >
+                        {card.eyebrow}
+                      </span>
+                      <h3
+                        className="lux-display mb-3"
+                        style={{ fontSize: "1.7rem", lineHeight: 1.05, letterSpacing: "-0.015em", color: "var(--lux-ink)" }}
+                      >
+                        {card.title}
+                      </h3>
+                      <p
+                        className="lux-prose mb-5 flex-1"
+                        style={{ fontSize: "0.92rem", lineHeight: 1.55, color: "var(--lux-ink)" }}
+                      >
+                        {card.description}
+                      </p>
+                      <div
+                        className="flex items-center justify-between pt-4"
+                        style={{ borderTop: "1px solid var(--lux-hairline)" }}
+                      >
+                        <span
+                          className="lux-eyebrow"
+                          style={{ color: "var(--lux-ash)", fontSize: "0.6rem", letterSpacing: "0.18em" }}
+                        >
+                          {card.cost}
+                        </span>
+                        <span
+                          className="lux-eyebrow inline-flex items-center gap-2 transition-transform group-hover:translate-x-1"
+                          style={{ color: "var(--lux-rust)", fontSize: "0.65rem", letterSpacing: "0.22em" }}
+                        >
+                          BEGIN →
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
+              {/* Bottom strip — secondary CTA driving repeat traffic to the menu */}
+              <div className="mt-14 text-center">
+                <p className="lux-prose mb-6 mx-auto" style={{ maxWidth: 480, color: "var(--lux-ash)" }}>
+                  Every film below is one upload, one cinematic clip, one click to download. No editor required.
+                </p>
+                <Link to={destination} className="lux-btn">
+                  OPEN THE FULL MENU →
+                </Link>
+              </div>
+            </div>
+          </section>
 
           {/* THE STUDIO — manifesto + powered by section */}
           <section className="lux-section lg:py-32 lux-bg-bone">

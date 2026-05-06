@@ -38,7 +38,7 @@ const Auth = () => {
 
   // Safely read a returnUrl: must be same-origin path (starts with /) — guards against open-redirects
   const rawReturn = searchParams.get("returnUrl") || searchParams.get("redirect") || "";
-  let safeReturn = "/video?mode=transform";
+  let safeReturn = "/video?mode=listing";
   if (rawReturn) {
     try {
       const decoded = decodeURIComponent(rawReturn);

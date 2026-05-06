@@ -32,17 +32,63 @@ const Pricing = () => {
   // Default to annual — anchors higher AOV + lower churn, and the cents-per-month math reads better
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("annual");
 
+  // Load the current credit balance.
+  const loadCredits = async () => {
+    if (!user) return null;
+    const { data } = await supabase
+      .from("user_credits")
+      .select("credits")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (data) setCreditBalance(data.credits);
+    return data?.credits ?? null;
+  };
+
   useEffect(() => {
-    if (user) {
-      supabase
-        .from("user_credits")
-        .select("credits")
-        .eq("user_id", user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data) setCreditBalance(data.credits);
-        });
+    if (user) loadCredits();
+  }, [user]);
+
+  // Stripe redirects back to /pricing?success=true&session_id=… after a
+  // successful checkout. The webhook is async and may take a few seconds to
+  // land, so we poll the credit balance for up to 30s and surface the new
+  // total via a toast the moment it arrives. This is the fix for "I paid
+  // but my credits never showed up."
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get("success");
+    const canceled = params.get("canceled");
+    if (canceled === "true") {
+      toast.info("Checkout cancelled. No charge was made.");
+      window.history.replaceState({}, "", "/pricing");
+      return;
     }
+    if (success !== "true" || !user) return;
+
+    let cancelled = false;
+    const start = creditBalance ?? 0;
+    toast.success("Payment received — crediting your account…", { duration: 6000 });
+
+    const poll = async () => {
+      const deadline = Date.now() + 30_000;
+      while (!cancelled && Date.now() < deadline) {
+        const next = await loadCredits();
+        if (next != null && next > start) {
+          toast.success(`✦ ${next - start} credits added — your balance is now ${next}.`, { duration: 8000 });
+          window.history.replaceState({}, "", "/pricing");
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 2_000));
+      }
+      if (!cancelled) {
+        // Webhook hasn't landed in 30s — give the user a manual refresh option.
+        toast.info("Still processing. Refresh the page in a minute to see your new credits.", { duration: 10_000 });
+        window.history.replaceState({}, "", "/pricing");
+      }
+    };
+    poll();
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const startCheckout = async (label: string, priceType: string, isSubscription: boolean) => {
@@ -189,19 +235,71 @@ const Pricing = () => {
                   align="center"
                   className="mb-12"
                 />
-                {/* Monthly/Annual Toggle */}
-                <div className="flex items-center justify-center gap-4">
-                  <span className="lux-prose" style={{ color: billingCycle === "monthly" ? "var(--lux-ink)" : "var(--lux-ash)" }}>
-                    Monthly
-                  </span>
-                  <Switch
-                    checked={billingCycle === "annual"}
-                    onCheckedChange={(checked) => setBillingCycle(checked ? "annual" : "monthly")}
-                    className="mx-2"
-                  />
-                  <span className="lux-prose flex items-center gap-2" style={{ color: billingCycle === "annual" ? "var(--lux-ink)" : "var(--lux-ash)" }}>
-                    Annual <span style={{ color: "var(--lux-rust)", fontSize: "0.875rem", fontWeight: "600" }}>· Save 30%</span>
-                  </span>
+                {/* Monthly / Annual toggle — annual is anchored as the default
+                    and visibly preferred. The savings strip below the toggle
+                    quantifies the discount + extra credits per cycle so the
+                    annual plan reads as the obvious pick. */}
+                <div className="flex flex-col items-center gap-3">
+                  <div
+                    className="inline-flex items-center gap-1 p-1"
+                    style={{ background: "var(--lux-bone)", border: "1px solid var(--lux-hairline-strong)" }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setBillingCycle("monthly")}
+                      className="lux-eyebrow px-4 py-2"
+                      style={{
+                        fontSize: "0.65rem",
+                        letterSpacing: "0.18em",
+                        background: billingCycle === "monthly" ? "var(--lux-ink)" : "transparent",
+                        color: billingCycle === "monthly" ? "var(--lux-bone)" : "var(--lux-ink)",
+                        fontWeight: 700,
+                      }}
+                    >
+                      MONTHLY
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBillingCycle("annual")}
+                      className="lux-eyebrow px-4 py-2 inline-flex items-center gap-2"
+                      style={{
+                        fontSize: "0.65rem",
+                        letterSpacing: "0.18em",
+                        background: billingCycle === "annual" ? "var(--lux-ink)" : "transparent",
+                        color: billingCycle === "annual" ? "var(--lux-bone)" : "var(--lux-ink)",
+                        fontWeight: 700,
+                      }}
+                    >
+                      ANNUAL
+                      <span
+                        className="lux-eyebrow"
+                        style={{
+                          background: "var(--lux-rust)",
+                          color: "var(--lux-bone)",
+                          padding: "2px 8px",
+                          fontSize: "0.55rem",
+                          letterSpacing: "0.18em",
+                        }}
+                      >
+                        SAVE 30%
+                      </span>
+                    </button>
+                  </div>
+                  {billingCycle === "annual" ? (
+                    <p
+                      className="lux-prose text-center"
+                      style={{ color: "var(--lux-ink)", maxWidth: 480, fontSize: "0.92rem", lineHeight: 1.5 }}
+                    >
+                      Pay once a year, save <span style={{ color: "var(--lux-rust)", fontWeight: 700 }}>30%</span> off the monthly rate plus get a <span style={{ color: "var(--lux-rust)", fontWeight: 700 }}>2-month bonus</span> of credits dropped on day one. No card surprises, no monthly admin.
+                    </p>
+                  ) : (
+                    <p
+                      className="lux-prose text-center"
+                      style={{ color: "var(--lux-ink)", opacity: 0.75, maxWidth: 460, fontSize: "0.88rem" }}
+                    >
+                      Switch to <button onClick={() => setBillingCycle("annual")} style={{ color: "var(--lux-rust)", textDecoration: "underline", fontWeight: 600 }}>annual</button> to save 30% — the same plan, the same credits, less paid.
+                    </p>
+                  )}
                 </div>
               </div>
 

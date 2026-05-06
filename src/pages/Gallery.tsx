@@ -1,12 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/hooks/useCredits";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +18,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Switch } from "@/components/ui/switch";
 import {
   Loader2,
   Download,
@@ -31,8 +27,13 @@ import {
   AlertCircle,
   Film,
   Share2,
-  Check,
   RefreshCw,
+  Search,
+  X,
+  Maximize2,
+  ImageIcon,
+  Eye,
+  Calendar,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Helmet } from "react-helmet-async";
@@ -63,42 +64,32 @@ interface SignedUrls {
   [key: string]: string;
 }
 
-// Defensive resolver. Accepts:
-//  - a full http(s) URL (already signed or public) → passthrough
-//  - a `bucket/path/to/file.ext` style key → tries the named bucket first
-//  - a bare path like `userId/timestamp/file.ext` → tries project-submissions
-//    then property-photos (listing flow uploads land in property-photos)
+type StatusFilter = "all" | "ready" | "generating" | "failed";
+type CategoryFilter = "all" | "listing" | "transformation";
+
+// Defensive resolver. Accepts full URLs, "bucket/path" keys, or bare paths;
+// tries project-submissions then property-photos (listing flow uploads land
+// in property-photos).
 async function signPath(path: string | null | undefined): Promise<string | null> {
   if (!path) return null;
-
-  // Already a URL? Just use it. (Listing flow stores signed URLs in
-  // after_photo_paths after stripping query params.)
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-
-  const buckets = ["project-submissions", "property-photos"];
-  for (const bucket of buckets) {
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  for (const bucket of ["project-submissions", "property-photos"]) {
     try {
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .createSignedUrl(path, 3600);
+      const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
       if (!error && data?.signedUrl) return data.signedUrl;
     } catch {
-      // try next bucket
+      /* try next */
     }
   }
   return null;
 }
 
-// Download from a storage path or full URL. Works on desktop, Android, and iOS.
-// On iOS we prefer the Web Share API (Files / Photos integration) over a blob
-// click, since iOS Safari ignores the `download` attribute.
+// Cross-device download — desktop anchor click, Android anchor click, iOS
+// Web Share API → blob open in new tab fallback.
 async function downloadFile(pathOrUrl: string, filename: string) {
   const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
   const isMobile = isiOS || /Android/i.test(navigator.userAgent);
 
-  // 1. Get the actual bytes. Try our two buckets if it's a path; just fetch if it's a URL.
   let blob: Blob | null = null;
   try {
     if (pathOrUrl.startsWith("http")) {
@@ -107,17 +98,11 @@ async function downloadFile(pathOrUrl: string, filename: string) {
     } else {
       for (const bucket of ["project-submissions", "property-photos"]) {
         const { data } = await supabase.storage.from(bucket).download(pathOrUrl);
-        if (data) {
-          blob = data;
-          break;
-        }
+        if (data) { blob = data; break; }
       }
     }
-  } catch {
-    /* fall through */
-  }
+  } catch { /* fall through */ }
 
-  // 2. iOS Safari: Web Share API gives the user a real Save-to-Files / Save-to-Photos sheet.
   if (isiOS && blob && (navigator as any).canShare) {
     try {
       const file = new File([blob], filename, { type: blob.type || "video/mp4" });
@@ -126,12 +111,9 @@ async function downloadFile(pathOrUrl: string, filename: string) {
         await (navigator as any).share(shareData);
         return;
       }
-    } catch {
-      /* fall through to anchor click */
-    }
+    } catch { /* fall through to anchor */ }
   }
 
-  // 3. Anchor with download attribute — works on desktop and Android Chrome.
   if (blob) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -144,18 +126,13 @@ async function downloadFile(pathOrUrl: string, filename: string) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 1000);
-
-    // iOS without Web Share — open the blob in a new tab so user can long-press to save.
     if (isiOS) window.open(url, "_blank");
     return;
   }
 
-  // 4. Last-resort fallback: signed URL with download disposition, opened in a new tab.
   if (!pathOrUrl.startsWith("http")) {
     for (const bucket of ["project-submissions", "property-photos"]) {
-      const { data } = await supabase.storage
-        .from(bucket)
-        .createSignedUrl(pathOrUrl, 300, { download: filename });
+      const { data } = await supabase.storage.from(bucket).createSignedUrl(pathOrUrl, 300, { download: filename });
       if (data?.signedUrl) {
         if (isMobile) window.open(data.signedUrl, "_blank");
         else {
@@ -171,22 +148,520 @@ async function downloadFile(pathOrUrl: string, filename: string) {
     }
   }
 
-  toast({ title: "Error", description: "Download failed — try opening the video and long-pressing to save", variant: "destructive" });
+  toast({ title: "Download failed", description: "Try opening the video and long-pressing to save", variant: "destructive" });
 }
 
-const getStatusBadge = (status: string, promptStatus: string) => {
-  if (promptStatus === "error" || status === "error") {
-    return { label: "FAILED", className: "bg-destructive/20 text-destructive border-destructive/30" };
-  }
-  if (promptStatus === "complete" || status === "delivered") {
-    return { label: "✅ READY", className: "bg-green-500/20 text-green-600 border-green-500/30" };
-  }
-  if (promptStatus === "generating" || status === "in progress") {
-    return { label: "GENERATING ⟳", className: "bg-amber-500/20 text-amber-600 border-amber-500/30 animate-pulse" };
-  }
-  return { label: "PROCESSING", className: "bg-muted text-muted-foreground border-border" };
+const TRANSFORMATION_LABELS: Record<string, string> = {
+  backyard_outdoor: "Backyard / Outdoor",
+  full_home: "Full Home",
+  interior_room: "Interior Room",
+  pool_water: "Pool / Water",
+  kitchen_bathroom: "Kitchen / Bath",
+  landscaping: "Landscaping",
+  exterior: "Exterior",
+  interior: "Interior",
+  animate_single: "Animate Single",
+  sun_to_sun: "Sun-Up to Sundown",
+  listing_bundle: "Listing Bundle",
+  done_for_you_reel: "Done-For-You Reel",
+  virtual_staging: "Virtual Staging",
+  sketch_to_real: "Sketch to Reality",
+  floor_plan_pan: "Floor Plan Walkthrough",
 };
 
+function getTransformationLabel(type: string) {
+  return TRANSFORMATION_LABELS[type] || type.replace(/_/g, " ");
+}
+
+function getStatus(s: Submission): "ready" | "generating" | "failed" | "queued" {
+  if (s.prompt_status === "error" || s.status === "error") return "failed";
+  if (s.prompt_status === "complete" || s.status === "delivered") return "ready";
+  if (s.prompt_status === "generating" || s.status === "in progress") return "generating";
+  return "queued";
+}
+
+const STATUS_STYLES: Record<string, { label: string; bg: string; color: string; dot: string }> = {
+  ready:      { label: "READY",       bg: "rgba(58,99,73,0.14)",  color: "#3a6349", dot: "#3a6349" },
+  generating: { label: "GENERATING",  bg: "rgba(140,63,46,0.14)", color: "#8C3F2E", dot: "#8C3F2E" },
+  failed:     { label: "FAILED",      bg: "rgba(140,63,46,0.18)", color: "#8C3F2E", dot: "#8C3F2E" },
+  queued:     { label: "QUEUED",      bg: "rgba(108,109,103,0.14)", color: "#6c6d67", dot: "#6c6d67" },
+};
+
+// ────────────────────────────────────────────────────────────────────────────
+// Submission card — every field rendered, lux aesthetic, mobile-first.
+// ────────────────────────────────────────────────────────────────────────────
+interface SubmissionCardProps {
+  submission: Submission;
+  signedUrls: SignedUrls;
+  signing: boolean;
+  onDelete: (id: string) => void;
+  onTogglePublic: (id: string, value: boolean) => void;
+  onRegenerate: (s: Submission) => void;
+  onCopyPrompt: (prompt: string) => void;
+  onCopyShareLink: (id: string) => void;
+  onOpenFullscreenImage: (url: string) => void;
+  onOpenFullscreenVideo: (url: string) => void;
+  onRefreshVideo: (s: Submission) => void;
+  deleting: boolean;
+}
+
+function SubmissionCard({
+  submission,
+  signedUrls,
+  signing,
+  onDelete,
+  onTogglePublic,
+  onRegenerate,
+  onCopyPrompt,
+  onCopyShareLink,
+  onOpenFullscreenImage,
+  onOpenFullscreenVideo,
+  onRefreshVideo,
+  deleting,
+}: SubmissionCardProps) {
+  const [videoErrored, setVideoErrored] = useState(false);
+  const [showPrompt, setShowPrompt] = useState(false);
+
+  const status = getStatus(submission);
+  const statusStyle = STATUS_STYLES[status];
+  const isListing = submission.video_type === "listing";
+  const generatedBeforeUrl = signedUrls[`gen-before-${submission.id}`];
+  const beforeUrls = (submission.before_photo_paths || [])
+    .map((_, i) => signedUrls[`before-${submission.id}-${i}`])
+    .filter(Boolean);
+  const afterUrls = (submission.after_photo_paths || [])
+    .map((_, i) => signedUrls[`after-${submission.id}-${i}`])
+    .filter(Boolean);
+  const videoUrl = signedUrls[`video-${submission.id}`];
+  const hasVideo = Boolean(videoUrl) && !videoErrored;
+
+  const dateStr = new Date(submission.created_at).toLocaleDateString("en-US", {
+    year: "numeric", month: "short", day: "numeric",
+  });
+
+  return (
+    <article
+      className="lux-bg-bone overflow-hidden flex flex-col"
+      style={{ border: "1px solid var(--lux-hairline)" }}
+    >
+      {/* ─── VIDEO / STATE ─── */}
+      <div className="relative w-full overflow-hidden lux-bg-ink" style={{ aspectRatio: "16/9" }}>
+        {hasVideo ? (
+          <>
+            <video
+              src={videoUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={() => setVideoErrored(true)}
+            />
+            <button
+              onClick={() => onOpenFullscreenVideo(videoUrl)}
+              aria-label="Expand video"
+              className="absolute top-3 right-3 grid place-items-center"
+              style={{
+                width: 36, height: 36,
+                background: "rgba(14,14,12,0.65)",
+                color: "var(--lux-bone)",
+                border: "1px solid rgba(244,239,230,0.3)",
+                backdropFilter: "blur(6px)",
+              }}
+            >
+              <Maximize2 size={14} />
+            </button>
+          </>
+        ) : videoUrl && videoErrored ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
+            <Film size={28} style={{ color: "rgba(244,239,230,0.4)" }} />
+            <p className="text-xs" style={{ color: "rgba(244,239,230,0.7)", maxWidth: 280 }}>
+              Preview unavailable. The signed URL may have expired.
+            </p>
+            <button
+              onClick={() => { setVideoErrored(false); onRefreshVideo(submission); }}
+              className="lux-eyebrow inline-flex items-center gap-2 px-3 py-2"
+              style={{
+                background: "var(--lux-bone)", color: "var(--lux-ink)",
+                fontSize: "0.65rem", letterSpacing: "0.2em",
+              }}
+            >
+              <RefreshCw size={12} /> Refresh link
+            </button>
+          </div>
+        ) : status === "generating" ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
+            <Loader2 size={28} className="animate-spin" style={{ color: "var(--lux-champagne)" }} />
+            <p className="lux-eyebrow" style={{ color: "var(--lux-champagne)", fontSize: "0.7rem" }}>
+              GENERATING
+            </p>
+            <p className="text-xs" style={{ color: "rgba(244,239,230,0.6)", maxWidth: 280 }}>
+              Cinematic render in progress. Typically 3–5 minutes.
+            </p>
+          </div>
+        ) : status === "failed" ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
+            <AlertCircle size={28} style={{ color: "#8C3F2E" }} />
+            <p className="lux-eyebrow" style={{ color: "#c97565", fontSize: "0.7rem" }}>
+              GENERATION FAILED
+            </p>
+            <button
+              onClick={() => onRegenerate(submission)}
+              className="lux-eyebrow inline-flex items-center gap-2 px-3 py-2 mt-1"
+              style={{
+                background: "var(--lux-bone)", color: "var(--lux-ink)",
+                fontSize: "0.65rem", letterSpacing: "0.2em",
+              }}
+            >
+              <RefreshCw size={12} /> Try again
+            </button>
+          </div>
+        ) : signing ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 size={20} className="animate-spin" style={{ color: "rgba(244,239,230,0.5)" }} />
+          </div>
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
+            <Film size={28} style={{ color: "rgba(244,239,230,0.3)" }} />
+            <p className="lux-eyebrow" style={{ color: "rgba(244,239,230,0.5)", fontSize: "0.65rem" }}>
+              NO VIDEO YET
+            </p>
+          </div>
+        )}
+
+        {/* Status pill — top-left, always visible */}
+        <span
+          className="absolute top-3 left-3 lux-eyebrow inline-flex items-center gap-1.5 px-2.5 py-1.5"
+          style={{
+            background: statusStyle.bg,
+            color: statusStyle.color,
+            fontSize: "0.6rem", letterSpacing: "0.18em",
+            backdropFilter: "blur(8px)",
+            border: `1px solid ${statusStyle.color}40`,
+          }}
+        >
+          <span
+            style={{
+              width: 6, height: 6, borderRadius: 9999,
+              background: statusStyle.dot,
+              animation: status === "generating" ? "pulse 1.6s ease-in-out infinite" : "none",
+            }}
+          />
+          {statusStyle.label}
+        </span>
+      </div>
+
+      {/* ─── META + TITLE ─── */}
+      <div className="px-5 pt-5 pb-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className="lux-eyebrow"
+              style={{
+                background: isListing ? "var(--lux-ink)" : "var(--lux-rust)",
+                color: "var(--lux-bone)",
+                padding: "4px 10px",
+                fontSize: "0.55rem",
+                letterSpacing: "0.2em",
+              }}
+            >
+              {isListing ? "LISTING REEL" : "TRANSFORMATION"}
+            </span>
+            <span
+              className="lux-eyebrow"
+              style={{
+                color: "var(--lux-ink)",
+                fontSize: "0.62rem",
+                letterSpacing: "0.16em",
+                fontWeight: 600,
+              }}
+            >
+              {getTransformationLabel(submission.transformation_type)}
+            </span>
+            {submission.build_type && (
+              <span
+                className="lux-eyebrow"
+                style={{ color: "var(--lux-ink)", opacity: 0.6, fontSize: "0.62rem", fontWeight: 600 }}
+              >
+                · {submission.build_type.replace(/_/g, " ")}
+              </span>
+            )}
+          </div>
+          <span
+            className="lux-eyebrow inline-flex items-center gap-1.5"
+            style={{ color: "var(--lux-ink)", opacity: 0.7, fontSize: "0.62rem", fontWeight: 600 }}
+          >
+            <Calendar size={11} /> {dateStr}
+          </span>
+        </div>
+
+        {submission.project_description && (
+          <p
+            className="lux-prose"
+            style={{ color: "var(--lux-ink)", fontSize: "0.95rem", lineHeight: 1.5 }}
+          >
+            {submission.project_description}
+          </p>
+        )}
+
+        {submission.video_style && (
+          <div
+            className="lux-eyebrow inline-flex items-center"
+            style={{ fontSize: "0.62rem", color: "var(--lux-ink)", opacity: 0.65, fontWeight: 600 }}
+          >
+            STYLE · {submission.video_style.replace(/_/g, " ")}
+          </div>
+        )}
+      </div>
+
+      {/* ─── SOURCE PHOTOS GRID — every before/after rendered ─── */}
+      {(beforeUrls.length > 0 || afterUrls.length > 0 || generatedBeforeUrl) && (
+        <div className="px-5 pb-4">
+          <div
+            className="lux-eyebrow mb-2"
+            style={{ color: "var(--lux-ink)", opacity: 0.75, fontSize: "0.62rem", fontWeight: 600 }}
+          >
+            SOURCE FRAMES · {beforeUrls.length + afterUrls.length + (generatedBeforeUrl ? 1 : 0)}
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            {generatedBeforeUrl && (
+              <button
+                onClick={() => onOpenFullscreenImage(generatedBeforeUrl)}
+                className="relative aspect-square overflow-hidden group"
+                style={{ background: "var(--lux-cream)" }}
+              >
+                <img
+                  src={generatedBeforeUrl}
+                  alt="AI-generated before"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
+                  loading="lazy"
+                />
+                <span
+                  className="lux-eyebrow absolute top-1 left-1 px-1.5 py-0.5"
+                  style={{
+                    background: "var(--lux-rust)", color: "var(--lux-bone)",
+                    fontSize: "0.5rem", letterSpacing: "0.15em",
+                  }}
+                >
+                  AI BEFORE
+                </span>
+              </button>
+            )}
+            {beforeUrls.map((url, i) => (
+              <button
+                key={`b-${i}`}
+                onClick={() => onOpenFullscreenImage(url)}
+                className="relative aspect-square overflow-hidden group"
+                style={{ background: "var(--lux-cream)" }}
+              >
+                <img
+                  src={url}
+                  alt={`Before ${i + 1}`}
+                  className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
+                  loading="lazy"
+                />
+                <span
+                  className="lux-eyebrow absolute top-1 left-1 px-1.5 py-0.5"
+                  style={{
+                    background: "var(--lux-ink)", color: "var(--lux-bone)",
+                    fontSize: "0.5rem", letterSpacing: "0.15em",
+                  }}
+                >
+                  BEFORE
+                </span>
+              </button>
+            ))}
+            {afterUrls.map((url, i) => (
+              <button
+                key={`a-${i}`}
+                onClick={() => onOpenFullscreenImage(url)}
+                className="relative aspect-square overflow-hidden group"
+                style={{ background: "var(--lux-cream)" }}
+              >
+                <img
+                  src={url}
+                  alt={`After / Source ${i + 1}`}
+                  className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
+                  loading="lazy"
+                />
+                <span
+                  className="lux-eyebrow absolute top-1 left-1 px-1.5 py-0.5"
+                  style={{
+                    background: "var(--lux-brass)", color: "var(--lux-ink)",
+                    fontSize: "0.5rem", letterSpacing: "0.15em",
+                  }}
+                >
+                  {isListing ? `SRC ${i + 1}` : "AFTER"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─── PROMPT (collapsible) ─── */}
+      {submission.generated_video_prompt && (
+        <div className="px-5 pb-4">
+          <button
+            onClick={() => setShowPrompt((v) => !v)}
+            className="lux-eyebrow w-full text-left flex items-center justify-between py-2"
+            style={{
+              fontSize: "0.62rem",
+              color: "var(--lux-ink)",
+              fontWeight: 700,
+              borderTop: "1px solid var(--lux-hairline-strong)",
+              borderBottom: showPrompt ? "1px solid var(--lux-hairline-strong)" : "none",
+            }}
+          >
+            <span>VIDEO PROMPT · {showPrompt ? "HIDE" : "SHOW"}</span>
+            <span style={{ fontSize: "1rem" }}>{showPrompt ? "−" : "+"}</span>
+          </button>
+          {showPrompt && (
+            <div className="pt-3 pb-1">
+              <p
+                className="text-xs leading-relaxed"
+                style={{ color: "var(--lux-ink)", fontFamily: "'Inter', sans-serif" }}
+              >
+                {submission.generated_video_prompt}
+              </p>
+              <button
+                onClick={() => onCopyPrompt(submission.generated_video_prompt!)}
+                className="lux-eyebrow inline-flex items-center gap-1.5 mt-3 px-2.5 py-1.5"
+                style={{
+                  background: "transparent",
+                  border: "1px solid var(--lux-hairline-strong)",
+                  color: "var(--lux-ink)",
+                  fontSize: "0.6rem",
+                  letterSpacing: "0.15em",
+                }}
+              >
+                <Copy size={11} /> Copy prompt
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── ACTION TOOLBAR ─── */}
+      <div
+        className="px-5 py-4 mt-auto flex flex-wrap items-center gap-2"
+        style={{ borderTop: "1px solid var(--lux-hairline)" }}
+      >
+        {(submission.output_video_path || submission.output_video_url) && (
+          <button
+            onClick={() =>
+              downloadFile(
+                submission.output_video_path || submission.output_video_url!,
+                `vantage-${submission.video_type || "video"}-${submission.id}.mp4`,
+              )
+            }
+            className="lux-eyebrow inline-flex items-center gap-1.5 px-3 py-2"
+            style={{
+              background: "var(--lux-ink)", color: "var(--lux-bone)",
+              fontSize: "0.6rem", letterSpacing: "0.18em",
+            }}
+          >
+            <Download size={12} /> Video
+          </button>
+        )}
+        {submission.generated_before_image_path && (
+          <button
+            onClick={() => downloadFile(submission.generated_before_image_path!, `vantage-before-${submission.id}.jpg`)}
+            className="lux-eyebrow inline-flex items-center gap-1.5 px-3 py-2"
+            style={{
+              background: "var(--lux-bone)", color: "var(--lux-ink)",
+              border: "1px solid var(--lux-hairline-strong)",
+              fontSize: "0.6rem", letterSpacing: "0.18em",
+            }}
+          >
+            <Download size={12} /> Before
+          </button>
+        )}
+        {submission.after_photo_paths?.[0] && (
+          <button
+            onClick={() => downloadFile(submission.after_photo_paths![0], `vantage-source-${submission.id}.jpg`)}
+            className="lux-eyebrow inline-flex items-center gap-1.5 px-3 py-2"
+            style={{
+              background: "var(--lux-bone)", color: "var(--lux-ink)",
+              border: "1px solid var(--lux-hairline-strong)",
+              fontSize: "0.6rem", letterSpacing: "0.18em",
+            }}
+          >
+            <Download size={12} /> Source
+          </button>
+        )}
+        {(submission.output_video_path || submission.output_video_url) && (
+          <button
+            onClick={() => onCopyShareLink(submission.id)}
+            className="lux-eyebrow inline-flex items-center gap-1.5 px-3 py-2"
+            style={{
+              background: "var(--lux-bone)", color: "var(--lux-ink)",
+              border: "1px solid var(--lux-hairline-strong)",
+              fontSize: "0.6rem", letterSpacing: "0.18em",
+            }}
+          >
+            <Share2 size={12} /> Share
+          </button>
+        )}
+        {(status === "ready" || status === "failed") && (
+          <button
+            onClick={() => onRegenerate(submission)}
+            className="lux-eyebrow inline-flex items-center gap-1.5 px-3 py-2"
+            style={{
+              background: "transparent",
+              border: "1px solid var(--lux-rust)",
+              color: "var(--lux-rust)",
+              fontSize: "0.6rem", letterSpacing: "0.18em",
+            }}
+          >
+            <RefreshCw size={12} /> Regenerate
+          </button>
+        )}
+        <button
+          onClick={() => onDelete(submission.id)}
+          disabled={deleting}
+          className="lux-eyebrow inline-flex items-center gap-1.5 px-3 py-2 ml-auto"
+          style={{
+            background: "transparent",
+            color: "var(--lux-ash)",
+            fontSize: "0.6rem", letterSpacing: "0.18em",
+            opacity: deleting ? 0.5 : 1,
+          }}
+          title="Delete"
+        >
+          {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+        </button>
+      </div>
+
+      {/* ─── PUBLIC SHARE TOGGLE ─── */}
+      {(submission.output_video_path || submission.output_video_url) && (
+        <div
+          className="px-5 py-3 flex items-center justify-between"
+          style={{ borderTop: "1px solid var(--lux-hairline)" }}
+        >
+          <div className="flex items-center gap-2">
+            <Eye size={12} style={{ color: "var(--lux-ink)", opacity: 0.7 }} />
+            <span
+              className="lux-eyebrow"
+              style={{ color: "var(--lux-ink)", opacity: 0.75, fontSize: "0.62rem", fontWeight: 700 }}
+            >
+              {submission.is_public !== false ? "PUBLIC SHARE LINK" : "PRIVATE"}
+            </span>
+          </div>
+          <Switch
+            checked={submission.is_public !== false}
+            onCheckedChange={(checked) => onTogglePublic(submission.id, checked)}
+          />
+        </div>
+      )}
+    </article>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Gallery page
+// ────────────────────────────────────────────────────────────────────────────
 const Gallery = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -196,26 +671,15 @@ const Gallery = () => {
   const [signedUrls, setSignedUrls] = useState<SignedUrls>({});
   const [signingUrls, setSigningUrls] = useState(true);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [fullscreenVideo, setFullscreenVideo] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({});
-
-  // Re-sign a single submission's video URL — used when a video <video> tag
-  // fails (signed URL probably expired) to recover without a full reload.
-  const refreshVideoUrl = useCallback(async (submission: Submission) => {
-    const newUrl = submission.output_video_path
-      ? await signPath(submission.output_video_path)
-      : submission.output_video_url ?? null;
-    if (newUrl) {
-      setSignedUrls((prev) => ({ ...prev, [`video-${submission.id}`]: newUrl }));
-      setVideoErrors((prev) => ({ ...prev, [submission.id]: false }));
-    }
-  }, []);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/login?redirect=/gallery");
-    }
+    if (!authLoading && !user) navigate("/login?redirect=/gallery");
   }, [user, authLoading, navigate]);
 
   const fetchSubmissions = useCallback(async () => {
@@ -238,7 +702,7 @@ const Gallery = () => {
 
   useEffect(() => { fetchSubmissions(); }, [fetchSubmissions]);
 
-  // Realtime
+  // Realtime updates
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -252,14 +716,14 @@ const Gallery = () => {
         if (updated.output_video_path && updated.prompt_status === "complete") {
           const videoUrl = await signPath(updated.output_video_path);
           if (videoUrl) setSignedUrls((prev) => ({ ...prev, [`video-${updated.id}`]: videoUrl }));
-          toast({ title: "✅ Your video is ready!" });
+          toast({ title: "Your video is ready" });
         }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // Sign URLs
+  // Sign every URL — every before, every after, every generated, every video
   useEffect(() => {
     const signAllUrls = async () => {
       setSigningUrls(true);
@@ -269,14 +733,12 @@ const Gallery = () => {
         if (s.generated_before_image_path) {
           tasks.push(signPath(s.generated_before_image_path).then((url) => { if (url) urlMap[`gen-before-${s.id}`] = url; }));
         }
-        if (s.before_photo_paths?.[0]) {
-          tasks.push(signPath(s.before_photo_paths[0]).then((url) => { if (url) urlMap[`before-${s.id}`] = url; }));
-        }
-        if (s.after_photo_paths?.[0]) {
-          tasks.push(signPath(s.after_photo_paths[0]).then((url) => { if (url) urlMap[`after-${s.id}`] = url; }));
-        }
-        // Prefer the saved URL (listing flow stores a Replicate URL or signed
-        // URL directly). Fall back to signing the storage path.
+        (s.before_photo_paths || []).forEach((p, i) => {
+          tasks.push(signPath(p).then((url) => { if (url) urlMap[`before-${s.id}-${i}`] = url; }));
+        });
+        (s.after_photo_paths || []).forEach((p, i) => {
+          tasks.push(signPath(p).then((url) => { if (url) urlMap[`after-${s.id}-${i}`] = url; }));
+        });
         if (s.output_video_url) {
           urlMap[`video-${s.id}`] = s.output_video_url;
         } else if (s.output_video_path) {
@@ -307,296 +769,359 @@ const Gallery = () => {
     }
   };
 
+  const handleTogglePublic = async (id: string, value: boolean) => {
+    try {
+      await supabase.from("submissions").update({ is_public: value }).eq("id", id);
+      setSubmissions((prev) => prev.map((s) => s.id === id ? { ...s, is_public: value } : s));
+      toast({
+        title: value ? "Now public" : "Now private",
+        description: value ? "Anyone with the link can view." : "Share link disabled.",
+      });
+    } catch {
+      toast({ title: "Error", description: "Failed to update", variant: "destructive" });
+    }
+  };
+
+  const handleRegenerate = (s: Submission) => {
+    // Always reroute through the listing flow — that's our primary product.
+    // Pass the specific category through so the wizard lands on the right
+    // upload step for that submission's feature.
+    const params = new URLSearchParams({
+      mode: s.video_type === "listing" ? "listing" : "transform",
+      ...(s.video_type === "listing" ? { category: s.transformation_type } : { type: s.transformation_type }),
+      ...(s.build_type ? { build: s.build_type } : {}),
+    });
+    navigate(`/video?${params.toString()}`);
+  };
+
   const handleCopyPrompt = (prompt: string) => {
     navigator.clipboard.writeText(prompt);
-    toast({ title: "Copied", description: "Video prompt copied to clipboard" });
+    toast({ title: "Copied", description: "Prompt copied to clipboard" });
   };
 
-  const getTransformationLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      backyard_outdoor: "Backyard / Outdoor", full_home: "Full Home", interior_room: "Interior Room",
-      pool_water: "Pool / Water", kitchen_bathroom: "Kitchen/Bath", landscaping: "Landscaping",
-      exterior: "Exterior", interior: "Interior",
-    };
-    return labels[type] || type.replace(/_/g, " ");
+  const handleCopyShareLink = (id: string) => {
+    navigator.clipboard.writeText(`${window.location.origin}/share/${id}`);
+    toast({ title: "Link copied", description: "Share it anywhere." });
   };
+
+  const refreshVideoUrl = useCallback(async (s: Submission) => {
+    const newUrl = s.output_video_path
+      ? await signPath(s.output_video_path)
+      : s.output_video_url ?? null;
+    if (newUrl) setSignedUrls((prev) => ({ ...prev, [`video-${s.id}`]: newUrl }));
+  }, []);
+
+  // Counts and filtering
+  const counts = useMemo(() => {
+    const c = { all: submissions.length, ready: 0, generating: 0, failed: 0, listing: 0, transformation: 0 };
+    for (const s of submissions) {
+      const st = getStatus(s);
+      if (st === "ready") c.ready++;
+      else if (st === "generating") c.generating++;
+      else if (st === "failed") c.failed++;
+      if (s.video_type === "listing") c.listing++;
+      else c.transformation++;
+    }
+    return c;
+  }, [submissions]);
+
+  const filtered = useMemo(() => {
+    return submissions.filter((s) => {
+      if (statusFilter !== "all" && getStatus(s) !== statusFilter) return false;
+      if (categoryFilter === "listing" && s.video_type !== "listing") return false;
+      if (categoryFilter === "transformation" && s.video_type === "listing") return false;
+      if (search.trim()) {
+        const q = search.trim().toLowerCase();
+        const haystack = [
+          s.transformation_type,
+          s.build_type,
+          s.video_style,
+          s.project_description,
+          s.generated_video_prompt,
+          getTransformationLabel(s.transformation_type),
+        ].filter(Boolean).join(" ").toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [submissions, statusFilter, categoryFilter, search]);
+
+  // Keyboard: ESC to close fullscreen
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setFullscreenImage(null);
+        setFullscreenVideo(null);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   if (authLoading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center" role="status" aria-live="polite" aria-label="Loading gallery"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+    return (
+      <div className="min-h-screen lux-bg-bone flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: "var(--lux-ink)" }} />
+      </div>
+    );
   }
 
   return (
     <>
       <Helmet><title>My Gallery — The Vantage</title></Helmet>
-      <div className="min-h-screen bg-background">
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
+      <div className="min-h-screen lux-bg-bone lux-grain">
         <LuxuryHeader variant="bone" />
-        <main id="main-content" className="container mx-auto px-4 py-8 pt-24">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <main id="main-content" className="lux-container py-12 pt-28 md:pt-32">
+          {/* ─── HEADER ─── */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
             <div>
-              <h1 className="font-display text-3xl font-bold tracking-tight" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>MY GALLERY</h1>
-              <p className="text-muted-foreground mt-1 text-sm">Your videos, before images, and after photos.</p>
-            </div>
-            <Link to="/pricing">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer">
-                <Coins className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold text-primary">{credits ?? 0} credits</span>
+              <div className="lux-eyebrow mb-3 flex items-center gap-3" style={{ color: "var(--lux-brass)" }}>
+                <span style={{ display: "inline-block", width: 28, height: 1, background: "var(--lux-brass)" }} />
+                THE STUDIO ARCHIVE · {counts.all} {counts.all === 1 ? "FILM" : "FILMS"}
               </div>
-            </Link>
+              <h1 className="lux-display" style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", lineHeight: 0.95, letterSpacing: "-0.02em" }}>
+                My <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>Gallery</span>
+              </h1>
+              <p
+                className="lux-prose mt-4"
+                style={{ maxWidth: 540, fontSize: "0.95rem", color: "var(--lux-ink)", opacity: 0.85 }}
+              >
+                Every film you've rendered. Every source frame. Every prompt. Download, share, regenerate, or delete.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link
+                to="/pricing"
+                className="lux-eyebrow inline-flex items-center gap-2 px-4 py-3"
+                style={{
+                  background: "var(--lux-bone)",
+                  border: "1px solid var(--lux-hairline-strong)",
+                  color: "var(--lux-ink)",
+                  fontSize: "0.65rem",
+                }}
+              >
+                <Coins size={14} /> {credits ?? 0} CREDITS
+              </Link>
+              <Link to="/video?mode=listing" className="lux-btn">
+                NEW FILM →
+              </Link>
+            </div>
           </div>
 
-          <ReferralNudge className="mb-8" />
+          <ReferralNudge className="mb-10" />
 
-          {/* Loading skeleton */}
-          {loading ? (
-            <div className="grid md:grid-cols-2 gap-6">
-              {[1, 2, 3, 4].map((i) => (
-                <Card key={i} className="overflow-hidden">
-                  <Skeleton className="aspect-video w-full" />
-                  <div className="p-4 space-y-3">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-3 w-48" />
-                    <Skeleton className="h-8 w-24" />
-                  </div>
-                </Card>
+          {/* ─── STATS STRIP ─── */}
+          {counts.all > 0 && (
+            <div
+              className="grid grid-cols-2 md:grid-cols-4 gap-px mb-10"
+              style={{ background: "var(--lux-hairline-strong)" }}
+            >
+              {[
+                { label: "READY", value: counts.ready, color: "#3a6349" },
+                { label: "GENERATING", value: counts.generating, color: "#8C3F2E" },
+                { label: "LISTING REELS", value: counts.listing, color: "var(--lux-brass)" },
+                { label: "TRANSFORMATIONS", value: counts.transformation, color: "var(--lux-rust)" },
+              ].map((s) => (
+                <div key={s.label} className="lux-bg-bone px-5 py-5">
+                  <div className="lux-eyebrow mb-2" style={{ color: s.color, fontSize: "0.6rem" }}>{s.label}</div>
+                  <div className="font-display" style={{ fontSize: "1.8rem", letterSpacing: "-0.02em" }}>{s.value}</div>
+                </div>
               ))}
             </div>
-          ) : submissions.length === 0 ? (
-            /* Empty state */
-            <Card className="p-12">
-              <div className="text-center">
-                <div className="text-6xl mb-4">🎬</div>
-                <h2 className="text-xl font-bold mb-2 tracking-tight" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>NO VIDEOS YET</h2>
-                {credits !== null && credits > 0 ? (
-                  <>
-                    <p className="text-primary font-bold text-lg mb-1" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                      You have {credits} credits ready.
-                    </p>
-                    <p className="text-muted-foreground mb-6 text-sm max-w-sm mx-auto">Use them to create your first video.</p>
-                  </>
-                ) : (
-                  <p className="text-muted-foreground mb-6 text-sm max-w-sm mx-auto">Your transformation videos will appear here.</p>
+          )}
+
+          {/* ─── TOOLBAR ─── */}
+          {counts.all > 0 && (
+            <div className="flex flex-col gap-4 mb-8">
+              <div className="relative">
+                <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--lux-ash)" }} />
+                <input
+                  type="text"
+                  placeholder="Search by description, type, prompt…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-11 pr-10 py-3 text-sm"
+                  style={{
+                    background: "var(--lux-bone)",
+                    border: "1px solid var(--lux-hairline-strong)",
+                    color: "var(--lux-ink)",
+                    fontFamily: "'Inter', sans-serif",
+                    outline: "none",
+                  }}
+                  aria-label="Search submissions"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    aria-label="Clear search"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 grid place-items-center w-7 h-7"
+                    style={{ color: "var(--lux-ash)" }}
+                  >
+                    <X size={14} />
+                  </button>
                 )}
-                <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  <Link to="/video?mode=transform">CREATE YOUR FIRST VIDEO →</Link>
-                </Button>
               </div>
-            </Card>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="lux-eyebrow mr-1" style={{ color: "var(--lux-ink)", opacity: 0.75, fontSize: "0.62rem", fontWeight: 700 }}>STATUS</span>
+                {([
+                  { id: "all", label: "All" },
+                  { id: "ready", label: `Ready (${counts.ready})` },
+                  { id: "generating", label: `Live (${counts.generating})` },
+                  { id: "failed", label: `Failed (${counts.failed})` },
+                ] as const).map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setStatusFilter(f.id)}
+                    className="lux-eyebrow px-3 py-2"
+                    style={{
+                      fontSize: "0.6rem",
+                      letterSpacing: "0.16em",
+                      background: statusFilter === f.id ? "var(--lux-ink)" : "var(--lux-bone)",
+                      color: statusFilter === f.id ? "var(--lux-bone)" : "var(--lux-ink)",
+                      border: "1px solid var(--lux-hairline-strong)",
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+                <span className="lux-eyebrow ml-3 mr-1" style={{ color: "var(--lux-ink)", opacity: 0.75, fontSize: "0.62rem", fontWeight: 700 }}>TYPE</span>
+                {([
+                  { id: "all", label: "All" },
+                  { id: "listing", label: `Listing (${counts.listing})` },
+                  { id: "transformation", label: `Transform (${counts.transformation})` },
+                ] as const).map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setCategoryFilter(f.id)}
+                    className="lux-eyebrow px-3 py-2"
+                    style={{
+                      fontSize: "0.6rem",
+                      letterSpacing: "0.16em",
+                      background: categoryFilter === f.id ? "var(--lux-ink)" : "var(--lux-bone)",
+                      color: categoryFilter === f.id ? "var(--lux-bone)" : "var(--lux-ink)",
+                      border: "1px solid var(--lux-hairline-strong)",
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ─── GRID / LOADING / EMPTY ─── */}
+          {loading ? (
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="lux-bg-bone overflow-hidden" style={{ border: "1px solid var(--lux-hairline)" }}>
+                  <div className="w-full lux-bg-cream animate-pulse" style={{ aspectRatio: "16/9" }} />
+                  <div className="p-5 space-y-3">
+                    <div className="h-3 w-32 lux-bg-cream animate-pulse" />
+                    <div className="h-4 w-full lux-bg-cream animate-pulse" />
+                    <div className="h-3 w-24 lux-bg-cream animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : counts.all === 0 ? (
+            // Empty state — no submissions at all
+            <div
+              className="lux-bg-bone p-12 md:p-20 text-center"
+              style={{ border: "1px solid var(--lux-hairline)" }}
+            >
+              <div className="mx-auto mb-6 grid place-items-center" style={{
+                width: 80, height: 80,
+                borderRadius: 9999,
+                background: "var(--lux-cream)",
+                border: "1px solid var(--lux-hairline)",
+              }}>
+                <Film size={32} style={{ color: "var(--lux-ash)" }} />
+              </div>
+              <div className="lux-eyebrow mb-4" style={{ color: "var(--lux-brass)" }}>
+                THE STUDIO IS QUIET
+              </div>
+              <h2 className="lux-display mb-4" style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
+                No films <span className="lux-display-italic">yet.</span>
+              </h2>
+              {credits !== null && credits > 0 ? (
+                <p className="lux-prose mb-8 mx-auto" style={{ maxWidth: 480 }}>
+                  You have <span style={{ color: "var(--lux-rust)", fontWeight: 600 }}>{credits} credits</span> ready.
+                  Roughly {Math.floor(credits / 25)} cinematic films at the standard rate.
+                </p>
+              ) : (
+                <p className="lux-prose mb-8 mx-auto" style={{ maxWidth: 480 }}>
+                  Your transformation reels and listing films will appear here once rendered.
+                </p>
+              )}
+              <Link to="/video?mode=listing" className="lux-btn">
+                BEGIN A FILM →
+              </Link>
+            </div>
+          ) : filtered.length === 0 ? (
+            // Filtered to empty
+            <div
+              className="lux-bg-bone p-12 text-center"
+              style={{ border: "1px solid var(--lux-hairline)" }}
+            >
+              <ImageIcon size={32} className="mx-auto mb-4" style={{ color: "var(--lux-ash)" }} />
+              <h3 className="font-display mb-2" style={{ fontSize: "1.4rem", color: "var(--lux-ink)" }}>
+                Nothing matches these filters.
+              </h3>
+              <p className="lux-prose mb-6" style={{ fontSize: "0.9rem", maxWidth: 380, marginInline: "auto" }}>
+                Try clearing your search or switching status to "All".
+              </p>
+              <button
+                onClick={() => { setSearch(""); setStatusFilter("all"); setCategoryFilter("all"); }}
+                className="lux-eyebrow inline-flex items-center gap-2 px-4 py-3"
+                style={{
+                  background: "var(--lux-ink)", color: "var(--lux-bone)",
+                  fontSize: "0.65rem", letterSpacing: "0.2em",
+                }}
+              >
+                <X size={12} /> Clear filters
+              </button>
+            </div>
           ) : (
-            <div className="grid md:grid-cols-2 gap-6">
-              {submissions.map((submission) => {
-                const isListing = submission.video_type === "listing";
-                const beforeUrl = signedUrls[`gen-before-${submission.id}`] ?? signedUrls[`before-${submission.id}`];
-                const afterUrl = signedUrls[`after-${submission.id}`];
-                const videoUrl = signedUrls[`video-${submission.id}`];
-                const hasVideo = Boolean(videoUrl);
-                const isGenerating = submission.prompt_status === "generating" || submission.status === "in progress";
-                const isError = submission.prompt_status === "error";
-                const statusBadge = getStatusBadge(submission.status, submission.prompt_status);
-
-                return (
-                  <Card key={submission.id} className={`overflow-hidden ${isError ? "border-destructive/50" : ""}`}>
-                    {/* Video / Status */}
-                    <div className="relative aspect-video bg-muted">
-                      {hasVideo && !videoErrors[submission.id] ? (
-                        <video
-                          src={videoUrl}
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                          className="w-full h-full object-cover"
-                          controls
-                          onError={() => setVideoErrors((prev) => ({ ...prev, [submission.id]: true }))}
-                        />
-                      ) : hasVideo && videoErrors[submission.id] ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-card p-4 text-center">
-                          <Film className="h-8 w-8 text-muted-foreground/50" />
-                          <p className="text-xs text-muted-foreground">Preview unavailable. Try refreshing the link or downloading directly.</p>
-                          <Button size="sm" variant="outline" onClick={() => refreshVideoUrl(submission)} className="gap-1.5 text-xs">
-                            <RefreshCw className="h-3 w-3" /> Refresh link
-                          </Button>
-                        </div>
-                      ) : isGenerating ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-card">
-                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                          <p className="text-sm font-mono text-primary font-semibold animate-pulse">GENERATING...</p>
-                          <p className="text-xs text-muted-foreground">This takes 3-5 minutes</p>
-                        </div>
-                      ) : isError ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-card">
-                          <AlertCircle className="h-8 w-8 text-destructive" />
-                          <p className="text-sm font-mono text-destructive font-semibold">GENERATION FAILED</p>
-                        </div>
-                      ) : signingUrls ? (
-                        <Skeleton className="w-full h-full" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-card">
-                          <Film className="h-12 w-12 text-muted-foreground/30" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Images */}
-                    {isListing ? (
-                      afterUrl && (
-                        <div className="p-3 space-y-1">
-                          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Source Photo</span>
-                          <img src={afterUrl} alt="Source" className="w-full rounded-md object-cover aspect-[4/3] cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setFullscreenImage(afterUrl)} />
-                        </div>
-                      )
-                    ) : (
-                      (beforeUrl || afterUrl) && (
-                        <div className="grid grid-cols-2 gap-px bg-border">
-                          <div className="bg-background p-3 space-y-1">
-                            <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Before</span>
-                            {beforeUrl ? (
-                              <img src={beforeUrl} alt={`${getTransformationLabel(submission.transformation_type)} transformation - before state`} width={400} height={300} loading="lazy" className="w-full rounded-md object-cover aspect-[4/3] cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setFullscreenImage(beforeUrl)} />
-                            ) : (
-                              <div className="w-full rounded-md bg-muted aspect-[4/3] flex items-center justify-center">
-                                <span className="text-xs text-muted-foreground">No before image</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="bg-background p-3 space-y-1">
-                            <span className="text-[10px] font-mono text-primary uppercase tracking-widest">After</span>
-                            {afterUrl ? (
-                              <img src={afterUrl} alt={`${getTransformationLabel(submission.transformation_type)} transformation - after result`} width={400} height={300} loading="lazy" className="w-full rounded-md object-cover aspect-[4/3] cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setFullscreenImage(afterUrl)} />
-                            ) : (
-                              <div className="w-full rounded-md bg-muted aspect-[4/3] flex items-center justify-center">
-                                <span className="text-xs text-muted-foreground">No after image</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    )}
-
-                    {/* Info */}
-                    <div className="p-4 space-y-3">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge
-                          variant="secondary"
-                          className={isListing ? "text-[10px] bg-muted text-foreground" : "text-[10px] bg-primary/20 text-primary border-primary/30"}
-                        >
-                          {isListing ? "LISTING VIDEO" : "TRANSFORMATION"}
-                        </Badge>
-                        <span className="text-xs font-mono text-primary font-semibold">
-                          {getTransformationLabel(submission.transformation_type)}
-                        </span>
-                        <Badge className={`text-[10px] border ${statusBadge.className}`}>
-                          {statusBadge.label}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(submission.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-                      </p>
-
-                      <div className="flex gap-2 pt-1 flex-wrap">
-                        {(submission.output_video_path || submission.output_video_url) && (
-                          <Button size="sm" variant="outline" className="gap-1.5 text-xs"
-                            onClick={() => downloadFile(
-                              submission.output_video_path || submission.output_video_url!,
-                              `vantage-${submission.video_type || "video"}-${submission.id}.mp4`
-                            )}>
-                            <Download className="h-3.5 w-3.5" /> Video
-                          </Button>
-                        )}
-                        {submission.generated_before_image_path && (
-                          <Button size="sm" variant="outline" className="gap-1.5 text-xs"
-                            onClick={() => downloadFile(submission.generated_before_image_path!, `vantage-before-${submission.id}.jpg`)}>
-                            <Download className="h-3.5 w-3.5" /> Before
-                          </Button>
-                        )}
-                        {submission.after_photo_paths?.[0] && (
-                          <Button size="sm" variant="outline" className="gap-1.5 text-xs"
-                            onClick={() => downloadFile(submission.after_photo_paths![0], `vantage-after-${submission.id}.jpg`)}>
-                            <Download className="h-3.5 w-3.5" /> After
-                          </Button>
-                        )}
-                        {submission.generated_video_prompt && (
-                          <Button size="sm" variant="outline" className="gap-1.5 text-xs"
-                            onClick={() => handleCopyPrompt(submission.generated_video_prompt!)}>
-                            <Copy className="h-3.5 w-3.5" /> Prompt
-                          </Button>
-                        )}
-                        {submission.output_video_path && (
-                          <Button size="sm" variant="outline" className="gap-1.5 text-xs"
-                            onClick={() => {
-                              navigator.clipboard.writeText(`${window.location.origin}/share/${submission.id}`);
-                              toast({ title: "Link copied!", description: "Share it anywhere." });
-                            }}>
-                            <Share2 className="h-3.5 w-3.5" /> Share
-                          </Button>
-                        )}
-                        {/* Regenerate button */}
-                        {(submission.status === "delivered" || isError) && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1.5 text-xs text-primary border-primary/30 hover:bg-primary/10"
-                            onClick={() => {
-                              const params = new URLSearchParams({
-                                mode: "transform",
-                                type: submission.transformation_type,
-                                ...(submission.build_type ? { build: submission.build_type } : {}),
-                              });
-                              navigate(`/video?${params.toString()}`);
-                            }}
-                          >
-                            <RefreshCw className="h-3.5 w-3.5" /> Regenerate
-                          </Button>
-                        )}
-                        <Button size="sm" variant="ghost" className="gap-1.5 text-xs text-destructive hover:text-destructive ml-auto"
-                          onClick={() => setDeleteConfirmId(submission.id)} disabled={deletingId === submission.id}>
-                          {deletingId === submission.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                        </Button>
-                      </div>
-                      {/* Public share toggle */}
-                      {submission.output_video_path && (
-                        <div className="flex items-center justify-between pt-2 border-t border-border mt-2">
-                          <span className="text-[10px] text-muted-foreground" style={{ fontFamily: "'Space Mono', monospace" }}>
-                            Public share
-                          </span>
-                          <Switch
-                            checked={submission.is_public !== false}
-                            onCheckedChange={async (checked) => {
-                              try {
-                                await supabase
-                                  .from("submissions")
-                                  .update({ is_public: checked })
-                                  .eq("id", submission.id);
-                                setSubmissions((prev) =>
-                                  prev.map((s) => s.id === submission.id ? { ...s, is_public: checked } : s)
-                                );
-                                toast({
-                                  title: checked ? "Video is now public" : "Video is now private",
-                                  description: checked ? "Anyone with the link can view it." : "Share link is disabled.",
-                                });
-                              } catch {
-                                toast({ title: "Error", description: "Failed to update", variant: "destructive" });
-                              }
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })}
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
+              {filtered.map((s) => (
+                <SubmissionCard
+                  key={s.id}
+                  submission={s}
+                  signedUrls={signedUrls}
+                  signing={signingUrls}
+                  onDelete={(id) => setDeleteConfirmId(id)}
+                  onTogglePublic={handleTogglePublic}
+                  onRegenerate={handleRegenerate}
+                  onCopyPrompt={handleCopyPrompt}
+                  onCopyShareLink={handleCopyShareLink}
+                  onOpenFullscreenImage={setFullscreenImage}
+                  onOpenFullscreenVideo={setFullscreenVideo}
+                  onRefreshVideo={refreshVideoUrl}
+                  deleting={deletingId === s.id}
+                />
+              ))}
             </div>
           )}
         </main>
         <LuxuryFooter />
 
+        {/* ─── FULLSCREEN IMAGE ─── */}
         <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
-          <DialogContent className="max-w-3xl p-1 overflow-hidden">
+          <DialogContent
+            className="max-w-5xl p-1 overflow-hidden"
+            style={{ background: "var(--lux-ink)", border: "1px solid var(--lux-hairline-strong)" }}
+          >
             {fullscreenImage && (
               <div className="relative">
-                <img src={fullscreenImage} alt="Fullscreen" className="w-full h-auto rounded" />
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="absolute bottom-3 right-3 gap-1.5"
+                <img src={fullscreenImage} alt="Fullscreen" className="w-full h-auto" />
+                <button
                   onClick={() => {
                     const a = document.createElement("a");
                     a.href = fullscreenImage;
@@ -604,24 +1129,54 @@ const Gallery = () => {
                     a.rel = "noopener";
                     a.click();
                   }}
+                  className="lux-eyebrow inline-flex items-center gap-2 absolute bottom-4 right-4 px-4 py-3"
+                  style={{
+                    background: "var(--lux-bone)", color: "var(--lux-ink)",
+                    fontSize: "0.65rem", letterSpacing: "0.2em",
+                  }}
                 >
-                  <Download className="h-4 w-4" /> Save
-                </Button>
+                  <Download size={12} /> Open full size
+                </button>
               </div>
             )}
           </DialogContent>
         </Dialog>
 
+        {/* ─── FULLSCREEN VIDEO ─── */}
+        <Dialog open={!!fullscreenVideo} onOpenChange={() => setFullscreenVideo(null)}>
+          <DialogContent
+            className="max-w-5xl p-1 overflow-hidden"
+            style={{ background: "var(--lux-ink)", border: "1px solid var(--lux-hairline-strong)" }}
+          >
+            {fullscreenVideo && (
+              <video
+                src={fullscreenVideo}
+                autoPlay
+                controls
+                playsInline
+                className="w-full h-auto"
+                style={{ maxHeight: "85vh" }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* ─── DELETE CONFIRM ─── */}
         <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete this transformation?</AlertDialogTitle>
-              <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+              <AlertDialogTitle>Delete this submission?</AlertDialogTitle>
+              <AlertDialogDescription>
+                The film, every source frame, and the generated prompt will be permanently removed. This cannot be undone.
+              </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Delete
+              <AlertDialogAction
+                onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete forever
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

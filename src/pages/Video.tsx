@@ -266,7 +266,9 @@ export default function VideoPage() {
           {videoMode === "cleanup" && transformationCategory && (
             <TransformationFlow transformationCategory={transformationCategory} />
           )}
-          {videoMode === "listing" && <ListingVideoFlow />}
+          {videoMode === "listing" && (
+            <ListingVideoFlow initialCategory={searchParams.get("category") as any} />
+          )}
         </main>
         </div>
       </ErrorBoundary>
