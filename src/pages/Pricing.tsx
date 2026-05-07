@@ -303,13 +303,19 @@ const Pricing = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 max-w-6xl mx-auto">
                 {CREDIT_PACKS.map((p) => {
-                  const featured = p.popular;
+                  // PRO at $79 is the explicit "Best Value" anchor; BUILDER
+                  // at $39 carries the legacy "Most Chosen" sticker. Either
+                  // can highlight a card with the lux-ink dark background.
+                  const featured = p.bestValue || p.popular;
+                  const isAnnual = billingCycle === "annual";
+                  const displayPrice = isAnnual ? p.price_annual : p.price_monthly;
+                  const monthlyEquiv = isAnnual ? Math.round(p.price_annual / 12) : p.price_monthly;
                   return (
                     <div
                       key={p.id}
-                      className="p-8 lg:p-10 relative flex flex-col"
+                      className="p-7 lg:p-8 relative flex flex-col"
                       style={{
                         background: featured ? "var(--lux-ink)" : "var(--lux-cream)",
                         border: `1px solid ${featured ? "var(--lux-ink)" : "var(--lux-hairline-strong)"}`,
@@ -318,7 +324,23 @@ const Pricing = () => {
                         boxShadow: featured ? "0 14px 40px rgba(14,14,12,0.18)" : "none",
                       }}
                     >
-                      {featured && (
+                      {p.bestValue && (
+                        <span
+                          className="lux-eyebrow absolute -top-3 left-7"
+                          style={{
+                            color: "var(--lux-bone)",
+                            background: "var(--lux-rust)",
+                            padding: "6px 12px",
+                            fontSize: "0.62rem",
+                            letterSpacing: "0.2em",
+                            zIndex: 2,
+                            fontWeight: 700,
+                          }}
+                        >
+                          ★ BEST VALUE
+                        </span>
+                      )}
+                      {!p.bestValue && p.popular && (
                         <span
                           className="lux-eyebrow absolute -top-3 left-7"
                           style={{
@@ -346,7 +368,7 @@ const Pricing = () => {
                         {p.name}
                       </div>
 
-                      {/* PRICE — large, explicit color, never invisible */}
+                      {/* PRICE — toggles between monthly and annual */}
                       <div
                         className="lux-display mt-3"
                         style={{
@@ -356,7 +378,20 @@ const Pricing = () => {
                           fontWeight: 600,
                         }}
                       >
-                        ${p.price}
+                        ${displayPrice.toLocaleString()}
+                      </div>
+                      <div
+                        className="mt-1"
+                        style={{
+                          color: featured ? "rgba(244,239,230,0.7)" : "var(--lux-ink)",
+                          fontSize: "0.78rem",
+                          fontFamily: "Inter, sans-serif",
+                          opacity: 0.75,
+                        }}
+                      >
+                        {isAnnual
+                          ? `billed annually · $${monthlyEquiv}/mo equivalent`
+                          : "billed monthly"}
                       </div>
 
                       {/* Credits count */}
@@ -369,7 +404,20 @@ const Pricing = () => {
                           fontWeight: 500,
                         }}
                       >
-                        {p.credits.toLocaleString()} credits
+                        {p.credits.toLocaleString()} credits / {isAnnual ? "month" : "month"}
+                        {isAnnual && (
+                          <span
+                            className="ml-2 lux-eyebrow"
+                            style={{
+                              color: featured ? "var(--lux-champagne)" : "var(--lux-rust)",
+                              fontSize: "0.55rem",
+                              letterSpacing: "0.18em",
+                              fontWeight: 700,
+                            }}
+                          >
+                            + {p.annual_credits_bonus.toLocaleString()} BONUS DAY 1
+                          </span>
+                        )}
                       </div>
 
                       {/* Per-credit + savings */}
@@ -423,8 +471,12 @@ const Pricing = () => {
 
                       {/* CTA */}
                       <button
-                        onClick={() => startCheckout(p.name, p.priceType, false)}
-                        disabled={loadingPlan === p.priceType}
+                        onClick={() => startCheckout(
+                          p.name,
+                          isAnnual ? p.priceTypeAnnual : p.priceType,
+                          true, // both monthly and annual are subscriptions now
+                        )}
+                        disabled={loadingPlan === (isAnnual ? p.priceTypeAnnual : p.priceType)}
                         className="w-full mt-6 inline-flex items-center justify-center gap-3 transition-colors lux-eyebrow"
                         style={{
                           padding: "14px 18px",
@@ -433,11 +485,11 @@ const Pricing = () => {
                           border: featured ? "1px solid var(--lux-bone)" : "1px solid var(--lux-ink)",
                           fontSize: "0.7rem",
                           letterSpacing: "0.18em",
-                          opacity: loadingPlan === p.priceType ? 0.6 : 1,
-                          cursor: loadingPlan === p.priceType ? "wait" : "pointer",
+                          opacity: loadingPlan === (isAnnual ? p.priceTypeAnnual : p.priceType) ? 0.6 : 1,
+                          cursor: loadingPlan === (isAnnual ? p.priceTypeAnnual : p.priceType) ? "wait" : "pointer",
                         }}
                       >
-                        {loadingPlan === p.priceType ? (
+                        {loadingPlan === (isAnnual ? p.priceTypeAnnual : p.priceType) ? (
                           <Loader2 size={14} className="animate-spin" />
                         ) : (
                           <>BUY {p.name} →</>

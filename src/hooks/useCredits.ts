@@ -61,36 +61,35 @@ export const useCredits = (): UseCreditsReturn => {
         return false;
       }
 
+      // CRITICAL: deduction goes through the server-side `deduct_credits`
+      // RPC, never a client-side update. The previous version read the
+      // balance, computed `credits - amount`, and wrote it back from the
+      // browser — which let two simultaneous deductions race AND let a
+      // malicious client write any number it wanted (the RLS policy on
+      // profiles allowed self-update). The RPC does an atomic
+      // SELECT…FOR UPDATE inside a transaction and inserts the ledger
+      // row in the same shot, with a unique index ensuring the same
+      // (user, submission, type) tuple can never be debited twice.
       try {
-        // Update credits balance in profiles table
-        const { error: updateError } = await supabase
-          .from("profiles")
-          .update({
-            credits_balance: credits - amount,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("user_id", user.id);
+        const { data, error: rpcError } = await supabase.rpc("deduct_credits", {
+          p_user_id: user.id,
+          p_amount: amount,
+          p_description: description,
+          p_submission_id: submissionId ?? null,
+          p_transaction_type: "video_generation",
+        });
 
-        if (updateError) {
-          throw updateError;
+        if (rpcError) {
+          // Idempotent duplicate — treat as success since the original
+          // charge already landed.
+          if (rpcError.message?.includes("duplicate_charge")) {
+            return true;
+          }
+          throw rpcError;
         }
 
-        // Log transaction
-        const { error: transactionError } = await supabase.from("credit_transactions").insert([
-          {
-            user_id: user.id,
-            credits_amount: -amount,
-            transaction_type: "video_generation",
-            description,
-            ...(submissionId ? { submission_id: submissionId } : {}),
-          },
-        ]);
-
-        if (transactionError) {
-          throw transactionError;
-        }
-
-        setCredits((prev) => (prev !== null ? prev - amount : null));
+        const newBalance = typeof data === "number" ? data : credits - amount;
+        setCredits(newBalance);
         return true;
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Unknown error";

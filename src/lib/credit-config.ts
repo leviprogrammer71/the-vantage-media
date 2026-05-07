@@ -21,16 +21,29 @@ export const CREDIT_COSTS = {
   durationUpcharge: 10,
 } as const;
 
+// Credit packs are now subscription-style: monthly billing or annual billing
+// (same credits per cycle, 30% discount when paid annually + 2 bonus months
+// of credits dropped on day one). The annual toggle on /pricing flips
+// between price_monthly and price_annual.
+//
+// `popular` marks the "Most Chosen" sticker.
+// `bestValue` marks the explicit "Best Value" sticker — used to anchor the
+// pack we want users to land on (PRO at $79).
 export const CREDIT_PACKS = [
   {
     id: "starter",
     name: "STARTER",
     credits: 200,
-    price: 19,
+    price: 19, // legacy field — kept for any callers still reading .price
+    price_monthly: 19,
+    price_annual: 160,        // $13.33/mo equivalent — 30% off + 2-month bonus
+    annual_credits_bonus: 400, // 2 extra months of credits at sign-up
     perCredit: "$0.095",
     savings: null,
     popular: false,
+    bestValue: false,
     priceType: "starter",
+    priceTypeAnnual: "starter_annual",
     valueCallout: "~5 TRANSFORMATION VIDEOS",
     features: [
       "5 transformation videos",
@@ -44,17 +57,21 @@ export const CREDIT_PACKS = [
     name: "BUILDER",
     credits: 500,
     price: 39,
+    price_monthly: 39,
+    price_annual: 328,         // ~$27.33/mo equivalent
+    annual_credits_bonus: 1000,
     perCredit: "$0.078",
     savings: "save 18%",
     popular: true,
+    bestValue: false,
     priceType: "standard",
+    priceTypeAnnual: "standard_annual",
     valueCallout: "~12 TRANSFORMATION VIDEOS",
     features: [
       "12 transformation videos",
       "or 25 listing videos",
       "or mix and match freely",
       "Credits never expire",
-      "Best value for active creators",
     ],
   },
   {
@@ -62,10 +79,15 @@ export const CREDIT_PACKS = [
     name: "PRO",
     credits: 1200,
     price: 79,
+    price_monthly: 79,
+    price_annual: 664,         // ~$55.33/mo equivalent — 30% off + 2-month bonus
+    annual_credits_bonus: 2400,
     perCredit: "$0.066",
     savings: "save 31%",
     popular: false,
+    bestValue: true,           // ← anchors users to the $79 tier
     priceType: "value",
+    priceTypeAnnual: "value_annual",
     valueCallout: "~30 TRANSFORMATION VIDEOS",
     features: [
       "30 transformation videos",
@@ -80,10 +102,15 @@ export const CREDIT_PACKS = [
     name: "STUDIO",
     credits: 3000,
     price: 149,
+    price_monthly: 149,
+    price_annual: 1252,        // ~$104.33/mo equivalent
+    annual_credits_bonus: 6000,
     perCredit: "$0.050",
     savings: "save 47%",
     popular: false,
+    bestValue: false,
     priceType: "pro_pack",
+    priceTypeAnnual: "pro_pack_annual",
     valueCallout: "~75 TRANSFORMATION VIDEOS",
     features: [
       "75 transformation videos",
