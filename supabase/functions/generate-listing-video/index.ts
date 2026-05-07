@@ -73,17 +73,21 @@ function buildClipPrompt(
 ): string {
   const settleMark = pacing === "slow" ? Math.max(duration - 1, 3) : Math.max(duration - 1, 4)
   const dd = (n: number) => String(n).padStart(2, "0")
-  // Stability cues at the END of the prompt — Seedance + Kling weight the
-  // tail of the prompt heavily for negative constraints. The "single primary
-  // camera instruction + slow / smooth / stable + gimbal" pattern is the
-  // research-backed jitter-prevention recipe.
+  // Stability + no-humans cues at the END of the prompt — Seedance + Kling
+  // weight the tail of the prompt heavily for negative constraints. The
+  // "single primary camera instruction + slow / smooth / stable + gimbal"
+  // pattern is the research-backed jitter-prevention recipe. The no-humans
+  // stack at the end is repeated and explicit because real-estate listing
+  // reels MUST never invent occupants — it changes the legal status of the
+  // listing and makes the video unusable.
   return (
     `Cinematic 9:16 vertical real-estate listing reel. 1080p photorealistic, magazine-quality. ` +
     `[0:00–0:01] Open on the establishing frame; architecture, materials, lighting, and framing locked exactly to the source photo. ` +
     `[0:01–0:${dd(settleMark)}] ${motionHint} Slow, smooth, stable, gimbal-stabilized motion — single deliberate move, no acceleration changes. ` +
     `[0:${dd(settleMark)}–0:${dd(duration)}] Settle on the final composition and hold absolutely still. ` +
-    `Subject and architecture stay identical to the source throughout — no morphing, no invented rooms, no added people or animals, no weather change. ` +
-    `Stability constraints: avoid jitter, avoid camera shake, avoid handheld micro-wobble, avoid sudden direction changes, avoid frame drops, avoid flickering, avoid motion blur. ` +
+    `Subject and architecture stay identical to the source throughout — no morphing, no invented rooms, no weather change. ` +
+    `Stability: avoid jitter, avoid camera shake, avoid handheld micro-wobble, avoid sudden direction changes, avoid frame drops, avoid flickering, avoid motion blur. ` +
+    `Property is empty and unoccupied: absolutely no people, no humans, no human figures, no faces, no body parts, no hands, no arms, no legs, no torsos, no children, no occupants, no agents, no realtors, no homeowners, no visitors, no shadows of people, no human silhouettes, no reflections of people in glass or mirrors, no movement of any human, the entire frame is empty of all human presence. ` +
     `${vibeLine}`
   )
 }
@@ -465,7 +469,10 @@ async function startVideoGeneration(
   // controlled open → move → settle structure. Removes the lingering tail that
   // shows up when the model improvises pacing.
   const prompt = buildClipPrompt(config.motionHint, duration, vibeSuffix("luxury"), config.pacing)
-  const negativePrompt = "Invented rooms, new objects, added people or animals, weather changes, morphing or warping geometry, flickering, motion blur, floating objects, lighting changes, added reflections, ghost trails, duplicated surfaces, fast motion, jitter, camera shake."
+  // The no-humans stack is intentionally exhaustive — listing reels with
+  // invented occupants are unusable for legal-disclosure reasons, so we
+  // repeat the constraint in many forms to maximize negative-prompt strength.
+  const negativePrompt = "people, humans, human figures, faces, body parts, hands, arms, legs, torsos, children, occupants, agents, realtors, homeowners, visitors, shadows of people, human silhouettes, reflections of people, human movement, invented rooms, new objects, added animals, pets, weather changes, morphing or warping geometry, flickering, motion blur, floating objects, lighting changes, added reflections, ghost trails, duplicated surfaces, fast motion, jitter, camera shake, low resolution, soft focus, blurry edges, compression artifacts."
 
   const endpoint = useSeedance
     ? `${REPLICATE}/models/${MODEL_SEEDANCE}/predictions`
@@ -787,7 +794,8 @@ serve(async (req) => {
         "[0:02–0:05] Sun arcs across the sky toward the south. Light warms into GOLDEN HOUR — orange tones rake across the building, shadows compress and warm, sky shifts from amber to deep gold. " +
         "[0:05–0:08] Late golden hour transitions into BLUE HOUR / DUSK — sky deepens to cobalt with a warm horizon glow, ambient light cools, building begins to silhouette. " +
         "[0:08–0:10] Full dusk — interior windows glow warm yellow from inside, exterior reads as a dark blue silhouette with a warm-light interior. " +
-        "Architecture, landscaping, foliage, and framing all stay identical to the source throughout. Sun motion is continuous — no jump cuts, no flicker, no camera shake."
+        "Architecture, landscaping, foliage, and framing all stay identical to the source throughout. Sun motion is continuous — no jump cuts, no flicker, no camera shake. " +
+        "The property is empty and unoccupied: absolutely no people, no humans, no human figures, no faces, no body parts, no children, no occupants, no agents, no homeowners, no visitors, no shadows of people, no human silhouettes, no reflections of people, the entire frame is empty of all human presence throughout."
 
       console.log("[sun_to_sun] kicking off single Seedance 2.0 day-cycle prediction (10s)")
       const result = await startSeedanceFromImage(
@@ -947,7 +955,8 @@ serve(async (req) => {
         `[0:04–0:05] Dressing completes — every object settles, soft natural light warms the room, the styling is now fully resolved. No further objects move into place after this beat. ` +
         `[0:05–0:10] Slow dolly camera push-in through the now-styled interior. Gimbal-stabilized. Reveal the finished composition. ` +
         `Walls, windows, doors, floors, ceiling, and architectural features stay locked exactly as in the source throughout. ` +
-        `Smooth physically-plausible motion, single deliberate camera move. ${vibePromptSuffix}`
+        `Smooth physically-plausible motion, single deliberate camera move. ` +
+        `The room is empty and unoccupied: absolutely no people, no humans, no human figures, no faces, no body parts, no hands, no children, no occupants, no agents, no homeowners, no visitors, no shadows of people, no human silhouettes, no reflections of people in glass or mirrors, the entire frame is empty of all human presence throughout. ${vibePromptSuffix}`
 
       console.log("[virtual_staging] kicking off SINGLE 10s Seedance dressing+walkthrough")
       const result = await startSeedanceFromImage(
@@ -1046,14 +1055,16 @@ serve(async (req) => {
           `[0:04–0:05] Transition completes — the frame is now a fully photoreal interior. No trace of pencil lines, paper, desk, or hand remains. The styling is fully resolved. ` +
           `[0:05–0:10] Slow dolly camera push-in through the now-photoreal interior, gimbal-stabilized, revealing the finished space. ` +
           `Architectural geometry from the original drawing — wall lines, window placements, room proportions — stays anchored throughout. ` +
-          `Smooth physically-plausible motion, single deliberate camera move. ${vibeLine}`
+          `Smooth physically-plausible motion, single deliberate camera move. ` +
+          `From 0:04 onward the resolved interior is empty and unoccupied — absolutely no people, no humans, no faces, no body parts beyond the artist's hand which has fully dissolved by 0:04, no children, no occupants, no shadows of people, no human silhouettes, no reflections of people in glass or mirrors during the photoreal reveal phase. ${vibeLine}`
         : `Cinematic 9:16 vertical real-estate reel. 1080p photorealistic, magazine-quality. ` +
           `[0:00–0:01] Hold on the pencil architectural sketch sitting on a wooden desk, person's right hand drawing with a pencil. Warm desk lighting. ` +
           `[0:01–0:04] The sketch on the paper fills with realistic materials, sky, foliage, and landscaping as it morphs into the photoreal building exterior it depicts. Pencil shading dissolves into siding, brick, glass, and roof materials. The desk and the drawing hand dissolve and fade out completely. ` +
           `[0:04–0:05] Transition completes — the frame is now a fully photoreal exterior. No trace of pencil lines, paper, desk, or hand remains. ` +
           `[0:05–0:10] Slow cinematic move across the now-photoreal exterior — gentle parallax tracking shot — revealing the finished composition. ` +
           `Façade geometry from the original drawing — window placements, rooflines, massing — stays anchored throughout. ` +
-          `Smooth physically-plausible motion, single deliberate camera move. ${vibeLine}`
+          `Smooth physically-plausible motion, single deliberate camera move. ` +
+          `From 0:04 onward the resolved exterior is empty and unoccupied — absolutely no people, no humans, no faces, no body parts beyond the artist's hand which has fully dissolved by 0:04, no children, no occupants, no shadows of people, no human silhouettes during the photoreal reveal phase. ${vibeLine}`
 
       console.log("[sketch_to_real] kicking off SINGLE 10s Seedance morph+reveal")
       const result = await startSeedanceFromImage(
@@ -1121,7 +1132,8 @@ serve(async (req) => {
         `[0:04–0:05] Transformation completes — the space is now a fully photoreal magazine-quality interior. No drafting marks, dimension lines, or labels remain. The space is fully resolved. ` +
         `[0:05–0:10] ${cameraHint} The camera moves through the now-photoreal interior, revealing the finished space. ` +
         `Architectural geometry from the drawing — wall positions, door and window placements, room proportions — stays anchored throughout. ` +
-        `Smooth physically-plausible motion, single deliberate camera move. ${vibeLine}`
+        `Smooth physically-plausible motion, single deliberate camera move. ` +
+        `The resolved interior is empty and unoccupied — absolutely no people, no humans, no faces, no body parts, no children, no occupants, no agents, no homeowners, no visitors, no shadows of people, no human silhouettes, no reflections of people in glass or mirrors, the entire frame is empty of all human presence throughout. ${vibeLine}`
 
       console.log("[floor_plan_pan] kicking off SINGLE 10s Seedance morph+walkthrough")
       const result = await startSeedanceFromImage(
@@ -1245,7 +1257,7 @@ async function startKlingTransitionPrediction(
   token: string
 ): Promise<{ videoUrl?: string; predictionId?: string }> {
   const prompt = `${motionPrompt} Cinematic real-estate listing reel. Photorealistic. Smooth physically-plausible transition between the two frames.`
-  const negativePrompt = "Invented objects, added people or animals, geometry warping, jittery interpolation, flickering, motion artifacts, frame drops."
+  const negativePrompt = "people, humans, human figures, faces, body parts, hands, arms, legs, children, occupants, agents, realtors, homeowners, visitors, shadows of people, human silhouettes, reflections of people, human movement, invented objects, added animals, pets, geometry warping, jittery interpolation, flickering, motion artifacts, frame drops, low resolution, soft focus, blurry edges, compression artifacts."
 
   const res = await fetch(
     `${REPLICATE}/models/${MODEL_KLING}/predictions`,
@@ -1293,7 +1305,7 @@ async function animatePhotoTransition(
   token: string
 ): Promise<string> {
   const prompt = `${motionPrompt} Cinematic real-estate listing reel. Photorealistic. Smooth physically-plausible transition between the two frames.`
-  const negativePrompt = "Invented objects, added people or animals, geometry warping, jittery interpolation, flickering, motion artifacts, frame drops."
+  const negativePrompt = "people, humans, human figures, faces, body parts, hands, arms, legs, children, occupants, agents, realtors, homeowners, visitors, shadows of people, human silhouettes, reflections of people, human movement, invented objects, added animals, pets, geometry warping, jittery interpolation, flickering, motion artifacts, frame drops, low resolution, soft focus, blurry edges, compression artifacts."
 
   const res = await fetch(
     "https://api.replicate.com/v1/models/kwaivgi/kling-v2.5-turbo-pro/predictions",

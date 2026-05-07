@@ -342,11 +342,56 @@ function easeInOutCubic(x: number): number {
   return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2
 }
 
+/** SVG filter id for the FFmpeg-equivalent unsharp mask. The filter element
+ *  is mounted to the DOM once at stitch-start so canvas `ctx.filter` can
+ *  reference it via `url(#vantage-unsharp)`.
+ *
+ *  The convolution kernel is the standard 3×3 sharpen kernel:
+ *      0  -1   0
+ *     -1   5  -1
+ *      0  -1   0
+ *  Equivalent to FFmpeg `unsharp=3:3:0.6` — subtle edge enhancement, not
+ *  the over-sharpened "HDR phone" look. Pairs with the per-style eq grade
+ *  to give the output a finishing pass that matches what a colourist would
+ *  apply in DaVinci Resolve.
+ */
+const UNSHARP_FILTER_ID = "vantage-unsharp"
+const UNSHARP_SVG = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute">
+    <filter id="${UNSHARP_FILTER_ID}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feConvolveMatrix order="3" preserveAlpha="true"
+        kernelMatrix="0 -0.6 0  -0.6 3.4 -0.6  0 -0.6 0" />
+    </filter>
+  </svg>
+`
+
+/** Mount the unsharp SVG filter into the document once. Idempotent — second
+ *  mount is a no-op. */
+function ensureUnsharpFilter() {
+  if (typeof document === "undefined") return
+  if (document.getElementById(UNSHARP_FILTER_ID)) return
+  const wrap = document.createElement("div")
+  wrap.style.position = "absolute"
+  wrap.style.width = "0"
+  wrap.style.height = "0"
+  wrap.style.overflow = "hidden"
+  wrap.innerHTML = UNSHARP_SVG
+  document.body.appendChild(wrap)
+}
+
+/** Whether to apply the unsharp pass. Off for snappy (already punchy) so
+ *  the output doesn't look brittle on social feeds. */
+const UNSHARP_BY_STYLE: Record<NonNullable<StitchOptions["style"]>, boolean> = {
+  editorial: true,
+  cinema:    true,
+  minimal:   true,
+  snappy:    false,
+}
+
 /** Cover-fit a video frame into the 1080×1920 canvas at a given alpha.
- *  Applies an FFmpeg-`eq`-style colour grade per reel style — saturation
- *  bump for editorial / cinema (the warm magazine look), neutral for snappy,
- *  slight de-saturation for minimal (whisper aesthetic). Implemented via the
- *  Canvas 2D `filter` property which the browser pipelines on the GPU. */
+ *  Applies an FFmpeg-`eq`-style colour grade plus optional unsharp mask
+ *  per reel style. Implemented via the Canvas 2D `filter` property which
+ *  the browser pipelines on the GPU. */
 function drawVideoCover(
   ctx: CanvasRenderingContext2D,
   v: HTMLVideoElement,
@@ -364,7 +409,9 @@ function drawVideoCover(
   ctx.save()
   ctx.globalAlpha = alpha
   // Per-style colour grade — equivalent to FFmpeg `eq=saturation=…:contrast=…`
-  // applied to the source clip before the overlay layer.
+  // applied to the source clip before the overlay layer. Optional unsharp
+  // mask via SVG `feConvolveMatrix` chains in afterwards for the finishing
+  // pass — equivalent to FFmpeg `unsharp=3:3:0.6`.
   const grade =
     style === "editorial"
       ? "saturate(1.08) contrast(1.04) brightness(1.02)"
@@ -373,7 +420,8 @@ function drawVideoCover(
       : style === "minimal"
       ? "saturate(0.92) contrast(1.02) brightness(1.0)"
       : "saturate(1.10) contrast(1.06) brightness(1.02)" // snappy — punchy
-  ctx.filter = grade
+  const sharpen = UNSHARP_BY_STYLE[style] ? ` url(#${UNSHARP_FILTER_ID})` : ""
+  ctx.filter = grade + sharpen
   ctx.drawImage(v, dx, dy, dw, dh)
   ctx.filter = "none"
   ctx.restore()
@@ -438,6 +486,9 @@ export async function stitchClipsClientSide(
 
   const profile = TRANSITION_PROFILE[style]
   const transitionSec = profile.duration
+
+  // 0. Mount the unsharp SVG filter once — `ctx.filter` will reference it.
+  ensureUnsharpFilter()
 
   // 1. Canvas at output resolution
   const canvas = document.createElement("canvas")
