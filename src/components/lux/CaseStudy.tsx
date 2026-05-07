@@ -14,6 +14,9 @@ interface CaseStudyProps {
   metrics: Metric[];
   before: string;
   after: string;
+  /** Optional mp4 that plays underneath the BeforeAfterSlider so the AFTER
+   *  side reveals the actual delivered cinematic clip — not just a still. */
+  afterVideo?: string;
   beforeLabel?: string;
   afterLabel?: string;
   reverse?: boolean;
@@ -29,6 +32,7 @@ const CaseStudy = ({
   metrics,
   before,
   after,
+  afterVideo,
   beforeLabel,
   afterLabel,
   reverse = false,
@@ -40,6 +44,7 @@ const CaseStudy = ({
         <BeforeAfterSlider
           before={before}
           after={after}
+          afterVideo={afterVideo}
           beforeLabel={beforeLabel}
           afterLabel={afterLabel}
           ratio="4/5"

@@ -9,6 +9,7 @@ import Marquee from "@/components/lux/Marquee";
 import VideoReel from "@/components/lux/VideoReel";
 import BeforeAfterSlider from "@/components/lux/BeforeAfterSlider";
 import CaseStudy from "@/components/lux/CaseStudy";
+import PreviewVideo from "@/components/lux/PreviewVideo";
 import ROICalculator from "@/components/lux/ROICalculator";
 import SectionHeading from "@/components/lux/SectionHeading";
 import OAuthReturnHandler from "@/components/OAuthReturnHandler";
@@ -277,14 +278,15 @@ const Index = () => {
                       className="relative w-full overflow-hidden lux-bg-ink"
                       style={{ aspectRatio: "4/5" }}
                     >
-                      <img
-                        src={card.poster}
+                      <PreviewVideo
+                        src={card.media}
+                        poster={card.poster}
                         alt={card.title}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        loading="lazy"
+                        containerClassName="absolute inset-0 w-full h-full"
+                        className="transition-transform duration-700 group-hover:scale-105"
                       />
                       <div
-                        className="absolute inset-0"
+                        className="absolute inset-0 pointer-events-none"
                         style={{
                           background: "linear-gradient(to top, rgba(14,14,12,0.45) 0%, rgba(14,14,12,0) 50%)",
                         }}
@@ -642,9 +644,10 @@ const Index = () => {
                     { value: "0 hrs", label: "POST-PRODUCTION" },
                   ]}
                   before="/vantage/ranch-build/input.png"
-                  after="/vantage/listing-bundle/1.webp"
+                  after="/vantage/ranch-build/input.png"
+                  afterVideo="/vantage/ranch-build/result.mp4"
                   beforeLabel="STILL · DELIVERED PHOTO"
-                  afterLabel="CINEMATIC FRAME"
+                  afterLabel="CINEMATIC REEL"
                 />
 
                 <CaseStudy
@@ -660,9 +663,10 @@ const Index = () => {
                     { value: "$28k", label: "Q1 UPLIFT" },
                   ]}
                   before="/vantage/contractor/before.jpg"
-                  after="/vantage/listing-bundle/4.webp"
+                  after="/vantage/contractor/before.jpg"
+                  afterVideo="/vantage/contractor/result.mp4"
                   beforeLabel="UPLOADED PHOTO"
-                  afterLabel="CINEMATIC FRAME"
+                  afterLabel="CINEMATIC REEL"
                 />
 
                 <CaseStudy
@@ -678,8 +682,9 @@ const Index = () => {
                   ]}
                   before="/vantage/backyard-slow-reveal/before.jpg"
                   after="/vantage/backyard-slow-reveal/input.jpg"
+                  afterVideo="/vantage/backyard-slow-reveal/result.mp4"
                   beforeLabel="THE BARE SITE"
-                  afterLabel="DELIVERED"
+                  afterLabel="DELIVERED REEL"
                 />
               </div>
             </div>

@@ -65,11 +65,21 @@ const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: str
 // half" instructions. We open with a 1-second hold (locks the source frame),
 // run the camera move through the middle, and reserve the last beat for a
 // settle so the clip doesn't end mid-motion.
+interface ClipContext {
+  /** 1-indexed position in the bundle reel */
+  index?: number
+  /** total clips in the bundle */
+  total?: number
+  /** narrative beat for this clip — "establishing", "hero", "detail", "closing" etc */
+  beat?: string
+}
+
 function buildClipPrompt(
   motionHint: string,
   duration: number,
   vibeLine: string,
-  pacing: "slow" | "medium" = "slow"
+  pacing: "slow" | "medium" = "slow",
+  context?: ClipContext,
 ): string {
   const settleMark = pacing === "slow" ? Math.max(duration - 1, 3) : Math.max(duration - 1, 4)
   const dd = (n: number) => String(n).padStart(2, "0")
@@ -80,12 +90,22 @@ function buildClipPrompt(
   // stack at the end is repeated and explicit because real-estate listing
   // reels MUST never invent occupants — it changes the legal status of the
   // listing and makes the video unusable.
+  // Per-clip narrative position. Done-For-You / Listing Bundle reels are
+  // generated one clip at a time (each photo gets its own Seedance call,
+  // never multiple images in one prompt) — this header tells the model
+  // where this particular clip sits in the larger story so it can lean
+  // into the appropriate cinematic register.
+  const positionHeader = context?.index && context?.total
+    ? `This is shot ${context.index} of ${context.total} in a stitched listing reel${context.beat ? ` — narrative beat: ${context.beat.toUpperCase()}` : ""}. Render with extreme attention to detail: every material finish, every light interaction, every shadow physically plausible. `
+    : ""
+
   return (
-    `Cinematic 9:16 vertical real-estate listing reel. 1080p photorealistic, magazine-quality. ` +
-    `[0:00–0:01] Open on the establishing frame; architecture, materials, lighting, and framing locked exactly to the source photo. ` +
-    `[0:01–0:${dd(settleMark)}] ${motionHint} Slow, smooth, stable, gimbal-stabilized motion — single deliberate move, no acceleration changes. ` +
-    `[0:${dd(settleMark)}–0:${dd(duration)}] Settle on the final composition and hold absolutely still. ` +
-    `Subject and architecture stay identical to the source throughout — no morphing, no invented rooms, no weather change. ` +
+    positionHeader +
+    `Cinematic 9:16 vertical real-estate listing reel. 1080p photorealistic, magazine-quality, no compromise on detail. ` +
+    `[0:00–0:01] Open on the establishing frame; architecture, materials, lighting, and framing locked exactly to the source photo. Sharpness preserved across the entire frame — no soft focus, no compression artifacts, no detail loss. ` +
+    `[0:01–0:${dd(settleMark)}] ${motionHint} Slow, smooth, stable, gimbal-stabilized motion — single deliberate move, no acceleration changes. Material textures stay legible throughout the move: wood grain, fabric weave, stone veining, metal finish all clearly readable. ` +
+    `[0:${dd(settleMark)}–0:${dd(duration)}] Settle on the final composition and hold absolutely still. Last frame must be a magazine-quality still with crisp edges. ` +
+    `Subject and architecture stay identical to the source throughout — no morphing, no invented rooms, no weather change, no added objects, no changed furniture. ` +
     `Stability: avoid jitter, avoid camera shake, avoid handheld micro-wobble, avoid sudden direction changes, avoid frame drops, avoid flickering, avoid motion blur. ` +
     `Property is empty and unoccupied: absolutely no people, no humans, no human figures, no faces, no body parts, no hands, no arms, no legs, no torsos, no children, no occupants, no agents, no realtors, no homeowners, no visitors, no shadows of people, no human silhouettes, no reflections of people in glass or mirrors, no movement of any human, the entire frame is empty of all human presence. ` +
     `${vibeLine}`
@@ -457,7 +477,8 @@ async function startVideoGeneration(
   imageUrl: string,
   shotType: string,
   duration: number,
-  token: string
+  token: string,
+  context?: ClipContext,
 ): Promise<{ videoUrl?: string; predictionId?: string }> {
   const config = SHOT_CONFIG[shotType]
   if (!config) throw new Error(`Unknown shot type: ${shotType}`)
@@ -466,9 +487,10 @@ async function startVideoGeneration(
   const useSeedance = config.model === "seedance" || duration >= LONG_FORM_THRESHOLD_SECONDS
 
   // Timeline-prompted: explicit [0:00–0:0N] beats guide Seedance/Kling to a
-  // controlled open → move → settle structure. Removes the lingering tail that
-  // shows up when the model improvises pacing.
-  const prompt = buildClipPrompt(config.motionHint, duration, vibeSuffix("luxury"), config.pacing)
+  // controlled open → move → settle structure. Per-clip context (if provided)
+  // tells the model where this clip sits in the larger reel so it leans into
+  // the appropriate cinematic register.
+  const prompt = buildClipPrompt(config.motionHint, duration, vibeSuffix("luxury"), config.pacing, context)
   // The no-humans stack is intentionally exhaustive — listing reels with
   // invented occupants are unusable for legal-disclosure reasons, so we
   // repeat the constraint in many forms to maximize negative-prompt strength.
@@ -855,9 +877,20 @@ serve(async (req) => {
         }
       }
 
-      // Kick off ALL clip predictions in parallel (don't await individual completions)
-      // 5s per clip × 3-6 clips = 15-30s reel — enough Seedance 2.0 runtime for clean motion
-      console.log(`[listing_bundle] kicking off ${photos.length} parallel Seedance 2.0 predictions @ 5s each`)
+      // Kick off ALL clip predictions in parallel — each photo is sent to
+      // Seedance INDIVIDUALLY (one image per request, never multiple at
+      // once). Each call gets a unique narrative beat + position context
+      // so the model treats it as a deliberate shot in a 6-shot story
+      // instead of a generic clip from a batch.
+      const NARRATIVE_BEATS = [
+        "establishing wide — set the property in its world",
+        "hero push — the strongest single frame, give it weight",
+        "architectural detail — read the materials, finishes, and craft",
+        "interior reveal — open up the space, suggest scale",
+        "atmospheric beat — light, texture, mood",
+        "closing pull-back — leave the viewer with the whole picture",
+      ]
+      console.log(`[listing_bundle] kicking off ${photos.length} INDIVIDUAL Seedance 2.0 calls @ 5s each (one image per request)`)
       const startResults = await Promise.all(
         photos.map(async (url, i) => {
           try {
@@ -865,7 +898,12 @@ serve(async (req) => {
               url,
               shotRotation[i % shotRotation.length],
               5,
-              REPLICATE_TOKEN
+              REPLICATE_TOKEN,
+              {
+                index: i + 1,
+                total: photos.length,
+                beat: NARRATIVE_BEATS[i % NARRATIVE_BEATS.length],
+              },
             )
             return { index: i, ...result }
           } catch (err) {
