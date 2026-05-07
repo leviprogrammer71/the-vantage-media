@@ -13,6 +13,7 @@ import { stitchClipsClientSide, downloadBlobOrUrl } from "@/lib/client-stitch";
 import { SHOT_TYPES, STAGING_STYLES } from "@/lib/shot-types";
 import { VIBES } from "@/lib/vibes";
 import { SUNO_PRESETS, type SunoPreset } from "@/lib/suno-presets";
+import { SunoMusicPicker } from "./SunoMusicPicker";
 import { toast } from "sonner";
 import type { ShotType, StagingStyle } from "@/lib/shot-types";
 import type { Vibe } from "@/lib/vibes";
@@ -1136,119 +1137,14 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                   />
                 </div>
 
-                {/* Music — Suno preset picker. Each preset is a copy-pasteable
-                    Suno prompt designed to produce a 15-second cinematic loop
-                    that matches the reel's visual style. */}
-                <div>
-                  <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-ink)", fontWeight: 700 }}>
-                    MUSIC · 30 SUNO PROMPTS
-                  </label>
-                  <div
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1"
-                    style={{ border: "1px solid var(--lux-hairline-strong)", padding: "8px", background: "var(--lux-bone)" }}
-                  >
-                    {[
-                      { id: "no_music", label: "No music (you'll add yours)", description: "Skip — we'll deliver the reel silent so you can drop your own track.", prompt: "" },
-                      ...SUNO_PRESETS.map((p) => ({
-                        id: p.id,
-                        label: p.label,
-                        description: p.description,
-                        prompt: p.prompt,
-                        bestFor: (p as SunoPreset).bestFor,
-                      })),
-                    ].map((opt) => (
-                      <button
-                        type="button"
-                        key={opt.id}
-                        onClick={() => setMusicVibe(opt.label)}
-                        className="text-left p-3 transition-colors"
-                        style={{
-                          background: musicVibe === opt.label ? "var(--lux-ink)" : "var(--lux-bone)",
-                          color: musicVibe === opt.label ? "var(--lux-bone)" : "var(--lux-ink)",
-                          border: musicVibe === opt.label ? "1px solid var(--lux-ink)" : "1px solid var(--lux-hairline)",
-                        }}
-                      >
-                        <div className="lux-eyebrow" style={{ fontSize: "0.62rem", letterSpacing: "0.18em", fontWeight: 700 }}>
-                          {opt.label}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "0.75rem",
-                            opacity: 0.85,
-                            marginTop: 4,
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {opt.description}
-                        </div>
-                        {(opt as any).bestFor && (
-                          <div
-                            className="lux-eyebrow"
-                            style={{
-                              fontSize: "0.55rem",
-                              letterSpacing: "0.16em",
-                              opacity: 0.65,
-                              marginTop: 6,
-                            }}
-                          >
-                            {(opt as any).bestFor}
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                  {(() => {
-                    const selected = SUNO_PRESETS.find((p) => p.label === musicVibe);
-                    if (!selected) {
-                      return (
-                        <p
-                          style={{ fontSize: "0.85rem", color: "var(--lux-ink)", opacity: 0.7, marginTop: "0.75rem" }}
-                        >
-                          We'll deliver your reel silent so you can drop your own track.
-                        </p>
-                      );
-                    }
-                    return (
-                      <div className="mt-3 p-4" style={{ border: "1px solid var(--lux-hairline-strong)", background: "var(--lux-cream)" }}>
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <span
-                            className="lux-eyebrow"
-                            style={{ color: "var(--lux-rust)", fontSize: "0.62rem", letterSpacing: "0.2em", fontWeight: 700 }}
-                          >
-                            SUNO PROMPT · COPY & PASTE INTO SUNO
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(selected.prompt);
-                              toast.success("Suno prompt copied — paste into suno.com to generate the track");
-                            }}
-                            className="lux-eyebrow inline-flex items-center gap-1.5 px-2.5 py-1.5"
-                            style={{
-                              background: "var(--lux-ink)",
-                              color: "var(--lux-bone)",
-                              fontSize: "0.6rem",
-                              letterSpacing: "0.18em",
-                            }}
-                          >
-                            COPY
-                          </button>
-                        </div>
-                        <p
-                          className="text-xs"
-                          style={{ color: "var(--lux-ink)", lineHeight: 1.55, fontFamily: "'Inter', sans-serif" }}
-                        >
-                          {selected.prompt}
-                        </p>
-                        <p
-                          className="lux-eyebrow"
-                          style={{ color: "var(--lux-ash)", fontSize: "0.55rem", letterSpacing: "0.18em", marginTop: 10 }}
-                        >
-                          BEST FOR · {selected.bestFor}
-                        </p>
-                      </div>
-                    );
-                  })()}
+                {/* Music — 31 pre-rendered Suno tracks (62 audio files: 31
+                    primary + 31 alternate variants). Grouped by category so
+                    users find the right vibe fast; each row has an inline
+                    play button + variant toggle + download. */}
+                <SunoMusicPicker
+                  selectedLabel={musicVibe}
+                  onSelect={setMusicVibe}
+                />
                 </div>
 
                 {/* Caption */}
