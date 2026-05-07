@@ -52,7 +52,7 @@ const Contact = () => {
       <Helmet>
         <title>Speak to a Liaison — The Vantage</title>
         <meta name="description" content="A direct line to the studio. Working photographers, brokerages, and press all welcome." />
-        <link rel="canonical" href="https://thevantage.co/contact" />
+        <link rel="canonical" href="https://thevantage.media/contact" />
       </Helmet>
 
       <div className="min-h-screen lux-bg-bone" style={{ color: "var(--lux-ink)" }}>

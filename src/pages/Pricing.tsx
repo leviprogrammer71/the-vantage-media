@@ -125,7 +125,7 @@ const Pricing = () => {
           name="description"
           content="Pay-as-you-create credits for cinematic listing films. No subscriptions. No tiers. Credits never expire."
         />
-        <link rel="canonical" href="https://thevantage.co/pricing" />
+        <link rel="canonical" href="https://thevantage.media/pricing" />
       </Helmet>
 
       <div className="min-h-screen lux-bg-bone" style={{ color: "var(--lux-ink)" }}>

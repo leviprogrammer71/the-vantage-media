@@ -29,7 +29,7 @@ const AirbnbLanding = () => {
       <Helmet>
         <title>For Short-Term Hosts — The Vantage</title>
         <meta name="description" content="Outperform every other Airbnb in your zipcode. The Vantage turns one photo into a cinematic reel guests can't stop watching — and can't stop booking." />
-        <link rel="canonical" href="https://thevantage.co/for-airbnb" />
+        <link rel="canonical" href="https://thevantage.media/for-airbnb" />
       </Helmet>
 
       <div className="min-h-screen lux-bg-bone" style={{ color: "var(--lux-ink)" }}>

@@ -414,6 +414,29 @@ export const SUNO_PRESETS: SunoPreset[] = [
  * Used by the music picker in ListingVideoFlow to surface the best options
  * without overwhelming the user.
  */
+/**
+ * Auto-suggest the canonical song for a Done-For-You style. The Vantage
+ * stitcher uses this to bake a default soundtrack into every DFY reel
+ * unless the user explicitly opts out — pulled from feel/title alignment
+ * with each reel-style aesthetic.
+ *
+ *   editorial → Editorial Strings  (slow neoclassical, magazine cover)
+ *   cinema    → Hero Anthem        (trailer-style orchestral build)
+ *   snappy    → Indie Pop Bounce   (bright TikTok / Reels energy)
+ *   minimal   → Solo Piano · Bauhaus (whisper-quiet refined)
+ */
+const STYLE_TO_DEFAULT_SONG: Record<ReelStyle, string> = {
+  editorial: "editorial_strings",
+  cinema:    "cinema_anthem",
+  snappy:    "snappy_indie_pop",
+  minimal:   "editorial_piano_solo",
+};
+
+export function defaultSongForStyle(style: ReelStyle): SunoPreset | null {
+  const id = STYLE_TO_DEFAULT_SONG[style];
+  return SUNO_PRESETS.find((p) => p.id === id) ?? null;
+}
+
 export function suggestPresets(
   style: ReelStyle,
   propertyHint?: string,

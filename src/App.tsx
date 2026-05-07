@@ -16,6 +16,8 @@ import { Loader2 } from "lucide-react";
 // Eager-load homepage
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 
 // Lazy-load secondary pages
 const Generate = lazy(() => import("./pages/Generate"));
@@ -79,6 +81,8 @@ const App = () => (
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/credits" element={<Pricing />} />
                   <Route path="/contact" element={<Contact />} />
+                  <Route path="/blog" element={<Blog />} />
+                  <Route path="/blog/:slug" element={<BlogPost />} />
                   <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                   <Route path="/for-agents" element={<AgentsLanding />} />
                   <Route path="/for-airbnb" element={<AirbnbLanding />} />

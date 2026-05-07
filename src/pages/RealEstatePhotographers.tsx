@@ -42,7 +42,7 @@ const RealEstatePhotographers = () => {
           name="description"
           content="The cinematic upsell for working real estate photographers. One photo in. A scroll-stopping listing film out. The Rendy alternative built for the trade."
         />
-        <link rel="canonical" href="https://thevantage.co/real-estate-photographers" />
+        <link rel="canonical" href="https://thevantage.media/real-estate-photographers" />
       </Helmet>
 
       <div className="min-h-screen lux-bg-bone" style={{ color: "var(--lux-ink)" }}>

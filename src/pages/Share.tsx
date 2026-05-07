@@ -76,7 +76,7 @@ const Share = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const shareUrl = `https://thevantage.co/share/${id}`;
+  const shareUrl = `https://thevantage.media/share/${id}`;
   const ogTitle = data ? `${getTransformationLabel(data.transformation_type)} Transformation — The Vantage` : "Transformation Video — The Vantage";
   const ogDescription = "Watch this incredible before and after construction transformation video. Made with The Vantage.";
 

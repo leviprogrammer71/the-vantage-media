@@ -23,7 +23,7 @@ const AgenciesLanding = () => {
       <Helmet>
         <title>For Brokerages & Agencies — The Vantage House Plan</title>
         <meta name="description" content="White-label cinematic listing films for the entire roster. Team seats, brand presets, MLS handoff, and a dedicated studio liaison — built for brokerages and creative agencies." />
-        <link rel="canonical" href="https://thevantage.co/for-agencies" />
+        <link rel="canonical" href="https://thevantage.media/for-agencies" />
       </Helmet>
 
       <div className="min-h-screen lux-bg-bone" style={{ color: "var(--lux-ink)" }}>

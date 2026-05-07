@@ -57,11 +57,11 @@ const Index = () => {
           content="One photograph. A scroll-stopping cinematic listing film. Built for the world's most exacting real estate photographers, agents, and builders."
         />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://thevantage.co/" />
+        <meta property="og:url" content="https://thevantage.media/" />
         <meta property="og:title" content="The Vantage — Cinematic Listing Films" />
         <meta property="og:description" content="One photo in. A cinematic before-and-after listing film out — delivered in minutes, not days." />
         <meta property="twitter:card" content="summary_large_image" />
-        <link rel="canonical" href="https://thevantage.co/" />
+        <link rel="canonical" href="https://thevantage.media/" />
       </Helmet>
 
       <div className="min-h-screen lux-bg-bone" style={{ color: "var(--lux-ink)" }}>
@@ -202,8 +202,8 @@ const Index = () => {
           <section className="lux-section lux-bg-cream" id="proof">
             <div className="lux-container">
               <SectionHeading
-                eyebrow="A REAL DONE-FOR-YOU REEL · 1678 E. TRENTON"
-                title="Nine photos in."
+                eyebrow="A REAL DONE-FOR-YOU REEL · 123 E. ATWOOD"
+                title="Eight photos in."
                 italic="One reel out."
                 lede="This is what a customer received this week — every clip rendered individually from a single photo with the exact prompt-engineering pipeline you'd run, then auto-stitched with a 0.5s cross-dissolve between each shot. No editor. No second crew. No post-production day."
                 align="center"
@@ -215,19 +215,18 @@ const Index = () => {
                 <div className="lg:col-span-7">
                   <div className="lux-eyebrow mb-4 flex items-center gap-3" style={{ color: "var(--lux-rust)", fontWeight: 700 }}>
                     <span style={{ display: "inline-block", width: 28, height: 1, background: "var(--lux-rust)" }} />
-                    THE INPUT · NINE LISTING PHOTOS
+                    THE INPUT · EIGHT LISTING PHOTOS
                   </div>
                   <div className="grid grid-cols-3 gap-2 md:gap-3">
                     {[
-                      { src: "/trenton/outside.webp", label: "EXTERIOR · 01" },
-                      { src: "/trenton/outside-1.webp", label: "EXTERIOR · 02" },
-                      { src: "/trenton/outside2.webp", label: "EXTERIOR · 03" },
-                      { src: "/trenton/kitchen.webp", label: "KITCHEN" },
-                      { src: "/trenton/nook.webp", label: "NOOK" },
-                      { src: "/trenton/bath.webp", label: "BATH" },
-                      { src: "/trenton/pool.webp", label: "POOL" },
-                      { src: "/trenton/patio.webp", label: "PATIO" },
-                      { src: "/trenton/yard.webp", label: "YARD" },
+                      { src: "/atwood/cleanfront.webp", label: "FRONT · EXTERIOR" },
+                      { src: "/atwood/welcome.webp", label: "ENTRY" },
+                      { src: "/atwood/livingroom.webp", label: "LIVING" },
+                      { src: "/atwood/kitchen.webp", label: "KITCHEN" },
+                      { src: "/atwood/bedroom.webp", label: "BEDROOM" },
+                      { src: "/atwood/room.webp", label: "ROOM" },
+                      { src: "/atwood/bathroom.webp", label: "BATH" },
+                      { src: "/atwood/backyardside.webp", label: "BACKYARD" },
                     ].map((p, i) => (
                       <div
                         key={i}
@@ -276,9 +275,9 @@ const Index = () => {
                     THE OUTPUT · ONE STITCHED MP4
                   </div>
                   <PreviewVideo
-                    src="/trenton/321-e-drumont-final-cut.mp4"
-                    poster="/trenton/outside.webp"
-                    alt="1678 East Trenton — final Done-For-You reel"
+                    src="/atwood/123-e-atwood-final-cut.mp4"
+                    poster="/atwood/cleanfront.webp"
+                    alt="123 East Atwood — final Done-For-You reel"
                     containerClassName="w-full lux-bg-ink"
                     containerStyle={{ aspectRatio: "9/16", border: "1px solid var(--lux-hairline-strong)", boxShadow: "0 28px 60px -32px rgba(14,14,12,0.45)" }}
                   />
@@ -287,7 +286,7 @@ const Index = () => {
                     style={{ background: "var(--lux-hairline-strong)" }}
                   >
                     {[
-                      { v: "9", l: "PHOTOS IN" },
+                      { v: "8", l: "PHOTOS IN" },
                       { v: "45s", l: "REEL OUT" },
                       { v: "3 min", l: "RENDER" },
                     ].map((s, i) => (
@@ -363,7 +362,7 @@ const Index = () => {
                     title: "Sun-Up to Sundown",
                     description: "Upload one daytime exterior. We render a static-camera time-lapse through sunrise, golden hour, and dusk in a single 10-second clip.",
                     cost: "From 60 credits",
-                    media: "/vantage/ranch-build/result.mp4",
+                    media: "/vantage/sun-cycle/result.mp4",
                     poster: "/vantage/ranch-build/input.png",
                   },
                   {

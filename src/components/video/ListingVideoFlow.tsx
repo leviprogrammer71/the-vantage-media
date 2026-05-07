@@ -12,7 +12,7 @@ import { normalizeImageForUpload } from "@/lib/normalize-image";
 import { stitchClipsClientSide, downloadBlobOrUrl } from "@/lib/client-stitch";
 import { SHOT_TYPES, STAGING_STYLES } from "@/lib/shot-types";
 import { VIBES } from "@/lib/vibes";
-import { SUNO_PRESETS, type SunoPreset } from "@/lib/suno-presets";
+import { SUNO_PRESETS, type SunoPreset, defaultSongForStyle } from "@/lib/suno-presets";
 import { SunoMusicPicker } from "./SunoMusicPicker";
 import { toast } from "sonner";
 import type { ShotType, StagingStyle } from "@/lib/shot-types";
@@ -288,11 +288,10 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
       return;
     }
 
-    // Check required fields based on category
-    if ((category === "animate_single" || category === "sun_to_sun" || (category === "listing_bundle" || category === "done_for_you_reel")) && (!realtorName || !location)) {
-      toast.error("Missing required information");
-      return;
-    }
+    // Listing metadata (realtor name, location, price) is OPTIONAL — the
+    // user can generate with just photos uploaded. Empty fields mean the
+    // overlays are skipped, not blocked. This unblocks the "I just want to
+    // see what this thing makes" flow without forcing a long form first.
 
     if (!hasEnoughCredits) {
       setShowCreditsModal(true);
@@ -490,6 +489,15 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     setStitchProgress(0);
 
     try {
+      // Resolve audio: explicit user pick by label, else auto-suggest from
+      // the chosen style preset, else silent.
+      const userPick = SUNO_PRESETS.find((p) => p.label === musicVibe);
+      const autoPick = userPick ? null : defaultSongForStyle(stitchStyle);
+      const audioPreset = userPick ?? autoPick;
+      const audioUrl =
+        musicVibe && musicVibe.startsWith("No music") ? undefined :
+        audioPreset?.audio;
+
       const result = await stitchClipsClientSide({
         clips: clipUrls,
         listing: {
@@ -502,6 +510,8 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
         },
         watermark: !isPaid || showBranding,
         style: stitchStyle,
+        audioUrl,
+        audioGain: 0.85,
         onProgress: (frac) => setStitchProgress(frac),
       });
 
@@ -1331,18 +1341,8 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             </div>
           )}
 
-          {(category === "animate_single" || category === "sun_to_sun" || (category === "listing_bundle" || category === "done_for_you_reel")) && (!realtorName || !location) && (
-            <div
-              className="p-4 mb-8 border-l-4"
-              style={{ borderColor: "var(--lux-ash)", background: "rgba(107, 103, 96, 0.05)" }}
-            >
-              <p style={{ color: "var(--lux-ash)", fontSize: "0.875rem" }}>
-                {!realtorName && "Add a realtor name to continue."}
-                {!location && !realtorName && " Add a location too."}
-                {!location && realtorName && "Add a location to continue."}
-              </p>
-            </div>
-          )}
+          {/* Listing metadata is optional now — empty fields just skip the
+              corner overlays; nothing blocks generation. */}
 
           <div className="flex gap-4 mt-12">
             <button
@@ -1354,7 +1354,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             </button>
             <button
               onClick={handleGenerate}
-              disabled={!hasEnoughCredits || isGenerating || ((category === "animate_single" || category === "sun_to_sun" || (category === "listing_bundle" || category === "done_for_you_reel")) && (!realtorName || !location))}
+              disabled={!hasEnoughCredits || isGenerating}
               className="lux-btn flex-1"
               style={{
                 background: (hasEnoughCredits && !isGenerating && (category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan" || (realtorName && location))) ? "var(--lux-ink)" : "var(--lux-ash)",

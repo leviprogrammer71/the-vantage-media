@@ -1,8 +1,32 @@
+# The Vantage Media — robots.txt
+# https://thevantage.media
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin-portal
+Disallow: /client-dashboard
+Disallow: /api/
+Disallow: /functions/
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /generate
+Disallow: /submit
+
 User-agent: Googlebot
 Allow: /
+Disallow: /admin
+Disallow: /admin-portal
+
+User-agent: Googlebot-Image
+Allow: /vantage/
+Allow: /trenton/
+Allow: /icons/
 
 User-agent: Bingbot
 Allow: /
+Disallow: /admin
 
 User-agent: Twitterbot
 Allow: /
@@ -10,5 +34,23 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
+User-agent: LinkedInBot
 Allow: /
+
+User-agent: Slackbot
+Allow: /
+
+# AI crawlers — explicitly allowed for AI Overviews / SearchGPT discovery
+User-agent: GPTBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://thevantage.media/sitemap.xml

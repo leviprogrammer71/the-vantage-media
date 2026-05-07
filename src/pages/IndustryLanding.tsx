@@ -193,7 +193,7 @@ const IndustryLanding = ({ slug }: Props) => {
   // Done-For-You routing and send into the transform flow.
   const { destinationFor, isLoggedIn } = useCtaNavigation();
   const cta = destinationFor("transform");
-  const canonical = `https://thevantage.co/${slug}`;
+  const canonical = `https://thevantage.media/${slug}`;
 
   return (
     <>

@@ -84,7 +84,7 @@ const FAQ = () => (
     <Helmet>
       <title>Quiet Questions — The Vantage</title>
       <meta name="description" content="Asked, often. Answered, plainly. Everything you need to know about the studio, pricing, and workflow." />
-      <link rel="canonical" href="https://thevantage.co/faq" />
+      <link rel="canonical" href="https://thevantage.media/faq" />
     </Helmet>
 
     <div className="min-h-screen lux-bg-bone" style={{ color: "var(--lux-ink)" }}>

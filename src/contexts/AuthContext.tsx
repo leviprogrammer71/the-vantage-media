@@ -66,10 +66,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signInWithGoogle = async (returnUrl?: string) => {
-    const allowedOrigins = [window.location.origin, 'https://thevantage.co'];
+    const allowedOrigins = [window.location.origin, 'https://thevantage.media'];
     const baseOrigin = allowedOrigins.includes(window.location.origin)
       ? window.location.origin
-      : 'https://thevantage.co';
+      : 'https://thevantage.media';
 
     // Validate returnUrl is a same-origin path (starts with single "/").
     let safeReturn: string | null = null;

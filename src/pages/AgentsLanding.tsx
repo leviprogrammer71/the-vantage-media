@@ -30,7 +30,7 @@ const AgentsLanding = () => {
       <Helmet>
         <title>For Listing Agents — The Vantage</title>
         <meta name="description" content="Open every listing with a film, not a flyer. The Vantage turns a single photo into a Reels-native cinematic listing video — for agents who actually want to win the market." />
-        <link rel="canonical" href="https://thevantage.co/for-agents" />
+        <link rel="canonical" href="https://thevantage.media/for-agents" />
       </Helmet>
 
       <div className="min-h-screen lux-bg-bone" style={{ color: "var(--lux-ink)" }}>
