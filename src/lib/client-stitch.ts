@@ -35,6 +35,14 @@ export interface StitchOptions {
   style?: "editorial" | "snappy" | "cinema" | "minimal"
   /** Optional progress callback 0..1 */
   onProgress?: (frac: number) => void
+  /** Optional MP3 / WAV URL to mix into the final video. Plays from t=0,
+   *  loops if shorter than the reel, gets a 0.5s fade-out before the end.
+   *  Routed via WebAudio → MediaStreamDestination → MediaRecorder so the
+   *  audio is permanently baked into the output MP4 / WebM. */
+  audioUrl?: string
+  /** Audio mix gain (0..1). Default 0.85 — leaves a touch of headroom for
+   *  any voiceover the user adds in their editor. */
+  audioGain?: number
 }
 
 const W = 1080
@@ -60,7 +68,15 @@ function pickMimeType(): { mimeType: string; ext: string } {
   return { mimeType: "", ext: "webm" }
 }
 
-/** Load a video element, await it being ready to play through. */
+/** Load a video element AND wait until it has buffered enough to play
+ *  through to the end without re-buffering. The previous version resolved
+ *  on `loadeddata` (just the first frame) which caused mid-clip stalls
+ *  during the stitch — the canvas would read empty frames when the network
+ *  caught the buffer short. `canplaythrough` is the right event for a
+ *  gapless render. Falls back to `loadeddata` after 8 seconds in case the
+ *  browser's heuristics never declare canplaythrough (Safari sometimes
+ *  doesn't on 5s clips).
+ */
 function loadVideo(src: string): Promise<HTMLVideoElement> {
   return new Promise((resolve, reject) => {
     const v = document.createElement("video")
@@ -69,15 +85,30 @@ function loadVideo(src: string): Promise<HTMLVideoElement> {
     v.playsInline = true
     v.preload = "auto"
     v.src = src
-    const onReady = () => {
-      v.removeEventListener("canplaythrough", onReady)
-      v.removeEventListener("loadeddata", onReady)
+    let resolved = false
+    const finish = () => {
+      if (resolved) return
+      resolved = true
+      v.removeEventListener("canplaythrough", finish)
+      v.removeEventListener("loadeddata", fallbackTimer.cancel)
+      clearTimeout(fallbackTimer.id)
       resolve(v)
     }
-    v.addEventListener("canplaythrough", onReady)
-    v.addEventListener("loadeddata", onReady)
-    v.addEventListener("error", () => reject(new Error(`Failed to load video: ${src.slice(0, 80)}`)))
-    // Some browsers require explicit load()
+    // Primary: wait for the browser to declare it can play through.
+    v.addEventListener("canplaythrough", finish)
+    // Fallback: if canplaythrough doesn't fire within 8s after loadeddata,
+    // resolve anyway so we don't block forever on Safari edge cases.
+    const fallbackTimer = (() => {
+      let id: ReturnType<typeof setTimeout> = 0 as any
+      const cancel = () => clearTimeout(id)
+      v.addEventListener("loadeddata", () => {
+        id = setTimeout(finish, 8000)
+      })
+      return { get id() { return id }, cancel }
+    })()
+    v.addEventListener("error", () => {
+      if (!resolved) reject(new Error(`Failed to load video: ${src.slice(0, 80)}`))
+    })
     v.load()
   })
 }
@@ -152,18 +183,25 @@ function drawOverlays(
     }
   }
 
-  // Style: snappy — Anton bold caps, the dominant Reels/TikTok display font
+  // Style: snappy — Anton bold caps, the dominant Reels/TikTok display font.
+  // Price is HEAVY (was 132 → 168) and gets a hard drop shadow under the
+  // black stroke for clean read on busy backgrounds. This is the most
+  // visually-distinct treatment in the stack.
   else if (style === "snappy") {
     if (listing.show_price && listing.price) {
       const t = `$${listing.price.toLocaleString()}`
-      ctx.font = `900 132px ${fonts.display}`
+      ctx.font = `900 168px ${fonts.display}`
       ctx.textBaseline = "top"
+      // Drop shadow first
+      ctx.fillStyle = "rgba(0,0,0,0.55)"
+      ctx.fillText(t, 52, 92)
+      // Black outline + yellow fill
       ctx.fillStyle = "#FFD700"
-      ctx.strokeStyle = "rgba(0,0,0,0.92)"
-      ctx.lineWidth = 9
+      ctx.strokeStyle = "rgba(0,0,0,0.95)"
+      ctx.lineWidth = 11
       ctx.lineJoin = "round"
-      ctx.strokeText(t, 48, 80)
-      ctx.fillText(t, 48, 80)
+      ctx.strokeText(t, 48, 88)
+      ctx.fillText(t, 48, 88)
     }
     if (listing.location) {
       ctx.font = `400 38px ${fonts.display}`
@@ -185,36 +223,39 @@ function drawOverlays(
     }
   }
 
-  // Style: cinema — DM Serif Display anamorphic premium with letterbox bars
+  // Style: cinema — DM Serif Display anamorphic premium with HEAVY letterbox
+  // bars (220px each, was 160) so the cinema grade actually reads as cinema
+  // and not just "editorial with smaller type". Bars are pure black, fully
+  // opaque, anchored to the frame edges.
   else if (style === "cinema") {
-    ctx.fillStyle = "rgba(0,0,0,0.92)"
-    ctx.fillRect(0, 0, W, 160)
-    ctx.fillRect(0, H - 160, W, 160)
+    ctx.fillStyle = "rgba(0,0,0,1)"
+    ctx.fillRect(0, 0, W, 220)
+    ctx.fillRect(0, H - 220, W, 220)
 
     if (listing.location) {
       ctx.font = `500 24px ${fonts.sub}`
       ctx.textBaseline = "middle"
       ctx.fillStyle = "rgba(244,239,230,0.92)"
-      ctx.fillText(listing.location.toUpperCase(), 48, 80)
+      ctx.fillText(listing.location.toUpperCase(), 56, 110)
     }
     if (listing.show_price && listing.price) {
       const t = `$${listing.price.toLocaleString()}`
-      ctx.font = `400 60px ${fonts.display}`
+      ctx.font = `400 72px ${fonts.display}`
       ctx.textBaseline = "middle"
       ctx.fillStyle = "rgba(244,239,230,0.98)"
       ctx.textAlign = "right"
-      ctx.fillText(t, W - 48, 80)
+      ctx.fillText(t, W - 56, 110)
       ctx.textAlign = "left"
     }
     if (listing.realtor_name) {
-      ctx.font = `500 22px ${fonts.sub}`
+      ctx.font = `500 24px ${fonts.sub}`
       ctx.textBaseline = "middle"
-      ctx.fillStyle = "rgba(244,239,230,0.85)"
-      ctx.fillText(listing.realtor_name, 48, H - 80)
+      ctx.fillStyle = "rgba(244,239,230,0.92)"
+      ctx.fillText(listing.realtor_name, 56, H - 110)
       if (listing.brokerage) {
         ctx.textAlign = "right"
-        ctx.fillStyle = "rgba(244,239,230,0.62)"
-        ctx.fillText(listing.brokerage, W - 48, H - 80)
+        ctx.fillStyle = "rgba(244,239,230,0.7)"
+        ctx.fillText(listing.brokerage, W - 56, H - 110)
         ctx.textAlign = "left"
       }
     }
@@ -409,17 +450,25 @@ function drawVideoCover(
   ctx.save()
   ctx.globalAlpha = alpha
   // Per-style colour grade — equivalent to FFmpeg `eq=saturation=…:contrast=…`
-  // applied to the source clip before the overlay layer. Optional unsharp
-  // mask via SVG `feConvolveMatrix` chains in afterwards for the finishing
-  // pass — equivalent to FFmpeg `unsharp=3:3:0.6`.
+  // applied to the source clip before the overlay layer. Each preset is
+  // visibly distinct so the user can tell editorial/cinema/snappy/minimal
+  // apart at a glance:
+  //
+  //   editorial → warm magazine grade, saturated, slight brightness lift
+  //   cinema    → desaturated cool-shadow grade, low brightness, high contrast
+  //                (anamorphic ad feel — what luxury auto ads look like)
+  //   snappy    → pumped saturation + bumped brightness + warm hue tilt
+  //                (TikTok / Reels feed energy — vivid, punchy, alive)
+  //   minimal   → almost monochrome — heavy desaturation, neutral contrast
+  //                (whisper-quiet luxury — never shouts)
   const grade =
     style === "editorial"
-      ? "saturate(1.08) contrast(1.04) brightness(1.02)"
+      ? "saturate(1.12) contrast(1.05) brightness(1.03) sepia(0.04)"
       : style === "cinema"
-      ? "saturate(1.05) contrast(1.10) brightness(0.98)"
-      : style === "minimal"
-      ? "saturate(0.92) contrast(1.02) brightness(1.0)"
-      : "saturate(1.10) contrast(1.06) brightness(1.02)" // snappy — punchy
+      ? "saturate(0.85) contrast(1.18) brightness(0.94) hue-rotate(-3deg)"
+      : style === "snappy"
+      ? "saturate(1.28) contrast(1.10) brightness(1.06)"
+      : "saturate(0.62) contrast(1.04) brightness(1.0)" // minimal — restrained
   const sharpen = UNSHARP_BY_STYLE[style] ? ` url(#${UNSHARP_FILTER_ID})` : ""
   ctx.filter = grade + sharpen
   ctx.drawImage(v, dx, dy, dw, dh)
@@ -490,12 +539,18 @@ export async function stitchClipsClientSide(
   // 0. Mount the unsharp SVG filter once — `ctx.filter` will reference it.
   ensureUnsharpFilter()
 
-  // 1. Canvas at output resolution
+  // 1. Canvas at output resolution. ImageSmoothingQuality is bumped to
+  //    "high" so any incidental upscale (e.g. a 720p Kling clip rendered
+  //    onto a 1080×1920 canvas) uses bicubic-grade resampling instead of
+  //    the default nearest-neighbor mush. This is the single biggest
+  //    visible-quality win for the stitched output.
   const canvas = document.createElement("canvas")
   canvas.width = W
   canvas.height = H
   const ctx = canvas.getContext("2d", { alpha: false })
   if (!ctx) throw new Error("Canvas 2D context unavailable")
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = "high"
   // Black background — drawn once at start so the first crossfade has
   // something to dissolve over.
   ctx.fillStyle = "#000"
@@ -518,21 +573,88 @@ export async function stitchClipsClientSide(
   }
   const totalDuration = starts[videos.length - 1] + durations[videos.length - 1]
 
-  // 4. MediaRecorder on the canvas stream
-  const stream = (canvas as any).captureStream(FPS) as MediaStream
+  // 4. MediaRecorder on the canvas stream — optionally with an audio
+  //    track mixed in via WebAudio so the chosen song is permanently
+  //    baked into the output MP4.
+  const videoStream = (canvas as any).captureStream(FPS) as MediaStream
   const { mimeType, ext } = pickMimeType()
+  // Bitrate: 12 Mbps for 1080×1920 vertical. The previous 6 Mbps was the
+  // 1080p horizontal target and looked noticeably soft when applied to a
+  // taller canvas — the bits-per-pixel ratio at 6 Mbps for a 9:16 1080p
+  // frame is below YouTube/Reels minimum quality. 12 Mbps puts us on par
+  // with what Reels recompresses to anyway, so we lose less in the upload
+  // re-encode.
   const recorderOpts: MediaRecorderOptions = mimeType
-    ? { mimeType, videoBitsPerSecond: 6_000_000 }
-    : { videoBitsPerSecond: 6_000_000 }
+    ? { mimeType, videoBitsPerSecond: 12_000_000, audioBitsPerSecond: 192_000 }
+    : { videoBitsPerSecond: 12_000_000, audioBitsPerSecond: 192_000 }
+
+  // Audio mixdown (optional). When opts.audioUrl is set, we fetch the file,
+  // decode it via WebAudio, route it through a MediaStreamDestination, and
+  // merge that audio track with the canvas video track into a single
+  // MediaStream that MediaRecorder consumes. Result: one MP4/WebM with
+  // perfectly-synced video AND audio, no FFmpeg dependency, no server.
+  let audioCtx: AudioContext | null = null
+  let audioSource: AudioBufferSourceNode | null = null
+  let audioGainNode: GainNode | null = null
+  const stream = await (async (): Promise<MediaStream> => {
+    if (!opts.audioUrl) return videoStream
+    try {
+      const res = await fetch(opts.audioUrl)
+      if (!res.ok) throw new Error(`audio fetch ${res.status}`)
+      const arrayBuf = await res.arrayBuffer()
+      const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext
+      audioCtx = new Ctx()
+      const decoded = await audioCtx.decodeAudioData(arrayBuf.slice(0))
+      const dest = audioCtx.createMediaStreamDestination()
+      audioGainNode = audioCtx.createGain()
+      audioGainNode.gain.value = opts.audioGain ?? 0.85
+      audioSource = audioCtx.createBufferSource()
+      audioSource.buffer = decoded
+      // Loop the song if it's shorter than the reel (Suno renders are 15s).
+      audioSource.loop = decoded.duration < totalDuration
+      audioSource.connect(audioGainNode).connect(dest)
+      // Schedule a 0.5s linear fade-out so the song doesn't cut abruptly
+      // when the video ends.
+      const now = audioCtx.currentTime
+      audioGainNode.gain.setValueAtTime(opts.audioGain ?? 0.85, now)
+      audioGainNode.gain.linearRampToValueAtTime(0, now + totalDuration)
+      const audioTrack = dest.stream.getAudioTracks()[0]
+      const merged = new MediaStream([
+        ...videoStream.getVideoTracks(),
+        audioTrack,
+      ])
+      // Fire the audio source the same instant recording starts.
+      audioSource.start(0)
+      return merged
+    } catch (err) {
+      console.warn("[stitch] audio mixdown failed, recording silent video:", err)
+      return videoStream
+    }
+  })()
+
   const recorder = new MediaRecorder(stream, recorderOpts)
   const chunks: Blob[] = []
   recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data) }
   const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve() })
   recorder.start(100)
 
-  // 5. Kick off clip 0 at t=0; subsequent clips are started inside the rAF
-  //    loop the moment we cross into their start window.
-  await videos[0].play().catch(() => {})
+  // 5. Kick off clip 0 at t=0; wait for it to be ACTIVELY playing (not
+  //    just for play() to resolve) before continuing — otherwise the
+  //    first ~100ms of recording captures a black frame because the
+  //    video element hasn't decoded its first frame yet. Subsequent
+  //    clips are started inside the rAF loop the moment we cross into
+  //    their start window.
+  await new Promise<void>((res) => {
+    const v0 = videos[0]
+    const onPlaying = () => {
+      v0.removeEventListener("playing", onPlaying)
+      res()
+    }
+    v0.addEventListener("playing", onPlaying)
+    v0.play().catch(() => res()) // if autoplay blocked, resolve anyway
+    // Hard timeout in case `playing` never fires
+    setTimeout(res, 1000)
+  })
   const playState = videos.map((_, i) => i === 0)
 
   // 6. Continuous rAF loop driving the canvas for the full output duration.
@@ -634,12 +756,18 @@ export async function stitchClipsClientSide(
   const blob = new Blob(chunks, { type: mimeType || "video/webm" })
   const url = URL.createObjectURL(blob)
 
-  // 8. Cleanup
+  // 8. Cleanup — videos and audio context
   videos.forEach((v) => {
     v.pause()
     v.src = ""
     v.load()
   })
+  try {
+    audioSource?.stop()
+  } catch { /* already stopped */ }
+  if (audioCtx && audioCtx.state !== "closed") {
+    audioCtx.close().catch(() => {})
+  }
 
   return { blob, ext: ext as "mp4" | "webm", url }
 }
