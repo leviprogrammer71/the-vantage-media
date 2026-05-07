@@ -1137,79 +1137,45 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                   />
                 </div>
 
-                {/* Music — 31 pre-rendered Suno tracks (62 audio files: 31
-                    primary + 31 alternate variants). Grouped by category so
-                    users find the right vibe fast; each row has an inline
-                    play button + variant toggle + download. */}
-                <SunoMusicPicker
-                  selectedLabel={musicVibe}
-                  onSelect={setMusicVibe}
-                />
-                </div>
-
                 {/* Caption */}
                 <div>
-                  <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-brass)" }}>
-                    CAPTION PREVIEW
+                  <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-ink)", fontWeight: 700 }}>
+                    CAPTION (OPTIONAL)
                   </label>
                   <textarea
                     value={caption || generatedCaption}
                     onChange={(e) => setCaption(e.target.value)}
                     className="w-full px-5 py-4 lux-prose"
-                    rows={4}
-                    style={{ border: "1px solid var(--lux-hairline)", background: "var(--lux-parchment)", fontFamily: "Inter, sans-serif" }}
+                    rows={3}
+                    style={{ border: "1px solid var(--lux-hairline-strong)", background: "var(--lux-bone)", fontFamily: "Inter, sans-serif" }}
+                    placeholder="Optional one-line caption that fades in over the reel"
                   />
-                  {!caption && (
-                    <p style={{ fontSize: "0.875rem", color: "var(--lux-ash)", marginTop: "0.75rem" }}>
-                      Auto-generated from property details
-                    </p>
-                  )}
+                </div>
+
+                {/* Music note — picker removed for production. Users add music
+                    themselves in their editor; the music library at /music
+                    is available separately. */}
+                <div
+                  className="p-4"
+                  style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline-strong)" }}
+                >
+                  <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-ink)", fontWeight: 700, fontSize: "0.62rem" }}>
+                    ♫ ABOUT MUSIC
+                  </div>
+                  <p style={{ color: "var(--lux-ink)", opacity: 0.8, fontSize: "0.85rem", lineHeight: 1.5 }}>
+                    We deliver your reel silent so it stays clean and easy to drop into Reels, TikTok, or your editor. Add your own track at the end — many users pair this with a 15-second loop from Suno or their preferred royalty-free library.
+                  </p>
                 </div>
               </>
-            )}
-
-            {/* Vibe Picker (all categories) */}
-            {showVibePicker && (category === "sketch_to_real" || category === "floor_plan_pan" || (category !== "virtual_staging" && showListingMetadata)) && (
-              <div>
-                <label className="lux-eyebrow block mb-4" style={{ color: "var(--lux-brass)" }}>
-                  MOOD &amp; AESTHETIC
-                </label>
-                <VibePicker value={vibe} onChange={setVibe} />
-              </div>
             )}
 
             {/* Shot Picker (animate_single only) */}
             {showShotPicker && (
               <div className="mt-8 pt-6" style={{ borderTop: "1px solid var(--lux-hairline)" }}>
-                <h3 className="lux-eyebrow mb-4" style={{ color: "var(--lux-brass)" }}>
+                <h3 className="lux-eyebrow mb-4" style={{ color: "var(--lux-ink)", fontWeight: 700 }}>
                   CAMERA MOVEMENT
                 </h3>
                 <ShotTypePicker value={shotType} onChange={setShotType} />
-              </div>
-            )}
-
-            {/* Effect Picker */}
-            {showEffectPicker && (
-              <div className="mt-8 pt-6" style={{ borderTop: "1px solid var(--lux-hairline)" }}>
-                <h3 className="lux-eyebrow mb-6" style={{ color: "var(--lux-brass)" }}>
-                  LISTING BADGE (OPTIONAL)
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {(Object.entries(EFFECT_OPTIONS) as [EffectId, string][]).map(([id, label]) => (
-                    <button
-                      key={id}
-                      onClick={() => setEffectId(id)}
-                      className="px-5 py-3 lux-prose transition rounded-sm"
-                      style={{
-                        border: `1px solid ${effectId === id ? "var(--lux-ink)" : "var(--lux-hairline)"}`,
-                        background: effectId === id ? "var(--lux-ink)" : "var(--lux-parchment)",
-                        color: effectId === id ? "var(--lux-bone)" : "var(--lux-ink)",
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
               </div>
             )}
           </div>
@@ -1539,7 +1505,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                   letterSpacing: "0.05em",
                 }}
               >
-                AI · THE VANTAGE
+                THE VANTAGE MEDIA
               </div>
             )}
             {clipUrls.length > 1 && !stitchedUrl && (

@@ -420,8 +420,21 @@ function drawVignette(
 export async function stitchClipsClientSide(
   opts: StitchOptions
 ): Promise<{ blob: Blob; ext: "mp4" | "webm"; url: string }> {
-  const { clips, listing, watermark = true, style = "editorial", onProgress } = opts
-  if (!clips?.length) throw new Error("No clips to stitch")
+  const { clips: rawClips, listing, watermark = true, style = "editorial", onProgress } = opts
+  // Only stitch actual video files. If a photo URL leaks into the array
+  // (shouldn't happen but defensive), skip it — stitching a still over a
+  // crossfade looks broken and stretches the runtime. Accepts mp4, webm,
+  // mov, m4v + signed-URL queries on those extensions.
+  const VIDEO_EXTS = /\.(mp4|webm|mov|m4v)(?:\?|$)/i
+  const clips = (rawClips || []).filter((u) => typeof u === "string" && VIDEO_EXTS.test(u.toLowerCase()))
+  if (!clips.length) {
+    const filtered = (rawClips || []).length - clips.length
+    throw new Error(
+      filtered > 0
+        ? `No video clips to stitch — ${filtered} non-video URL(s) were filtered out. Make sure every clip is .mp4/.webm/.mov.`
+        : "No clips to stitch"
+    )
+  }
 
   const profile = TRANSITION_PROFILE[style]
   const transitionSec = profile.duration

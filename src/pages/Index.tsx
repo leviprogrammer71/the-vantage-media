@@ -444,13 +444,13 @@ const Index = () => {
                   caption="BACKYARD BUILD · CONTRACTOR'S CINEMATIC DELIVERABLE"
                 />
                 <BeforeAfterSlider
-                  before="/vantage/setup/before.webp"
-                  after="/vantage/setup/after.jpeg"
-                  afterVideo="/vantage/setup/video.mp4"
+                  before="/vantage/ranch-clean/before.webp"
+                  after="/vantage/ranch-clean/input.png"
+                  afterVideo="/vantage/ranch-clean/video.mp4"
                   beforeLabel="MOMENT 00:00"
                   afterLabel="FRAME 03:52"
                   ratio="4/5"
-                  caption="KITCHEN REMODEL · BARE TO FINISHED"
+                  caption="RANCH CLEANUP · LISTING-READY IN ONE FILM"
                 />
               </div>
 
@@ -662,10 +662,10 @@ const Index = () => {
                     { value: "92%", label: "ATTACH RATE" },
                     { value: "0 hrs", label: "POST-PRODUCTION" },
                   ]}
-                  before="/vantage/ranch-clean/before.webp"
-                  after="/vantage/ranch-clean/input.png"
-                  beforeLabel="THE NEGLECTED FRAME"
-                  afterLabel="THE CLEANED FRAME"
+                  before="/vantage/ranch-build/input.png"
+                  after="/vantage/listing-bundle/1.webp"
+                  beforeLabel="STILL · DELIVERED PHOTO"
+                  afterLabel="CINEMATIC FRAME"
                 />
 
                 <CaseStudy
@@ -680,10 +680,10 @@ const Index = () => {
                     { value: "+62%", label: "AGENT BOOKINGS" },
                     { value: "$28k", label: "Q1 UPLIFT" },
                   ]}
-                  before="/vantage/setup/before.webp"
-                  after="/vantage/setup/after.jpeg"
-                  beforeLabel="UNDRESSED"
-                  afterLabel="DELIVERED"
+                  before="/vantage/contractor/before.jpg"
+                  after="/vantage/listing-bundle/4.webp"
+                  beforeLabel="UPLOADED PHOTO"
+                  afterLabel="CINEMATIC FRAME"
                 />
 
                 <CaseStudy
