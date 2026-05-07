@@ -51,6 +51,9 @@ interface Submission {
   prompt_status: string;
   output_video_url: string | null;
   output_video_path: string | null;
+  /** All individual per-photo clips — present for Done-For-You / Listing
+   *  Bundle generations. Each entry is a permanent Supabase Storage path. */
+  output_clip_paths: string[] | null;
   generated_before_image_path: string | null;
   before_photo_paths: string[] | null;
   after_photo_paths: string[] | null;
@@ -92,10 +95,35 @@ async function signPath(path: string | null | undefined): Promise<string | null>
 
 // Cross-device download — desktop anchor click, Android anchor click, iOS
 // Web Share API → blob open in new tab fallback.
-async function downloadFile(pathOrUrl: string, filename: string) {
-  const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+// iOS Safari quirks fixture — separated for testing.
+const isiOSDevice = () =>
+  typeof navigator !== "undefined" &&
+  /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
+  !/CriOS|FxiOS/.test(navigator.userAgent); // exclude Chrome/Firefox on iOS, which behave better
 
-  // 1. Pull bytes — fetch URL or download from Storage.
+const isAndroid = () =>
+  typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
+
+/**
+ * Download a video to the user's device.
+ *
+ * Strategy:
+ *   • Desktop (any browser): blob → anchor `download` → done.
+ *   • Android (Chrome / Firefox / Samsung): blob → anchor `download` → done.
+ *   • iOS Chrome / Firefox: blob → anchor `download` → done.
+ *   • iOS Safari with Web Share Files: native Save sheet (Photos / Files).
+ *   • iOS Safari WITHOUT Web Share Files: instruction toast + scroll the
+ *     video into view — there's no programmatic save path on iOS Safari
+ *     for arbitrary blob URLs, so we tell the user to long-press the video.
+ *
+ * The "opens in another tab" bug came from anchor click + window.open.
+ * Both have been removed; we never call window.open here.
+ */
+async function downloadFile(pathOrUrl: string, filename: string) {
+  const iOS = isiOSDevice();
+  const Android = isAndroid();
+
+  // 1. Pull the bytes.
   let blob: Blob | null = null;
   try {
     if (pathOrUrl.startsWith("http")) {
@@ -109,22 +137,37 @@ async function downloadFile(pathOrUrl: string, filename: string) {
     }
   } catch { /* fall through */ }
 
-  // 2. iOS Web Share — native Save-to-Files / Photos sheet when supported.
-  if (isiOS && blob && typeof (navigator as any).canShare === "function") {
-    try {
-      const file = new File([blob], filename, { type: blob.type || "video/mp4" });
-      const shareData: any = { files: [file], title: filename };
-      if ((navigator as any).canShare(shareData)) {
-        await (navigator as any).share(shareData);
-        return;
+  // 2. iOS Safari path — always prefer Web Share Sheet for best UX.
+  if (iOS && blob) {
+    const canShareFn = (navigator as any).canShare;
+    if (typeof canShareFn === "function") {
+      try {
+        const file = new File([blob], filename, { type: blob.type || "video/mp4" });
+        const shareData: any = { files: [file], title: filename };
+        if (canShareFn(shareData)) {
+          await (navigator as any).share(shareData);
+          return;
+        }
+      } catch (err) {
+        // User cancelled the share sheet — that's fine, just bail.
+        if ((err as any)?.name === "AbortError") return;
       }
-    } catch { /* fall through */ }
+    }
+
+    // No Web Share Files support on this iOS version. There's no clean
+    // programmatic save path for arbitrary blobs on iOS Safari, so we
+    // tell the user how to save manually. The video element on the
+    // gallery card supports the long-press → "Save Video" gesture
+    // natively — the user just needs to know they can use it.
+    toast({
+      title: "Save to Photos",
+      description: "iOS Safari can't auto-download videos. Long-press the playing video and tap 'Save Video' to save it to Photos.",
+      duration: 9000,
+    });
+    return;
   }
 
-  // 3. Universal blob anchor click — desktop, Android, modern iOS.
-  // Critical: target="_self" (NOT _blank) so iOS doesn't navigate away;
-  // and we DON'T also call window.open afterwards, which is what made the
-  // previous version "open in another tab" instead of saving.
+  // 3. Android + Desktop + iOS Chrome/Firefox — blob anchor click works.
   if (blob) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -141,9 +184,7 @@ async function downloadFile(pathOrUrl: string, filename: string) {
     return;
   }
 
-  // 4. Fall back to a Supabase signed URL with download disposition. The
-  //    server sets Content-Disposition: attachment so every browser saves
-  //    instead of navigating.
+  // 4. Last resort — signed URL with Content-Disposition: attachment.
   if (!pathOrUrl.startsWith("http")) {
     for (const bucket of ["project-submissions", "property-photos"]) {
       const { data } = await supabase.storage.from(bucket).createSignedUrl(pathOrUrl, 300, { download: filename });
@@ -161,7 +202,13 @@ async function downloadFile(pathOrUrl: string, filename: string) {
     }
   }
 
-  toast({ title: "Download failed", description: "Network error — please try again.", variant: "destructive" });
+  // Mute the unused warning on Android — kept for future per-platform UX hooks.
+  void Android;
+  toast({
+    title: "Download failed",
+    description: "Network error — please try again or refresh the page.",
+    variant: "destructive",
+  });
 }
 
 const TRANSFORMATION_LABELS: Record<string, string> = {
@@ -575,9 +622,29 @@ function SubmissionCard({
               fontSize: "0.6rem", letterSpacing: "0.18em",
             }}
           >
-            <Download size={12} /> Video
+            <Download size={12} /> {submission.output_clip_paths && submission.output_clip_paths.length > 1 ? "Stitched" : "Video"}
           </button>
         )}
+        {/* Per-clip downloads — present whenever a Done-For-You / Listing
+            Bundle generated multiple clips. Every clip lives permanently
+            in Supabase Storage and stays reachable here. */}
+        {submission.output_clip_paths && submission.output_clip_paths.length > 1 &&
+          submission.output_clip_paths.map((clipPath, i) => (
+            <button
+              key={`clip-${i}`}
+              onClick={() => downloadFile(clipPath, `vantage-clip-${i + 1}-${submission.id}.mp4`)}
+              className="lux-eyebrow inline-flex items-center gap-1.5 px-3 py-2"
+              style={{
+                background: "var(--lux-bone)", color: "var(--lux-ink)",
+                border: "1px solid var(--lux-hairline-strong)",
+                fontSize: "0.6rem", letterSpacing: "0.18em",
+              }}
+              title={`Download individual clip ${i + 1}`}
+            >
+              <Download size={12} /> Clip {i + 1}
+            </button>
+          ))
+        }
         {submission.generated_before_image_path && (
           <button
             onClick={() => downloadFile(submission.generated_before_image_path!, `vantage-before-${submission.id}.jpg`)}

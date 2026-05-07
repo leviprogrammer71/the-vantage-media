@@ -444,6 +444,11 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             after_photo_paths: photos.map((p) => p.path).filter(Boolean) as string[],
             output_video_url: finalVideoUrl,
             output_video_path: finalClipPaths[0] || null,
+            // Persist EVERY per-photo clip path so the Gallery can offer
+            // a separate download for each one. Without this, only the
+            // first clip was reachable from the UI even though all of
+            // them were already uploaded to storage by the edge function.
+            output_clip_paths: finalClipPaths.length ? finalClipPaths : null,
           })
           .select("id")
           .maybeSingle();
