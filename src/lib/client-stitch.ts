@@ -782,42 +782,36 @@ export async function downloadBlobOrUrl(
   blobOrUrl: Blob | string,
   filename: string
 ): Promise<boolean> {
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
   const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
 
-  const url = typeof blobOrUrl === "string" ? blobOrUrl : URL.createObjectURL(blobOrUrl)
-
-  // iOS Safari: anchor download mostly fails. Best UX is the Share Sheet.
-  if (isiOS && typeof blobOrUrl !== "string" && (navigator as any).canShare) {
+  // iOS Safari: try the native Web Share sheet first (Save to Files / Photos).
+  if (isiOS && typeof blobOrUrl !== "string" && typeof (navigator as any).canShare === "function") {
     try {
       const file = new File([blobOrUrl], filename, { type: blobOrUrl.type || "video/mp4" })
-      const shareData = { files: [file], title: filename } as any
+      const shareData: any = { files: [file], title: filename }
       if ((navigator as any).canShare(shareData)) {
         await (navigator as any).share(shareData)
         return true
       }
-    } catch {
-      // fall through to anchor click
-    }
+    } catch { /* fall through */ }
   }
 
-  // Desktop + Android Chrome — anchor with download attribute
+  // Universal blob anchor click — desktop, Android, AND modern iOS.
+  // target="_self" is critical for iOS so the click triggers a download
+  // instead of a navigation. Do NOT also call window.open afterwards —
+  // that's what made the previous version "open in another tab" instead
+  // of saving.
+  const url = typeof blobOrUrl === "string" ? blobOrUrl : URL.createObjectURL(blobOrUrl)
   const a = document.createElement("a")
   a.href = url
   a.download = filename
   a.rel = "noopener"
+  a.target = "_self"
   document.body.appendChild(a)
   a.click()
   setTimeout(() => {
-    document.body.removeChild(a)
+    try { document.body.removeChild(a) } catch { /* gone */ }
     if (typeof blobOrUrl !== "string") URL.revokeObjectURL(url)
-  }, 1000)
-
-  // iOS without Web Share — open in new tab so the user can long-press to save
-  if (isiOS && typeof blobOrUrl === "string") {
-    window.open(url, "_blank")
-    return false
-  }
-
+  }, 1500)
   return true
 }

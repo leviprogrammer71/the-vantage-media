@@ -94,8 +94,8 @@ async function signPath(path: string | null | undefined): Promise<string | null>
 // Web Share API → blob open in new tab fallback.
 async function downloadFile(pathOrUrl: string, filename: string) {
   const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const isMobile = isiOS || /Android/i.test(navigator.userAgent);
 
+  // 1. Pull bytes — fetch URL or download from Storage.
   let blob: Blob | null = null;
   try {
     if (pathOrUrl.startsWith("http")) {
@@ -109,52 +109,59 @@ async function downloadFile(pathOrUrl: string, filename: string) {
     }
   } catch { /* fall through */ }
 
-  if (isiOS && blob && (navigator as any).canShare) {
+  // 2. iOS Web Share — native Save-to-Files / Photos sheet when supported.
+  if (isiOS && blob && typeof (navigator as any).canShare === "function") {
     try {
       const file = new File([blob], filename, { type: blob.type || "video/mp4" });
-      const shareData = { files: [file], title: filename } as any;
+      const shareData: any = { files: [file], title: filename };
       if ((navigator as any).canShare(shareData)) {
         await (navigator as any).share(shareData);
         return;
       }
-    } catch { /* fall through to anchor */ }
+    } catch { /* fall through */ }
   }
 
+  // 3. Universal blob anchor click — desktop, Android, modern iOS.
+  // Critical: target="_self" (NOT _blank) so iOS doesn't navigate away;
+  // and we DON'T also call window.open afterwards, which is what made the
+  // previous version "open in another tab" instead of saving.
   if (blob) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     a.rel = "noopener";
+    a.target = "_self";
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
-      document.body.removeChild(a);
+      try { document.body.removeChild(a); } catch { /* gone */ }
       URL.revokeObjectURL(url);
-    }, 1000);
-    if (isiOS) window.open(url, "_blank");
+    }, 1500);
     return;
   }
 
+  // 4. Fall back to a Supabase signed URL with download disposition. The
+  //    server sets Content-Disposition: attachment so every browser saves
+  //    instead of navigating.
   if (!pathOrUrl.startsWith("http")) {
     for (const bucket of ["project-submissions", "property-photos"]) {
       const { data } = await supabase.storage.from(bucket).createSignedUrl(pathOrUrl, 300, { download: filename });
       if (data?.signedUrl) {
-        if (isMobile) window.open(data.signedUrl, "_blank");
-        else {
-          const a = document.createElement("a");
-          a.href = data.signedUrl;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        }
+        const a = document.createElement("a");
+        a.href = data.signedUrl;
+        a.download = filename;
+        a.rel = "noopener";
+        a.target = "_self";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { try { document.body.removeChild(a); } catch { /* gone */ } }, 1500);
         return;
       }
     }
   }
 
-  toast({ title: "Download failed", description: "Try opening the video and long-pressing to save", variant: "destructive" });
+  toast({ title: "Download failed", description: "Network error — please try again.", variant: "destructive" });
 }
 
 const TRANSFORMATION_LABELS: Record<string, string> = {

@@ -416,32 +416,56 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
       setVideoUrl(finalVideoUrl);
 
       // Persist a submission row so this listing video shows up in the user's gallery.
-      // Best-effort: failure here does not block the user from seeing their video.
+      // CRITICAL: every NOT NULL column must be populated. The original
+      // schema declared `video_style`, `business_name`, `project_description`,
+      // `transformation_type` as NOT NULL. The previous version of this code
+      // omitted `video_style`, which caused EVERY listing-mode insert to fail
+      // with a constraint violation that was silently swallowed by the catch
+      // block — that's why the gallery showed nothing for listing reels even
+      // though the videos generated successfully.
+      let createdSubmissionId: string | null = null;
       try {
         const finalClipPaths: string[] = response.data?.output_clip_paths || (response.data?.output_video_path ? [response.data.output_video_path] : []);
-        await supabase.from("submissions").insert({
-          user_id: user!.id,
-          full_name: user!.email || "",
-          email: user!.email || "",
-          business_name: realtorName || brokerage || "Self",
-          project_description: caption || generatedCaption,
-          transformation_type: category || "listing",
-          transformation_category: null,
-          video_type: "listing",
-          status: "delivered",
-          prompt_status: "complete",
-          // Store the storage paths (never expire), not the signed URLs (which do).
-          // The Gallery's defensive signPath() can re-sign these on demand from
-          // the property-photos bucket.
-          after_photo_paths: photos.map((p) => p.path).filter(Boolean) as string[],
-          output_video_url: finalVideoUrl,
-          output_video_path: finalClipPaths[0] || null,
-        });
+        const { data: insertData, error: insertErr } = await supabase
+          .from("submissions")
+          .insert({
+            user_id: user!.id,
+            full_name: user!.email || "user",
+            email: user!.email || "noreply@thevantage.media",
+            business_name: realtorName || brokerage || "Self",
+            project_description: caption || generatedCaption || `${category || "listing"} reel`,
+            transformation_type: category || "listing",
+            transformation_category: null,
+            video_type: "listing",
+            video_style: stitchStyle || "cinematic", // ← was missing → INSERT failed
+            status: "delivered",
+            prompt_status: "complete",
+            // Store the storage paths (never expire), not the signed URLs (which do).
+            after_photo_paths: photos.map((p) => p.path).filter(Boolean) as string[],
+            output_video_url: finalVideoUrl,
+            output_video_path: finalClipPaths[0] || null,
+          })
+          .select("id")
+          .maybeSingle();
+        if (insertErr) {
+          console.error("[ListingVideoFlow] gallery insert failed:", insertErr);
+          toast.error("Saved your video but couldn't add it to your gallery — please screenshot the download link.");
+        } else {
+          createdSubmissionId = insertData?.id ?? null;
+        }
       } catch (persistErr) {
-        console.error("[ListingVideoFlow] gallery persist failed (non-fatal):", persistErr);
+        console.error("[ListingVideoFlow] gallery persist exception:", persistErr);
+        toast.error("Saved your video but gallery sync failed. Try refreshing the gallery in a minute.");
       }
 
-      await deductCredits(creditCost);
+      // Pass description + submissionId so the deduct hits the new
+      // server-side RPC with full context (and the unique-index idempotency
+      // key includes submission_id).
+      await deductCredits(
+        creditCost,
+        `${category || "listing"} reel`,
+        createdSubmissionId ?? undefined,
+      );
       await refreshCredits();
       setStep(7);
 

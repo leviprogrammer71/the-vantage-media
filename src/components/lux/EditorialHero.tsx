@@ -19,17 +19,22 @@ interface EditorialHeroProps {
 }
 
 const EditorialHero = ({
-  eyebrow = "VOLUME I · ISSUE No. 04",
-  edition = "Spring · Twenty Twenty Six",
+  // Defaults rewritten for clarity + conversion. The previous defaults
+  // ("VOLUME I · ISSUE No. 04 / Spring · Twenty Twenty Six / Your finest
+  // frame, set in motion") were editorial-magazine fluff — beautiful but
+  // told no visitor what the product actually does. The new defaults make
+  // the value clear in the first second above the fold.
+  eyebrow = "AI LISTING REELS · ONE PHOTO IN · CINEMATIC MP4 OUT",
+  edition = "BUILT FOR REAL ESTATE PHOTOGRAPHERS · AGENTS · STUDIOS",
   title,
   italic,
-  subtitle = "One photograph. A scroll-stopping cinematic listing film. Delivered before your client's coffee gets cold.",
+  subtitle = "Upload one listing photo. We render a 1080p vertical reel — Done-For-You, Virtual Staging, Day-to-Dusk, or Sketch-to-Reality — in three minutes. Ready to post on Reels, TikTok, and the MLS.",
   primaryCta,
   secondaryCta,
   backgroundImage = "/vantage/ranch-build/input.png",
   rightImage,
   rightVideo,
-  byline = "PHOTOGRAPHED BY THE VANTAGE STUDIO",
+  byline = "DELIVERED BY THE VANTAGE MEDIA",
 }: EditorialHeroProps) => {
   const { destination, isLoggedIn } = useSmartCTA();
   const pCta = primaryCta ?? { label: isLoggedIn ? "ENTER THE STUDIO →" : "BEGIN FREE — 50 CREDITS →", to: destination };
@@ -78,11 +83,11 @@ const EditorialHero = ({
             >
               {title ?? (
                 <>
-                  Your finest
+                  Turn one photo
                   <br />
-                  frame, set
+                  into a cinematic
                   <br />
-                  in <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>motion.</span>
+                  listing reel <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>in three minutes.</span>
                 </>
               )}
             </h1>
