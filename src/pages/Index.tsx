@@ -151,12 +151,12 @@ const Index = () => {
                     style={{ aspectRatio: "3/4" }}
                   >
                     {[
-                      { label: "STORY", src: "/vantage/listing-bundle/1.mp4", poster: "/vantage/listing-bundle/1.webp" },
-                      { label: "REELS", src: "/vantage/listing-bundle/2.mp4", poster: "/vantage/listing-bundle/2.webp" },
-                      { label: "FEED", src: "/vantage/listing-bundle/3.mp4", poster: "/vantage/listing-bundle/3.webp" },
-                      { label: "TIKTOK", src: "/vantage/listing-bundle/4.mp4", poster: "/vantage/listing-bundle/4.webp" },
-                      { label: "DM", src: "/vantage/listing-bundle/5.mp4", poster: "/vantage/listing-bundle/5.webp" },
-                      { label: "MLS", src: "/vantage/listing-bundle/6.mp4", poster: "/vantage/listing-bundle/6.webp" },
+                      { label: "STORY",  poster: "/vantage/listing-bundle/1.webp" },
+                      { label: "REELS",  poster: "/vantage/listing-bundle/2.webp" },
+                      { label: "FEED",   poster: "/vantage/listing-bundle/3.webp" },
+                      { label: "TIKTOK", poster: "/vantage/listing-bundle/4.webp" },
+                      { label: "DM",     poster: "/vantage/listing-bundle/5.webp" },
+                      { label: "MLS",    poster: "/vantage/listing-bundle/6.webp" },
                     ].map((p, i) => (
                       <div
                         key={i}
@@ -168,13 +168,6 @@ const Index = () => {
                           alt={`${p.label} placement`}
                           className="absolute inset-0 w-full h-full object-cover"
                           loading="lazy"
-                        />
-                        <video
-                          src={p.src}
-                          poster={p.poster}
-                          autoPlay muted loop playsInline preload="metadata"
-                          onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = "none"; }}
-                          className="absolute inset-0 w-full h-full object-cover"
                         />
                         <span
                           className="lux-eyebrow absolute bottom-1 left-1 px-1.5 py-0.5"
@@ -287,15 +280,14 @@ const Index = () => {
                       <img
                         src={card.poster}
                         alt={card.title}
-                        className="absolute inset-0 w-full h-full object-cover"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         loading="lazy"
                       />
-                      <video
-                        src={card.media}
-                        poster={card.poster}
-                        autoPlay muted loop playsInline preload="metadata"
-                        onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = "none"; }}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      <div
+                        className="absolute inset-0"
+                        style={{
+                          background: "linear-gradient(to top, rgba(14,14,12,0.45) 0%, rgba(14,14,12,0) 50%)",
+                        }}
                       />
                       {card.featured && (
                         <span
@@ -545,19 +537,6 @@ const Index = () => {
                       alt={`Source photo ${i}`}
                       className="absolute inset-0 w-full h-full object-cover"
                       loading="lazy"
-                    />
-                    <video
-                      src={`/vantage/listing-bundle/${i}.mp4`}
-                      poster={`/vantage/listing-bundle/${i}.webp`}
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                      preload="metadata"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLVideoElement).style.display = "none";
-                      }}
-                      className="absolute inset-0 w-full h-full object-cover"
                     />
                     <div
                       className="lux-eyebrow absolute top-2 left-2 px-2 py-1"
