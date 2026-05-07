@@ -28,7 +28,10 @@ const px = {
 };
 
 const RealEstatePhotographers = () => {
-  const { destination, isLoggedIn } = useSmartCTA();
+  // Photographers ship most volume through the Listing Bundle (per-clip
+  // delivery they edit themselves), so this audience CTA's destination is
+  // the bundle. Done-For-You is still surfaced via the secondary CTA.
+  const { destination, destinationFor, isLoggedIn } = useSmartCTA("photographer");
 
   return (
     <>

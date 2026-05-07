@@ -17,7 +17,7 @@ const Welcome = () => {
 
   // Parse ?next= safely (same-origin path only)
   const rawNext = searchParams.get("next") || "";
-  let next = "/video?mode=listing";
+  let next = "/video?mode=listing&category=done_for_you_reel";
   try {
     const decoded = decodeURIComponent(rawNext);
     if (decoded.startsWith("/") && !decoded.startsWith("//")) next = decoded;

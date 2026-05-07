@@ -38,7 +38,8 @@ const Auth = () => {
 
   // Safely read a returnUrl: must be same-origin path (starts with /) — guards against open-redirects
   const rawReturn = searchParams.get("returnUrl") || searchParams.get("redirect") || "";
-  let safeReturn = "/video?mode=listing";
+  // Default post-auth destination is the Done-For-You Reel — our flagship sell.
+  let safeReturn = "/video?mode=listing&category=done_for_you_reel";
   if (rawReturn) {
     try {
       const decoded = decodeURIComponent(rawReturn);

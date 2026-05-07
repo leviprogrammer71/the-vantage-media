@@ -22,7 +22,8 @@ const ax = {
 };
 
 const AgentsLanding = () => {
-  const { destination, isLoggedIn } = useSmartCTA();
+  // Agents ship Done-For-You reels — the auto-stitched, ready-to-post format.
+  const { destination, isLoggedIn } = useSmartCTA("agent");
 
   return (
     <>

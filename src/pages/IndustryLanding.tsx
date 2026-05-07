@@ -188,8 +188,11 @@ interface Props { slug: Slug; }
 
 const IndustryLanding = ({ slug }: Props) => {
   const c = CONTENT[slug];
+  // Industry / contractor landing — these audiences sell construction
+  // transformation reels, not listing reels. Override the default
+  // Done-For-You routing and send into the transform flow.
   const { destinationFor, isLoggedIn } = useCtaNavigation();
-  const cta = destinationFor("create");
+  const cta = destinationFor("transform");
   const canonical = `https://thevantage.co/${slug}`;
 
   return (

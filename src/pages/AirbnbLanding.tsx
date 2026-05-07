@@ -21,7 +21,8 @@ const bx = {
 };
 
 const AirbnbLanding = () => {
-  const { destination, isLoggedIn } = useSmartCTA();
+  // Airbnb hosts ship Done-For-You — the auto-stitched, social-ready format.
+  const { destination, isLoggedIn } = useSmartCTA("airbnb");
 
   return (
     <>

@@ -5,17 +5,22 @@ import { useAuth } from "@/contexts/AuthContext";
 /**
  * Centralised CTA routing used across the site.
  *
+ * Default policy: every "Create Video" / "Get Started" / "New Film" CTA
+ * funnels into the Done-For-You Reel — our flagship product. Contractor
+ * and construction-transformation pages override with `kind: "transform"`
+ * to route into the construction flow instead.
+ *
  * Rules:
- *   - Any "Create Video" / "Get Started" / "New Film" CTA:
- *       logged out  →  /login?returnUrl=/video?mode=transform
- *       logged in   →  /video?mode=transform
- *   - Any "See Demo" CTA → /demo (both states)
- *   - Any pricing/credits CTA:
- *       logged out  →  /login?returnUrl=/credits
- *       logged in   →  /credits
- *   - After login, Auth.tsx reads `returnUrl` and redirects there.
+ *   - kind: "create"     → /video?mode=listing&category=done_for_you_reel  (default)
+ *   - kind: "transform"  → /video?mode=transform                            (contractor pages)
+ *   - kind: "demo"       → /demo
+ *   - kind: "pricing"    → /credits
+ *   - kind: "referral"   → /referral
+ *
+ *   Logged-out variants bounce through /login?returnUrl=… and Auth.tsx
+ *   redirects post-auth.
  */
-export type CtaKind = "create" | "demo" | "pricing" | "referral";
+export type CtaKind = "create" | "transform" | "demo" | "pricing" | "referral";
 
 export const useCtaNavigation = () => {
   const navigate = useNavigate();
@@ -32,11 +37,18 @@ export const useCtaNavigation = () => {
           return isLoggedIn ? "/credits" : "/login?returnUrl=%2Fcredits";
         case "referral":
           return isLoggedIn ? "/referral" : "/login?returnUrl=%2Freferral";
+        case "transform": {
+          // Contractor / construction pages — the only audience that ships
+          // away from Done-For-You.
+          const path = "/video?mode=transform";
+          return isLoggedIn ? path : `/login?returnUrl=${encodeURIComponent(path)}`;
+        }
         case "create":
-        default:
-          return isLoggedIn
-            ? "/video?mode=transform"
-            : "/login?returnUrl=%2Fvideo%3Fmode%3Dtransform";
+        default: {
+          // Default: Done-For-You Reel. The flagship sell.
+          const path = "/video?mode=listing&category=done_for_you_reel";
+          return isLoggedIn ? path : `/login?returnUrl=${encodeURIComponent(path)}`;
+        }
       }
     },
     [isLoggedIn]
