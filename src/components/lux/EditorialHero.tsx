@@ -183,7 +183,44 @@ const EditorialHero = ({
             </div>
           </div>
         </div>
+
+        {/* Subtle scroll cue — sits below the hero, gently bobbing, tells
+            visitors there's more without being a billboard. Only renders
+            on screens tall enough to need it. */}
+        <div
+          className="hidden md:flex flex-col items-center mt-16 pointer-events-none"
+          style={{ opacity: 0.55 }}
+          aria-hidden="true"
+        >
+          <span
+            className="lux-eyebrow"
+            style={{
+              color: "var(--lux-ink)",
+              fontSize: "0.55rem",
+              letterSpacing: "0.32em",
+              fontWeight: 700,
+            }}
+          >
+            SCROLL TO SEE THE PROOF
+          </span>
+          <span
+            style={{
+              display: "inline-block",
+              width: 1,
+              height: 32,
+              background: "linear-gradient(to bottom, var(--lux-ink), transparent)",
+              marginTop: 12,
+              animation: "scrollHint 2.2s ease-in-out infinite",
+            }}
+          />
+        </div>
       </div>
+      <style>{`
+        @keyframes scrollHint {
+          0%, 100% { transform: translateY(0); opacity: 0.6; }
+          50%      { transform: translateY(8px); opacity: 1; }
+        }
+      `}</style>
     </section>
   );
 };

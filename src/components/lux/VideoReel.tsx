@@ -134,46 +134,112 @@ const VideoReel = ({ clips, className = "", eyebrow = "FILM REEL", title = "Rece
           </div>
         </div>
 
-        {/* Reel index list */}
-        <div className="md:col-span-5 lux-hairline-t pt-4">
+        {/* Reel index list — every row is a click-to-play button. Theme is
+            locked for the dark-ink background this reel always renders on
+            (Index.tsx + RealEstatePhotographers.tsx wrap it in lux-bg-ink).
+            On bone backgrounds the colours flip via the optional bg prop
+            wrap below. */}
+        <div className="md:col-span-5 pt-4" style={{ borderTop: "1px solid rgba(244,239,230,0.18)" }}>
           {clips.map((c, i) => {
             const isActive = i === active;
             return (
               <button
                 key={c.src}
                 onClick={() => setActive(i)}
-                className="w-full text-left flex items-center justify-between py-5 lux-hairline-b transition-colors group"
-                style={{ borderBottom: "1px solid var(--lux-hairline)" }}
+                className="w-full text-left flex items-center justify-between py-5 transition-colors group cursor-pointer"
+                style={{
+                  borderBottom: "1px solid rgba(244,239,230,0.14)",
+                  background: isActive ? "rgba(140,63,46,0.08)" : "transparent",
+                  paddingLeft: 12,
+                  paddingRight: 12,
+                }}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(244,239,230,0.04)"; }}
+                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
               >
                 <div className="flex items-center gap-5">
                   <span
                     className="lux-eyebrow w-8 inline-block"
-                    style={{ color: isActive ? "var(--lux-rust)" : "var(--lux-brass)" }}
+                    style={{
+                      color: isActive ? "var(--lux-champagne)" : "var(--lux-brass)",
+                      fontWeight: 700,
+                    }}
                   >
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <div>
                     <div
-                      className="font-display text-lg md:text-xl"
-                      style={{ color: isActive ? "var(--lux-rust)" : "var(--lux-ink)" }}
+                      className="font-display text-lg md:text-xl transition-colors"
+                      style={{
+                        color: isActive ? "var(--lux-champagne)" : "var(--lux-bone)",
+                        letterSpacing: "-0.01em",
+                      }}
                     >
                       {c.label}
                     </div>
                     {c.byline && (
-                      <div className="text-xs mt-1" style={{ color: "var(--lux-ash)", letterSpacing: "0.04em" }}>{c.byline}</div>
+                      <div
+                        className="lux-eyebrow mt-1.5 transition-colors"
+                        style={{
+                          color: isActive ? "rgba(244,239,230,0.85)" : "rgba(244,239,230,0.62)",
+                          fontSize: "0.62rem",
+                          letterSpacing: "0.16em",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {c.byline}
+                      </div>
                     )}
                   </div>
                 </div>
                 <span
-                  className="lux-eyebrow"
-                  style={{ color: isActive ? "var(--lux-rust)" : "var(--lux-smoke)" }}
+                  className="lux-eyebrow inline-flex items-center gap-1.5 transition-transform group-hover:translate-x-1"
+                  style={{
+                    color: isActive ? "var(--lux-champagne)" : "var(--lux-bone)",
+                    opacity: isActive ? 1 : 0.7,
+                    fontSize: "0.62rem",
+                    letterSpacing: "0.18em",
+                    fontWeight: 700,
+                  }}
                 >
-                  {isActive ? "● PLAYING" : "↗"}
+                  {isActive ? (
+                    <>
+                      <span
+                        style={{
+                          width: 6, height: 6,
+                          borderRadius: 9999,
+                          background: "var(--lux-champagne)",
+                          animation: "pulse 1.6s ease-in-out infinite",
+                        }}
+                      />
+                      PLAYING
+                    </>
+                  ) : (
+                    <>PLAY →</>
+                  )}
                 </span>
               </button>
             );
           })}
+          <p
+            className="lux-eyebrow mt-5 text-center"
+            style={{
+              color: "rgba(244,239,230,0.5)",
+              fontSize: "0.58rem",
+              letterSpacing: "0.22em",
+              fontWeight: 600,
+            }}
+          >
+            ↑ TAP ANY TITLE TO PLAY
+          </p>
         </div>
+
+        {/* Pulse keyframes for the playing dot */}
+        <style>{`
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%      { opacity: 0.35; }
+          }
+        `}</style>
       </div>
     </div>
   );

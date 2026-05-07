@@ -143,7 +143,7 @@ const BeforeAfterSlider = ({
         >
           <button
             type="button"
-            aria-label="Drag to compare"
+            aria-label="Drag to compare before and after"
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 grid place-items-center"
             style={{
               width: 56,
@@ -153,6 +153,7 @@ const BeforeAfterSlider = ({
               border: "1px solid var(--lux-hairline-strong)",
               boxShadow: "0 16px 32px -16px rgba(14,14,12,0.45)",
               cursor: dragging ? "grabbing" : "grab",
+              animation: dragging ? "none" : "sliderHint 3.5s ease-in-out infinite",
             }}
             onPointerDown={(e) => {
               e.stopPropagation();
@@ -165,7 +166,36 @@ const BeforeAfterSlider = ({
             </svg>
           </button>
         </div>
+
+        {/* Subtle "DRAG" hint — sits over the bottom edge of the slider,
+            tells first-time viewers the divider is interactive without
+            shouting. Vanishes the first time the user drags. */}
+        {!dragging && pos > 30 && pos < 70 && (
+          <span
+            className="lux-eyebrow absolute pointer-events-none"
+            style={{
+              left: "50%",
+              transform: "translateX(-50%)",
+              bottom: 18,
+              color: "var(--lux-bone)",
+              background: "rgba(14,14,12,0.62)",
+              padding: "6px 12px",
+              fontSize: "0.55rem",
+              letterSpacing: "0.28em",
+              fontWeight: 700,
+              backdropFilter: "blur(6px)",
+            }}
+          >
+            ← DRAG TO COMPARE →
+          </span>
+        )}
       </div>
+      <style>{`
+        @keyframes sliderHint {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); }
+          50%      { transform: translate(-50%, -50%) scale(1.08); box-shadow: 0 16px 32px -16px rgba(140,63,46,0.6); }
+        }
+      `}</style>
 
       {caption && (
         <figcaption className="mt-5 lux-eyebrow lux-text-ash flex items-center gap-3" style={{ color: "var(--lux-ash)" }}>
