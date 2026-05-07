@@ -196,6 +196,126 @@ const Index = () => {
             </div>
           </section>
 
+          {/* THE PROOF — A real Done-For-You reel built from one customer's
+              listing photos. Nine source photos in, one stitched cinematic
+              MP4 out. This is the actual end-to-end output users get. */}
+          <section className="lux-section lux-bg-cream" id="proof">
+            <div className="lux-container">
+              <SectionHeading
+                eyebrow="A REAL DONE-FOR-YOU REEL · 1678 E. TRENTON"
+                title="Nine photos in."
+                italic="One reel out."
+                lede="This is what a customer received this week — every clip rendered individually from a single photo with the exact prompt-engineering pipeline you'd run, then auto-stitched with a 0.5s cross-dissolve between each shot. No editor. No second crew. No post-production day."
+                align="center"
+                className="mb-14"
+              />
+
+              <div className="grid lg:grid-cols-12 gap-10 lg:gap-16 items-start">
+                {/* LEFT — the nine source photos that went into Seedance */}
+                <div className="lg:col-span-7">
+                  <div className="lux-eyebrow mb-4 flex items-center gap-3" style={{ color: "var(--lux-rust)", fontWeight: 700 }}>
+                    <span style={{ display: "inline-block", width: 28, height: 1, background: "var(--lux-rust)" }} />
+                    THE INPUT · NINE LISTING PHOTOS
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 md:gap-3">
+                    {[
+                      { src: "/trenton/outside.webp", label: "EXTERIOR · 01" },
+                      { src: "/trenton/outside-1.webp", label: "EXTERIOR · 02" },
+                      { src: "/trenton/outside2.webp", label: "EXTERIOR · 03" },
+                      { src: "/trenton/kitchen.webp", label: "KITCHEN" },
+                      { src: "/trenton/nook.webp", label: "NOOK" },
+                      { src: "/trenton/bath.webp", label: "BATH" },
+                      { src: "/trenton/pool.webp", label: "POOL" },
+                      { src: "/trenton/patio.webp", label: "PATIO" },
+                      { src: "/trenton/yard.webp", label: "YARD" },
+                    ].map((p, i) => (
+                      <div
+                        key={i}
+                        className="relative overflow-hidden"
+                        style={{
+                          aspectRatio: "1/1",
+                          background: "var(--lux-ink)",
+                          border: "1px solid var(--lux-hairline)",
+                        }}
+                      >
+                        <img
+                          src={p.src}
+                          alt={p.label}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        <span
+                          className="lux-eyebrow absolute bottom-1.5 left-1.5 px-1.5 py-0.5"
+                          style={{
+                            background: "rgba(14,14,12,0.7)",
+                            color: "var(--lux-bone)",
+                            fontSize: "0.5rem",
+                            letterSpacing: "0.16em",
+                            backdropFilter: "blur(6px)",
+                          }}
+                        >
+                          {p.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p
+                    className="lux-prose mt-5"
+                    style={{ fontSize: "0.85rem", color: "var(--lux-ink)", opacity: 0.75 }}
+                  >
+                    Each photo went through Seedance 2.0 individually — one image per call, with a unique
+                    narrative beat ("establishing wide", "hero push", "architectural detail"…) so every
+                    shot lands as a deliberate frame, not a generic batch clip.
+                  </p>
+                </div>
+
+                {/* RIGHT — the final stitched done-for-you reel */}
+                <div className="lg:col-span-5">
+                  <div className="lux-eyebrow mb-4 flex items-center gap-3" style={{ color: "var(--lux-brass)", fontWeight: 700 }}>
+                    <span style={{ display: "inline-block", width: 28, height: 1, background: "var(--lux-brass)" }} />
+                    THE OUTPUT · ONE STITCHED MP4
+                  </div>
+                  <PreviewVideo
+                    src="/trenton/321-e-drumont-final-cut.mp4"
+                    poster="/trenton/outside.webp"
+                    alt="1678 East Trenton — final Done-For-You reel"
+                    containerClassName="w-full lux-bg-ink"
+                    containerStyle={{ aspectRatio: "9/16", border: "1px solid var(--lux-hairline-strong)", boxShadow: "0 28px 60px -32px rgba(14,14,12,0.45)" }}
+                  />
+                  <div
+                    className="grid grid-cols-3 gap-px mt-5"
+                    style={{ background: "var(--lux-hairline-strong)" }}
+                  >
+                    {[
+                      { v: "9", l: "PHOTOS IN" },
+                      { v: "45s", l: "REEL OUT" },
+                      { v: "3 min", l: "RENDER" },
+                    ].map((s, i) => (
+                      <div key={i} className="lux-bg-cream p-4">
+                        <div className="font-display" style={{ fontSize: "1.6rem", letterSpacing: "-0.02em", color: "var(--lux-ink)" }}>
+                          {s.v}
+                        </div>
+                        <div
+                          className="lux-eyebrow mt-1"
+                          style={{ color: "var(--lux-ink)", opacity: 0.7, fontSize: "0.6rem", fontWeight: 700 }}
+                        >
+                          {s.l}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <Link
+                    to={destinationFor("done_for_you_reel")}
+                    className="lux-btn mt-6 w-full text-center"
+                    style={{ display: "block" }}
+                  >
+                    BUILD YOUR OWN DONE-FOR-YOU REEL →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* THE FEATURES — Direct-click product cards. Each goes to its specific upload step. */}
           <section className="lux-section lux-bg-bone" id="features">
             <div className="lux-container">
