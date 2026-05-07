@@ -67,6 +67,12 @@ interface SignedUrls {
 type StatusFilter = "all" | "ready" | "generating" | "failed";
 type CategoryFilter = "all" | "listing" | "transformation";
 
+// Maximum signed-URL lifetime allowed by Supabase Storage. Was 3600 (1h)
+// previously — that caused 17 users to perceive "lost media" once their
+// signed URLs expired between sessions. 7 days makes intra-week revisits
+// always work; the gallery also re-signs every URL on mount as a backup.
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
+
 // Defensive resolver. Accepts full URLs, "bucket/path" keys, or bare paths;
 // tries project-submissions then property-photos (listing flow uploads land
 // in property-photos).
@@ -75,7 +81,7 @@ async function signPath(path: string | null | undefined): Promise<string | null>
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
   for (const bucket of ["project-submissions", "property-photos"]) {
     try {
-      const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+      const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
       if (!error && data?.signedUrl) return data.signedUrl;
     } catch {
       /* try next */
@@ -739,10 +745,25 @@ const Gallery = () => {
         (s.after_photo_paths || []).forEach((p, i) => {
           tasks.push(signPath(p).then((url) => { if (url) urlMap[`after-${s.id}-${i}`] = url; }));
         });
-        if (s.output_video_url) {
+        // CRITICAL: prefer the Storage path over the bare URL. The
+        // output_video_url field stores Replicate's temporary URL which
+        // expires in roughly 24 hours; the output_video_path is the
+        // permanent Supabase Storage location. Until this fix shipped,
+        // every submission older than ~24h showed "Preview unavailable"
+        // because we kept handing the dead Replicate URL to the <video>
+        // tag instead of re-signing the storage path. (17 user complaints
+        // and refunds traced to this single conditional.)
+        if (s.output_video_path) {
+          tasks.push(signPath(s.output_video_path).then((url) => {
+            if (url) urlMap[`video-${s.id}`] = url;
+          }));
+        } else if (s.output_video_url && s.output_video_url.includes("supabase.co/storage")) {
+          // Already a long-lived Supabase signed URL → fine to use directly.
           urlMap[`video-${s.id}`] = s.output_video_url;
-        } else if (s.output_video_path) {
-          tasks.push(signPath(s.output_video_path).then((url) => { if (url) urlMap[`video-${s.id}`] = url; }));
+        } else if (s.output_video_url) {
+          // Fallback to the Replicate URL only if no path exists at all.
+          // Will likely be dead after 24h but it's the only thing we have.
+          urlMap[`video-${s.id}`] = s.output_video_url;
         }
       }
       await Promise.all(tasks);
