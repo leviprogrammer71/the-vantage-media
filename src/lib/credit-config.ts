@@ -1,22 +1,42 @@
-// Central credit configuration — single source of truth
+// Central credit configuration — single source of truth.
+//
+// REPLICATE COST MODEL (May 2026):
+//   Seedance 1 Pro 1080p: $0.058/sec without audio, up to $0.15/sec at peak.
+//   We target $0.15/sec for safety so margins survive a price hike or a
+//   model swap to a costlier render path.
+//
+//   Per-render cost:
+//     5s clip  → $0.75
+//     10s clip → $1.50
+//     Image step (gpt-image-2 / nano-banana / flux-kontext) → ~$0.04–0.10
+//
+// CREDIT VALUE: 1 credit = $0.06 (PRO pack tier). Lower tiers pay more
+// per credit; STUDIO pack pays $0.05/credit. Average $0.07/credit.
+//
+// MARGIN TARGET: 60% gross on Replicate cost.
+//   5s clip cost $0.75 → revenue target $1.88 → 30 credits @ $0.06.
+//   10s clip cost $1.50 → revenue target $3.75 → 60 credits @ $0.06.
+//
+// All costs below recalibrated to that target.
 export const CREDIT_COSTS = {
-  photoEnhance: 10,
-  listingVideo5s: 20,
-  listingVideo10s: 30,
-  // Construction transformation
-  transformationOwn5s: 30,
-  transformationOwn10s: 40,
-  transformationAI5s: 40,
-  transformationAI10s: 50,
-  // Cleanup & Setup transformations (higher base cost)
-  cleanupAI5s: 50,
-  cleanupAI10s: 60,
+  photoEnhance: 10,           // ~$0.05 nano-banana cost
+  // Listing videos — base unit is 5 credits per second of 1080p output
+  listingVideo5s: 30,         // 5s @ 6 cr/sec
+  listingVideo10s: 60,        // 10s @ 6 cr/sec
+  // Construction transformation (2-call pipeline: AI before-image + Kling)
+  transformationOwn5s: 35,
+  transformationOwn10s: 65,
+  transformationAI5s: 50,     // extra image-gen cost
+  transformationAI10s: 80,
+  // Cleanup & Setup transformations
+  cleanupAI5s: 55,
+  cleanupAI10s: 85,
   cleanupOwn5s: 40,
-  cleanupOwn10s: 50,
-  setupAI5s: 50,
-  setupAI10s: 60,
+  cleanupOwn10s: 70,
+  setupAI5s: 55,
+  setupAI10s: 85,
   setupOwn5s: 40,
-  setupOwn10s: 50,
+  setupOwn10s: 70,
   websiteConsultation: 10,
   durationUpcharge: 10,
 } as const;

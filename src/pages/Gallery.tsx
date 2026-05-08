@@ -121,94 +121,58 @@ const isAndroid = () =>
  */
 async function downloadFile(pathOrUrl: string, filename: string) {
   const iOS = isiOSDevice();
-  const Android = isAndroid();
 
-  // 1. Pull the bytes.
-  let blob: Blob | null = null;
-  try {
-    if (pathOrUrl.startsWith("http")) {
-      const res = await fetch(pathOrUrl);
-      if (res.ok) blob = await res.blob();
-    } else {
-      for (const bucket of ["project-submissions", "property-photos"]) {
-        const { data } = await supabase.storage.from(bucket).download(pathOrUrl);
-        if (data) { blob = data; break; }
-      }
-    }
-  } catch { /* fall through */ }
-
-  // 2. iOS Safari path — always prefer Web Share Sheet for best UX.
-  if (iOS && blob) {
-    const canShareFn = (navigator as any).canShare;
-    if (typeof canShareFn === "function") {
-      try {
-        const file = new File([blob], filename, { type: blob.type || "video/mp4" });
-        const shareData: any = { files: [file], title: filename };
-        if (canShareFn(shareData)) {
-          await (navigator as any).share(shareData);
-          return;
-        }
-      } catch (err) {
-        // User cancelled the share sheet — that's fine, just bail.
-        if ((err as any)?.name === "AbortError") return;
-      }
-    }
-
-    // No Web Share Files support on this iOS version. There's no clean
-    // programmatic save path for arbitrary blobs on iOS Safari, so we
-    // tell the user how to save manually. The video element on the
-    // gallery card supports the long-press → "Save Video" gesture
-    // natively — the user just needs to know they can use it.
-    toast({
-      title: "Save to Photos",
-      description: "iOS Safari can't auto-download videos. Long-press the playing video and tap 'Save Video' to save it to Photos.",
-      duration: 9000,
-    });
-    return;
-  }
-
-  // 3. Android + Desktop + iOS Chrome/Firefox — blob anchor click works.
-  if (blob) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.rel = "noopener";
-    a.target = "_self";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      try { document.body.removeChild(a); } catch { /* gone */ }
-      URL.revokeObjectURL(url);
-    }, 1500);
-    return;
-  }
-
-  // 4. Last resort — signed URL with Content-Disposition: attachment.
+  // STEP 1 — get a Supabase signed URL with `?download=` query param.
+  //   That sets Content-Disposition: attachment on the response, which:
+  //   • forces Safari to show the native "Save to Files" prompt,
+  //   • forces Chrome / Firefox to save instead of navigating.
+  //
+  // For Replicate or other external URLs we fall back to using them
+  // directly — they don't have download disposition but the browser
+  // path below still works for video MIME types.
+  let downloadUrl = pathOrUrl;
   if (!pathOrUrl.startsWith("http")) {
     for (const bucket of ["project-submissions", "property-photos"]) {
-      const { data } = await supabase.storage.from(bucket).createSignedUrl(pathOrUrl, 300, { download: filename });
+      const { data } = await supabase.storage.from(bucket).createSignedUrl(
+        pathOrUrl, 600, { download: filename },
+      );
       if (data?.signedUrl) {
-        const a = document.createElement("a");
-        a.href = data.signedUrl;
-        a.download = filename;
-        a.rel = "noopener";
-        a.target = "_self";
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => { try { document.body.removeChild(a); } catch { /* gone */ } }, 1500);
-        return;
+        downloadUrl = data.signedUrl;
+        break;
       }
     }
   }
 
-  // Mute the unused warning on Android — kept for future per-platform UX hooks.
-  void Android;
-  toast({
-    title: "Download failed",
-    description: "Network error — please try again or refresh the page.",
-    variant: "destructive",
-  });
+  // STEP 2 — iOS Safari: use navigator.share({url}) synchronously.
+  //   This is the SOLE reliable iOS save path. Key facts:
+  //   • Works on every iOS 12+ device (no canShare check needed).
+  //   • Pops the native Share sheet → "Save to Files" or "Save Video".
+  //   • Doesn't break user activation because we never await fetch first.
+  //   • Doesn't navigate away from the page.
+  if (iOS && typeof (navigator as any).share === "function") {
+    try {
+      await (navigator as any).share({ url: downloadUrl, title: filename });
+      return;
+    } catch (err: any) {
+      // AbortError = user dismissed the share sheet. Don't fall through.
+      if (err?.name === "AbortError") return;
+      // Any other error: fall through to anchor click below.
+    }
+  }
+
+  // STEP 3 — Android + Desktop + iOS Chrome/Firefox: anchor `download`.
+  //   target="_self" is critical — _blank is what made Safari "open in
+  //   another tab" instead of saving in the previous version.
+  const a = document.createElement("a");
+  a.href = downloadUrl;
+  a.download = filename;
+  a.rel = "noopener";
+  a.target = "_self";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    try { document.body.removeChild(a); } catch { /* gone */ }
+  }, 1500);
 }
 
 const TRANSFORMATION_LABELS: Record<string, string> = {

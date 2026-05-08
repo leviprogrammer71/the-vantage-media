@@ -7,17 +7,26 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Price IDs - These are the Stripe price IDs for our products
+// Price IDs — these strings are placeholders; the function actually resolves
+// each priceType to a real Stripe price via lookup_key (preferred) or product
+// ID (legacy). To make a new pack work, just create a Stripe Price with a
+// `lookup_key` equal to the priceType string (e.g. "starter_annual").
 const PRICE_IDS = {
   // Subscriptions
-  pro: "price_vantage_pro_monthly", // $49/month - 60 credits
-  studio: "price_vantage_studio_monthly", // $99/month - 160 credits
-  essentials_sub: "price_vantage_essentials_monthly", // $10.99/month - 100 credits
-  // Credit packs (one-time)
-  starter: "price_credit_pack_starter", // $19 - 200 credits
-  standard: "price_credit_pack_standard", // $39 - 500 credits  
-  value: "price_credit_pack_value", // $79 - 1200 credits
-  pro_pack: "price_credit_pack_pro", // $149 - 3000 credits
+  pro: "price_vantage_pro_monthly",
+  studio: "price_vantage_studio_monthly",
+  essentials_sub: "price_vantage_essentials_monthly",
+  solo_agent: "price_vantage_solo_agent_monthly",
+  // Credit packs — monthly
+  starter: "price_credit_pack_starter",          // $19 - 200 credits
+  standard: "price_credit_pack_standard",        // $39 - 500 credits
+  value: "price_credit_pack_value",              // $79 - 1200 credits
+  pro_pack: "price_credit_pack_pro",             // $149 - 3000 credits
+  // Credit packs — annual (lookup_key == priceType)
+  starter_annual: "price_credit_pack_starter_annual",   // $160 - 2800 credits
+  standard_annual: "price_credit_pack_standard_annual", // $328 - 7000 credits
+  value_annual: "price_credit_pack_value_annual",       // $664 - 16800 credits
+  pro_pack_annual: "price_credit_pack_pro_annual",      // $1252 - 42000 credits
 };
 
 // Product IDs mapping

@@ -20,12 +20,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Bootstrap a profile row with 50 credits if one doesn't exist yet.
+    // The handle_new_user trigger handles this server-side, but it can
+    // miss in edge cases (Auth UI flow that bypasses the trigger, OAuth
+    // race, RLS quirk during signup). Calling ensure_profile_exists()
+    // on every login is the safety net — it's idempotent and only runs
+    // when the trigger didn't.
+    const bootstrapProfile = async (newUser: User | null) => {
+      if (!newUser) return;
+      try {
+        await supabase.rpc("ensure_profile_exists");
+      } catch (err) {
+        console.warn("[AuthContext] ensure_profile_exists failed (non-fatal):", err);
+      }
+    };
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        // Defer the RPC call — onAuthStateChange runs synchronously and
+        // can't await network calls without breaking the listener.
+        if (event === "SIGNED_IN" && session?.user) {
+          setTimeout(() => bootstrapProfile(session.user), 0);
+        }
       }
     );
 
@@ -34,6 +54,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      // Also bootstrap on existing-session restore.
+      if (session?.user) bootstrapProfile(session.user);
     });
 
     return () => subscription.unsubscribe();

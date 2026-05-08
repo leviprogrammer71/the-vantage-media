@@ -23,18 +23,32 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2"
 
 // Map every price_type the create-checkout function uses → credits granted.
 // MUST match `src/lib/credit-config.ts` CREDIT_PACKS + SUBSCRIPTION_PLANS.
+//
+// Monthly packs: grants `credits` per cycle (one-time charge → user gets credits
+// immediately; renewals fire invoice.paid which grants credits again).
+//
+// Annual packs: 12 months of credits + bonus delivered up front on day one.
+//   formula: credits_per_cycle * 12 + annual_credits_bonus
+//   This makes the annual plan a better $/credit ratio than monthly (which is
+//   the whole point of the annual discount).
 const PRICE_TYPE_TO_CREDITS: Record<string, number> = {
-  // Credit packs (one-time purchases)
-  starter: 200,
-  standard: 500, // matches the BUILDER pack (priceType: "standard")
-  value: 1200, // matches the PRO pack (priceType: "value")
-  pro_pack: 3000, // matches the STUDIO pack (priceType: "pro_pack")
-  // Subscriptions — granted on every renewal
-  pro: 60, // legacy small sub
-  studio: 160, // legacy mid sub
+  // Credit packs — monthly billing
+  starter: 200,         // STARTER: 200 cr / $19 mo
+  standard: 500,        // BUILDER: 500 cr / $39 mo
+  value: 1200,          // PRO:    1200 cr / $79 mo (best value)
+  pro_pack: 3000,       // STUDIO: 3000 cr / $149 mo
+
+  // Credit packs — annual billing (12 months of credits + 2-month bonus on day 1)
+  starter_annual: 2800,    // 200*12 + 400 bonus = 2800 cr / $160 yr
+  standard_annual: 7000,   // 500*12 + 1000 bonus = 7000 cr / $328 yr
+  value_annual: 16800,     // 1200*12 + 2400 bonus = 16800 cr / $664 yr
+  pro_pack_annual: 42000,  // 3000*12 + 6000 bonus = 42000 cr / $1252 yr
+
+  // Subscriptions (granted on every renewal)
+  pro: 60,                 // legacy small sub
+  studio: 160,             // legacy mid sub
   essentials_sub: 100,
   solo_agent: 800,
-  // (Studio sub credits are granted via product/price metadata if needed)
 }
 
 const corsHeaders = {

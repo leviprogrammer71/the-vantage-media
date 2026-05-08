@@ -151,17 +151,34 @@ const EFFECT_OPTIONS: Record<EffectId, string> = {
   sold: "Sold",
 };
 
+// Per-feature credit cost.
+//
+// Reference cost (May 2026): Seedance 1 Pro 1080p ≈ $0.15/sec at the
+// safety-margin tier. So 5s clip = $0.75 cost, 10s clip = $1.50 cost.
+// At 1 credit = $0.06, target ~60% gross margin.
+//
+//   Animate Single (1×5s):           cost $0.75 → 30 cr → $1.80 (60% mgn)
+//   Sun-Up to Sundown (1×10s):        cost $1.50 → 60 cr → $3.60 (58%)
+//   Virtual Staging (1×10s):           cost $1.50 → 60 cr → $3.60 (58%)
+//   Sketch to Reality (1×10s + sketch step): cost $1.55 → 60 cr → $3.60 (57%)
+//   Floor Plan to Walkthrough (1×10s): cost $1.50 → 60 cr → $3.60 (58%)
+//   Listing Bundle (6×5s):             cost $4.50 → 180 cr → $10.80 (58%)
+//   Done-For-You Reel (6×5s + stitch): cost $4.50 → 200 cr → $12.00 (62%)
+//                                       (auto-stitch, baked overlays, style preset)
 function calculateListingCost(category: ListingCategory, effectId: EffectId): number {
   let base = 0;
-  if (category === "animate_single") base = 25;
+  if (category === "animate_single") base = 30;
   else if (category === "sun_to_sun") base = 60;
-  else if ((category === "listing_bundle" || category === "done_for_you_reel")) base = 90;
-  else if (category === "done_for_you_reel") base = 110; // bundle + auto-stitch + style preset
-  else if (category === "virtual_staging") base = 50;
+  else if (category === "listing_bundle") base = 180;
+  else if (category === "done_for_you_reel") base = 200;
+  else if (category === "virtual_staging") base = 60;
   else if (category === "sketch_to_real") base = 60;
-  else if (category === "floor_plan_pan") base = 30;
+  else if (category === "floor_plan_pan") base = 60;
 
-  if (effectId !== "none" && (category === "animate_single" || (category === "listing_bundle" || category === "done_for_you_reel") || category === "done_for_you_reel")) base += 10;
+  // Realistic effect (gpt-image-2 sign overlay) adds an image-gen call.
+  if (effectId !== "none" && (category === "animate_single" || category === "listing_bundle" || category === "done_for_you_reel" || category === "sun_to_sun")) {
+    base += 15;
+  }
   return base;
 }
 
