@@ -157,7 +157,7 @@ const RoiCalculator = () => {
             className="inline-block text-center font-display text-[15px] font-bold mt-2 px-5 py-3"
             style={{ backgroundColor: "#E8C547", color: "#000000", borderRadius: 0 }}
           >
-            START WITH 60 FREE CREDITS →
+            START WITH 50 FREE CREDITS →
           </Link>
         </div>
       </div>

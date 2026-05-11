@@ -24,11 +24,11 @@ export function WelcomeModal() {
       return;
     }
 
-    // Grant 60 free credits (only inserts if no row exists)
+    // Grant 50 free credits (only inserts if no row exists)
     supabase
       .from("user_credits")
       .upsert(
-        { user_id: user.id, credits: 60 },
+        { user_id: user.id, credits: 50 },
         { onConflict: "user_id", ignoreDuplicates: true }
       )
       .then(() => {
@@ -86,7 +86,7 @@ export function WelcomeModal() {
           YOU'RE IN.
         </h2>
         <p className="font-mono text-[14px]" style={{ color: "#ffffff" }}>
-          60 credits added to your account.
+          50 credits added to your account.
         </p>
         <p className="text-[15px]" style={{ color: "#AAAAAA" }}>
           That's enough for 12 transformation videos.

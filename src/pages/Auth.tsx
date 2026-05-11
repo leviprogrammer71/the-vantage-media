@@ -124,7 +124,7 @@ const Auth = () => {
         toast.error(error.message);
       }
     } else {
-      toast.success("Account created — 50 free credits ready. Let's make your first reel.");
+      toast.success("Account created — 60 free credits ready. Let's make your first reel.");
       // CRO P0 #4 — Skip the /welcome detour. Every extra page between signup
       // and the first render costs ~10% of activation. Land users straight on
       // the render flow with their 50 free credits already granted.
@@ -190,7 +190,7 @@ const Auth = () => {
                 WELCOME TO THE VANTAGE
               </CardTitle>
               <CardDescription>
-                50 free credits · No card required · Your first reel in 3 minutes
+                60 free credits · No card required · Your first reel in 3 minutes
               </CardDescription>
             </CardHeader>
             <CardContent>

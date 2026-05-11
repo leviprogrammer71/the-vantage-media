@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Bootstrap a profile row with 60 credits if one doesn't exist yet.
+    // Bootstrap a profile row with 50 credits if one doesn't exist yet.
     // The handle_new_user trigger handles this server-side, but it can
     // miss in edge cases (Auth UI flow that bypasses the trigger, OAuth
     // race, RLS quirk during signup). Calling ensure_profile_exists()

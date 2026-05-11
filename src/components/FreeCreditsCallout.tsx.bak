@@ -4,7 +4,7 @@ import { useSmartCTA } from "@/hooks/useSmartCTA";
 const cols = [
   {
     icon: "🎁",
-    headline: "60 FREE CREDITS",
+    headline: "50 FREE CREDITS",
     headlineColor: "#E8C547",
     sub: "when you create an account",
   },

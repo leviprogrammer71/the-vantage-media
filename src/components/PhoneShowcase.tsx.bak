@@ -125,7 +125,7 @@ const PhoneShowcase = () => {
           READY TO CREATE YOURS?
         </h3>
         <p className="font-mono text-[12px] mb-6" style={{ color: "#AAAAAA" }}>
-          {isLoggedIn ? "Start creating your transformation video" : "Start with 60 free credits — no card needed"}
+          {isLoggedIn ? "Start creating your transformation video" : "Start with 50 free credits — no card needed"}
         </p>
         <Link
           to={destination}

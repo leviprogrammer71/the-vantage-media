@@ -70,7 +70,7 @@ const FeaturesSection = () => {
             className="font-mono text-[12px] underline"
             style={{ color: "#E8C547" }}
           >
-            {isLoggedIn ? "Create your video now →" : "Start free — 60 credits, no card →"}
+            {isLoggedIn ? "Create your video now →" : "Start free — 50 credits, no card →"}
           </Link>
         </div>
       </div>

@@ -23,10 +23,10 @@ const ReferralNudge = ({ className = "" }: Props) => {
     >
       <div>
         <p className="font-mono text-[10px] tracking-[2px] mb-1" style={{ color: "#E8C547" }}>
-          REFER A MATE · GET 60 CREDITS
+          REFER A MATE · GET 50 CREDITS
         </p>
         <p className="text-[15px] leading-[1.5]" style={{ color: "#ffffff" }}>
-          Love your video? Get <strong>3 more free</strong> by inviting another tradie. They get 60 credits. You get 60 credits.
+          Love your video? Get <strong>3 more free</strong> by inviting another tradie. They get 50 credits. You get 50 credits.
         </p>
       </div>
       <Link

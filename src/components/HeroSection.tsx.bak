@@ -65,7 +65,7 @@ const HeroSection = () => {
         >
           <span className="text-[24px]">🎁</span>
           <span className="font-mono text-[12px]" style={{ color: "#E8C547" }}>
-            {isLoggedIn ? "CREATE YOUR NEXT TRANSFORMATION VIDEO" : "60 FREE CREDITS — ENOUGH FOR 12 VIDEOS. NO CARD."}
+            {isLoggedIn ? "CREATE YOUR NEXT TRANSFORMATION VIDEO" : "50 FREE CREDITS — ENOUGH FOR 12 VIDEOS. NO CARD."}
           </span>
           <span style={{ color: "#E8C547" }}>→</span>
         </Link>
@@ -95,7 +95,7 @@ const HeroSection = () => {
           className="font-mono text-[10px] tracking-[2px] mt-6"
           style={{ color: "#666666" }}
         >
-          1080P · 9:16 VERTICAL · READY IN MINUTES · 60 FREE CREDITS
+          1080P · 9:16 VERTICAL · READY IN MINUTES · 50 FREE CREDITS
         </p>
       </div>
     </section>

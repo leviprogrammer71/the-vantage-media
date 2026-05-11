@@ -143,7 +143,7 @@ const Pricing = () => {
               items={[
                 "23 photographers signed up today",
                 "8 listing reels generated this hour",
-                "Founder pricing — Free 60 credits ends in 45 days",
+                "Founder pricing — Free 50 credits ends in 45 days",
                 "Join the studio — 47 creators active now",
               ]}
             />

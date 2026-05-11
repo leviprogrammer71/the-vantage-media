@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>AI Listing Videos from One Photo · 1080p Cinematic Real Estate Reels in 3 Minutes — The Vantage</title>
-    <meta name="description" content="Turn one listing photo into a cinematic 1080p vertical reel ready for Reels, TikTok, and the MLS. Done-For-You auto-stitched reels, virtual staging, sketch-to-reality, sun-up-to-sundown timelapses. Built for real estate photographers and listing agents. 60 free credits — no card required." />
+    <meta name="description" content="Turn one listing photo into a cinematic 1080p vertical reel ready for Reels, TikTok, and the MLS. Done-For-You auto-stitched reels, virtual staging, sketch-to-reality, sun-up-to-sundown timelapses. Built for real estate photographers and listing agents. 50 free credits — no card required." />
     <meta name="keywords" content="AI listing video, real estate listing video, AI real estate video, photo to video AI, listing reel maker, cinematic real estate video, AI virtual staging, listing video AI, real estate reel generator, MLS video, Reels for real estate, TikTok real estate video, drone alternative, AI cinematographer real estate, Seedance real estate, Rendy alternative, vertical listing video, 9:16 listing reel, real estate photographer software, AI listing reel, done-for-you real estate reel, listing photo to video, real estate AI video maker" />
     <meta name="author" content="The Vantage Media" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
@@ -70,7 +70,7 @@
     <meta property="og:url" content="https://thevantage.media/" />
     <meta property="og:site_name" content="The Vantage Media" />
     <meta property="og:title" content="AI Listing Videos from One Photo · Cinematic Real Estate Reels in 3 Minutes" />
-    <meta property="og:description" content="Turn one listing photo into a cinematic 1080p vertical reel ready for Reels, TikTok, and the MLS. Done-For-You auto-stitched reels, virtual staging, sketch-to-reality, day-to-dusk timelapses. 60 free credits — no card required." />
+    <meta property="og:description" content="Turn one listing photo into a cinematic 1080p vertical reel ready for Reels, TikTok, and the MLS. Done-For-You auto-stitched reels, virtual staging, sketch-to-reality, day-to-dusk timelapses. 50 free credits — no card required." />
     <meta property="og:image" content="https://thevantage.media/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -80,7 +80,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@thevantagemedia" />
     <meta name="twitter:title" content="AI Listing Videos from One Photo · The Vantage" />
-    <meta name="twitter:description" content="One listing photo. One cinematic vertical reel. Three minutes. 60 free credits." />
+    <meta name="twitter:description" content="One listing photo. One cinematic vertical reel. Three minutes. 50 free credits." />
     <meta name="twitter:image" content="https://thevantage.media/og-image.jpg" />
 
     <!-- Organization schema (knowledge panel + brand SERP) -->
@@ -120,7 +120,7 @@
         "description": "Generate cinematic 1080p vertical real estate listing videos from a single photo. Done-For-You auto-stitched reels, virtual staging, sketch-to-reality reveals, day-to-dusk timelapses, and 6 cinematic camera moves powered by Seedance 2.0.",
         "offers": {
           "@type": "Offer",
-          "name": "Starter — 60 Free Credits",
+          "name": "Starter — 50 Free Credits",
           "price": "0",
           "priceCurrency": "USD",
           "availability": "https://schema.org/InStock"

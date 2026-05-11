@@ -27,7 +27,7 @@ const CTASection = () => {
           className="text-[18px] leading-[1.6] max-w-[460px] mx-auto mb-8"
           style={{ color: "#333333" }}
         >
-          Your competitors are posting static photos. You're about to post cinematic transformation videos. 60 free credits. No card. Start now.
+          Your competitors are posting static photos. You're about to post cinematic transformation videos. 50 free credits. No card. Start now.
         </p>
         <Link
           to={destination}
@@ -38,13 +38,13 @@ const CTASection = () => {
             borderRadius: 0,
           }}
         >
-          {isLoggedIn ? "CREATE YOUR VIDEO →" : "GET 60 FREE CREDITS →"}
+          {isLoggedIn ? "CREATE YOUR VIDEO →" : "GET 50 FREE CREDITS →"}
         </Link>
         <p
           className="font-mono text-[11px] mt-4"
           style={{ color: "#666600" }}
         >
-          60 free credits · no card required · create in minutes
+          50 free credits · no card required · create in minutes
         </p>
       </div>
     </section>

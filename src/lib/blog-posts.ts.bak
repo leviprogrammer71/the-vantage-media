@@ -111,7 +111,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "cta",
-        label: "Build a Done-For-You Reel — 60 free credits",
+        label: "Build a Done-For-You Reel — 50 free credits",
         href: "/video?mode=listing&category=done_for_you_reel",
         subhead: "Six photos in. One stitched MP4 out. No card required.",
       },

@@ -107,7 +107,7 @@ const FAQSection = () => {
             className="font-mono text-[12px] underline"
             style={{ color: "#E8C547" }}
           >
-            {isLoggedIn ? "Create your video now \u2192" : "Get 60 free credits \u2192"}
+            {isLoggedIn ? "Create your video now \u2192" : "Get 50 free credits \u2192"}
           </Link>
         </div>
       </div>

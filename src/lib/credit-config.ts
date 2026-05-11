@@ -196,7 +196,7 @@ export const SUBSCRIPTION_PLANS = [
   },
 ] as const;
 
-export const FREE_SIGNUP_CREDITS = 50;
+export const FREE_SIGNUP_CREDITS = 60;
 
 export function getTransformationCost(
   beforeMode: "ai" | "upload",

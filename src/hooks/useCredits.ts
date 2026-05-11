@@ -68,13 +68,13 @@ export const useCredits = (): UseCreditsReturn => {
           .insert({
             user_id: user.id,
             email: user.email ?? null,
-            credits_balance: 50,
+            credits_balance: 60,
           });
         if (insertErr) {
           console.error("[useCredits] auto-profile insert failed:", insertErr);
           setCredits(0);
         } else {
-          setCredits(50);
+          setCredits(60);
         }
         return;
       }

@@ -61,7 +61,7 @@ const MathIsSimple = () => {
             className="inline-block font-display text-[16px] font-bold px-[36px] py-[14px] transition-transform hover:scale-[1.03]"
             style={{ backgroundColor: "#E8C547", color: "#000000", borderRadius: 0 }}
           >
-            {isLoggedIn ? "CREATE VIDEO →" : "GET 60 FREE CREDITS →"}
+            {isLoggedIn ? "CREATE VIDEO →" : "GET 50 FREE CREDITS →"}
           </Link>
         </div>
       </div>

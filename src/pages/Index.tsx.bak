@@ -54,7 +54,7 @@ const Index = () => {
         <meta name="title" content="AI Listing Videos from One Photo · Cinematic Real Estate Reels in 3 Minutes — The Vantage" />
         <meta
           name="description"
-          content="Turn one listing photo into a cinematic 1080p vertical reel ready for Reels, TikTok, and the MLS. Done-For-You auto-stitched reels, AI virtual staging, sketch-to-reality, day-to-dusk timelapses. Built for real estate photographers and agents. 60 free credits — no card required."
+          content="Turn one listing photo into a cinematic 1080p vertical reel ready for Reels, TikTok, and the MLS. Done-For-You auto-stitched reels, AI virtual staging, sketch-to-reality, day-to-dusk timelapses. Built for real estate photographers and agents. 50 free credits — no card required."
         />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://thevantage.media/" />
@@ -63,7 +63,7 @@ const Index = () => {
         <meta property="og:image" content="https://thevantage.media/og-image.jpg" />
         <meta property="twitter:card" content="summary_large_image" />
         <meta property="twitter:title" content="AI Listing Videos from One Photo · The Vantage" />
-        <meta property="twitter:description" content="One listing photo. One cinematic vertical reel. Three minutes. 60 free credits — no card." />
+        <meta property="twitter:description" content="One listing photo. One cinematic vertical reel. Three minutes. 50 free credits — no card." />
         <link rel="canonical" href="https://thevantage.media/" />
 
         {/* Service schema — Google rich-result eligibility for service queries */}
@@ -80,7 +80,7 @@ const Index = () => {
             price: "0",
             priceCurrency: "USD",
             availability: "https://schema.org/InStock",
-            description: "60 free credits — no credit card required",
+            description: "50 free credits — no credit card required",
           },
           audience: {
             "@type": "Audience",
@@ -1204,7 +1204,7 @@ const Index = () => {
             style={{ borderTop: "1px solid var(--lux-hairline-strong)", color: "var(--lux-bone)" }}
           >
             <div className="lux-container flex items-center justify-between gap-4 py-4">
-              <span className="lux-eyebrow hidden sm:inline" style={{ color: "var(--lux-champagne)" }}>60 free credits · No card required</span>
+              <span className="lux-eyebrow hidden sm:inline" style={{ color: "var(--lux-champagne)" }}>50 free credits · No card required</span>
               <Link to={destination} className="lux-btn lux-btn-bone" style={{ padding: "14px 26px", minHeight: 46, fontSize: 12, letterSpacing: "0.2em" }}>
                 {isLoggedIn ? "ENTER STUDIO →" : "START FREE — 50 CREDITS →"}
               </Link>
