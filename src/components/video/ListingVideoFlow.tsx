@@ -39,7 +39,7 @@ interface DfyStylePreset {
   title: string;
   description: string;
   // Shot rotation tuned for this style — different camera language per style
-  shotRotation: ("slow_push" | "parallax_pan" | "reveal_rise" | "architectural" | "establishing" | "drone_orbit")[];
+  shotRotation: ShotType[];
 }
 
 const DFY_STYLES: DfyStylePreset[] = [
@@ -47,25 +47,25 @@ const DFY_STYLES: DfyStylePreset[] = [
     id: "editorial",
     title: "Editorial",
     description: "Refined fashion-house typography. Serif price reveal. Slow magazine-grade pacing with 0.5s cross-dissolves.",
-    shotRotation: ["slow_push", "architectural", "reveal_rise", "establishing", "parallax_pan", "drone_orbit"],
+    shotRotation: ["push_in", "architectural", "reveal_rise", "establishing", "parallax_left", "drone_orbit"],
   },
   {
     id: "snappy",
     title: "Snappy",
     description: "Bold caps, high-contrast yellow price, sharp 0.3s wipe-left transitions. Built for TikTok and Reels feed.",
-    shotRotation: ["parallax_pan", "drone_orbit", "slow_push", "reveal_rise", "establishing", "architectural"],
+    shotRotation: ["parallax_right", "drone_orbit", "push_in", "reveal_rise", "slide_left", "architectural"],
   },
   {
     id: "cinema",
     title: "Cinema",
     description: "Letterboxed crops, restrained type, 0.6s fade-through-black transitions. Looks like a luxury auto ad.",
-    shotRotation: ["establishing", "drone_orbit", "slow_push", "architectural", "reveal_rise", "parallax_pan"],
+    shotRotation: ["establishing", "drone_orbit", "push_in", "architectural", "reveal_rise", "parallax_left"],
   },
   {
     id: "minimal",
     title: "Minimal",
     description: "Slow camera moves only — gentle dolly, architectural slider, pull-back. 0.9s extra-long cubic-eased dissolves between every shot. Nothing snaps. Just price, just elegance.",
-    shotRotation: ["slow_push", "architectural", "establishing", "slow_push", "architectural", "establishing"],
+    shotRotation: ["push_in", "architectural", "establishing", "pull_out", "architectural", "establishing"],
   },
 ];
 type EffectId = "none" | "just_listed" | "open_house" | "for_sale" | "sold";
@@ -220,7 +220,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   const [step, setStep] = useState(validInitial ? 2 : 1);
   const [category, setCategory] = useState<ListingCategory | null>(validInitial);
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [shotType, setShotType] = useState<ShotType>("slow_push");
+  const [shotType, setShotType] = useState<ShotType>("push_in");
   const [effectId, setEffectId] = useState<EffectId>("none");
   const [vibe, setVibe] = useState<Vibe>("luxury");
   const [stagingStyle, setStagingStyle] = useState<StagingStyle>("modern");
@@ -328,7 +328,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
         body: {
           category: backendCategory,
           photo_urls: photoUrls,
-          shot_type: category === "animate_single" ? shotType : category === "virtual_staging" ? "slow_push" : category === "floor_plan_pan" ? shotType : undefined,
+          shot_type: category === "animate_single" ? shotType : category === "virtual_staging" ? "push_in" : category === "floor_plan_pan" ? shotType : undefined,
           staging_style: category === "virtual_staging" ? stagingStyle : undefined,
           sketch_intent: category === "sketch_to_real" ? sketchIntent : undefined,
           effect_id: effectId,

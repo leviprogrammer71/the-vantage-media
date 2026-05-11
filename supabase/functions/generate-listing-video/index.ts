@@ -106,20 +106,100 @@ function materialPalette(context: "interior" | "exterior" | "kitchen" | "bath" |
   return [m.oak_white, m.marble_white, m.brass_unlacquered, m.linen_belgian, m.glass_clear]
 }
 
-// ── SHOT LIBRARY (Seedance-canonical, positive-only) ──
-// Research findings applied (per ByteDance ModelArk docs):
-//   • Seedance ignores negative grammar — every "no rotation / no roll /
-//     no tilt drift" was rewritten as a positive ("gimbal-locked horizon,
-//     level horizontal track"). Strips the placebo and stops accidentally
-//     injecting the failure mode.
-//   • Seedance rewards degree adverbs ("steadily," "slowly," "uniformly")
-//     and concrete trajectory verbs (dolly, orbit, track, rise).
-//   • Camera moves stay one declarative sentence each; degree adverb leads.
+// ── SHOT LIBRARY (research-validated, 13 shot types) ──
+// Coverage matches src/lib/shot-types.ts and the user-requested set from
+// Rendy.io + StagerGo + @maxfernandez.mp4 viral spec-ad comment data.
+// Grammar: Seedance-canonical (positive-only, degree adverbs, concrete
+// trajectory verbs).
 const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: string; pacing: "slow" | "medium" }> = {
+  // ── LINEAR ──
+  push_in: {
+    model: "kling",
+    motionHint:
+      "The camera dollies steadily forward along the subject's centerline at a uniform walking pace — 35mm spherical prime at f/2.8, gimbal-locked horizon throughout. Subject anchored on the lower-third intersection. 24fps with a 180° shutter.",
+    pacing: "slow",
+  },
+  // Legacy alias — accept old "slow_push" as push_in
   slow_push: {
     model: "kling",
     motionHint:
-      "The camera dollies steadily forward along the subject's centerline at a uniform walking pace — 35mm spherical prime at f/2.8, gimbal-locked horizon throughout. Subject anchored on the lower-third intersection across the move. 24fps with a 180° shutter.",
+      "The camera dollies steadily forward along the subject's centerline at a uniform walking pace — 35mm spherical prime at f/2.8, gimbal-locked horizon throughout. Subject anchored on the lower-third intersection. 24fps with a 180° shutter.",
+    pacing: "slow",
+  },
+  pull_out: {
+    model: "kling",
+    motionHint:
+      "The camera pulls back steadily along the subject's centerline at a uniform retreat pace — 35mm prime at f/2.8, gimbal-locked horizon. The frame opens up as the camera retreats, revealing wider context. 24fps with a 180° shutter.",
+    pacing: "slow",
+  },
+  establishing: {
+    model: "seedance",
+    motionHint:
+      "The camera pulls back uniformly from a tight feature detail to a wide establishing frame — 24mm at f/4, gimbal-stabilized, steady retreat speed. The wider scene reveals as the camera retreats. 24fps with a 180° shutter.",
+    pacing: "slow",
+  },
+  // ── LATERAL ──
+  slide_left: {
+    model: "kling",
+    motionHint:
+      "The camera tracks laterally right-to-left at a steady walking pace on a precision slider — 35mm prime at f/2.8, eye level, gimbal-locked horizon, level horizontal trajectory, no rotation. 24fps with a 180° shutter.",
+    pacing: "slow",
+  },
+  slide_right: {
+    model: "kling",
+    motionHint:
+      "The camera tracks laterally left-to-right at a steady walking pace on a precision slider — 35mm prime at f/2.8, eye level, gimbal-locked horizon, level horizontal trajectory, no rotation. 24fps with a 180° shutter.",
+    pacing: "slow",
+  },
+  parallax_left: {
+    model: "kling",
+    motionHint:
+      "The camera tracks laterally right-to-left at a steady walking pace on a precision slider — 50mm prime at f/2, eye level, gimbal-stabilized. Foreground drifts at twice the speed of the background, revealing depth through parallax. 24fps with a 180° shutter.",
+    pacing: "medium",
+  },
+  parallax_right: {
+    model: "kling",
+    motionHint:
+      "The camera tracks laterally left-to-right at a steady walking pace on a precision slider — 50mm prime at f/2, eye level, gimbal-stabilized. Foreground drifts at twice the speed of the background, revealing depth through parallax. 24fps with a 180° shutter.",
+    pacing: "medium",
+  },
+  // Legacy alias — old "parallax_pan" maps to parallax_left
+  parallax_pan: {
+    model: "kling",
+    motionHint:
+      "The camera tracks laterally left-to-right at a steady walking pace on a precision slider — 50mm prime at f/2, eye level, gimbal-stabilized. Foreground drifts at twice the speed of the background, revealing depth through parallax. 24fps with a 180° shutter.",
+    pacing: "medium",
+  },
+  // ── VERTICAL ──
+  reveal_rise: {
+    model: "kling",
+    motionHint:
+      "The camera rises uniformly from ankle height to eye level on a motorized jib — 28mm at f/4, gimbal-locked horizon, vertical trajectory throughout. The composition opens upward from ground to canopy. 24fps with a 180° shutter.",
+    pacing: "medium",
+  },
+  tilt_up: {
+    model: "kling",
+    motionHint:
+      "The camera tilts uniformly upward from eye level at a steady angular rate, anchored to a fixed pivot point — 28mm at f/4, gimbal-stable on the pivot, no horizontal drift. Reveals the upper composition (vaulted ceiling, skyline, tall feature). 24fps with a 180° shutter.",
+    pacing: "slow",
+  },
+  tilt_down: {
+    model: "kling",
+    motionHint:
+      "The camera tilts uniformly downward from an elevated angle at a steady angular rate, anchored to a fixed pivot point — 35mm at f/4, gimbal-stable on the pivot, no horizontal drift. Reveals the lower composition (pool, deck, ground-level amenity). 24fps with a 180° shutter.",
+    pacing: "slow",
+  },
+  // ── ROTATIONAL ──
+  orbit_left: {
+    model: "kling",
+    motionHint:
+      "The camera arcs uniformly 45 degrees counter-clockwise around the subject at a steady radius — 50mm prime at f/2.8, eye-level height, gimbal locked on the subject centroid. Smooth circular path with no radius drift, subject stays centered. 24fps with a 180° shutter.",
+    pacing: "slow",
+  },
+  orbit_right: {
+    model: "kling",
+    motionHint:
+      "The camera arcs uniformly 45 degrees clockwise around the subject at a steady radius — 50mm prime at f/2.8, eye-level height, gimbal locked on the subject centroid. Smooth circular path with no radius drift, subject stays centered. 24fps with a 180° shutter.",
     pacing: "slow",
   },
   drone_orbit: {
@@ -128,28 +208,11 @@ const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: str
       "The camera arcs uniformly 60 degrees clockwise around the subject at a steady elevated altitude — 24mm field of view at f/4, gimbal locked on the subject centroid. Subject stays centered, horizon level throughout. 24fps.",
     pacing: "slow",
   },
-  parallax_pan: {
-    model: "kling",
-    motionHint:
-      "The camera tracks laterally left-to-right at a steady walking pace on a precision slider — 50mm prime at f/2, eye level, gimbal-stabilized. Foreground drifts at twice the speed of the background, revealing depth. 24fps with a 180° shutter.",
-    pacing: "medium",
-  },
-  reveal_rise: {
-    model: "kling",
-    motionHint:
-      "The camera rises uniformly from ankle height to eye level on a motorized jib — 28mm at f/4, gimbal-locked horizon, vertical trajectory throughout. The composition opens upward from ground to canopy. 24fps with a 180° shutter.",
-    pacing: "medium",
-  },
+  // ── ARCHITECTURAL ──
   architectural: {
     model: "seedance",
     motionHint:
       "The camera tracks horizontally on a precision dolly at a steady pace — 50mm prime at f/5.6, gimbal-locked, level horizon. Frame composed around the building's primary symmetry line, held centered across the entire track. 24fps.",
-    pacing: "slow",
-  },
-  establishing: {
-    model: "seedance",
-    motionHint:
-      "The camera pulls back uniformly from a tight feature detail to a wide establishing frame — 24mm at f/4, gimbal-stabilized, steady retreat speed. The wider scene reveals as the camera retreats. 24fps with a 180° shutter.",
     pacing: "slow",
   },
 }
@@ -1133,11 +1196,11 @@ serve(async (req) => {
       // listing-reel data. Hero re-appears at slot 4 to inject energy.
       const shotRotation = [
         "establishing",   // 1. Wide opener — moving hook
-        "slow_push",      // 2. Hero — strongest interior feature
+        "push_in",        // 2. Hero — strongest interior feature
         "architectural",  // 3. Detail — read materials
         "reveal_rise",    // 4. Hero again — second signature space (not another detail)
         "drone_orbit",    // 5. Amenity — outdoor / signature
-        "parallax_pan",   // 6. Closing — composed pull / lateral
+        "parallax_left",  // 6. Closing — composed parallax
       ]
       const photos = photo_urls.slice(0, 6)
 
