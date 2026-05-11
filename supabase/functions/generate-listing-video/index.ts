@@ -20,53 +20,130 @@ const MODEL_SEEDANCE = "bytedance/seedance-1-pro"
 // Kling output and we standardise on the higher-quality model.
 const LONG_FORM_THRESHOLD_SECONDS = 0
 
-// ── SHOT LIBRARY (upgraded) ──
-// Each motionHint now packs:
-//   • named camera + rig (dolly, gimbal, drone, slider, jib, crane)
-//   • lens character (focal length + DoF, anamorphic where relevant)
-//   • shutter / frame-rate cues for cinematic motion blur (24fps · 180°)
-//   • specific arc geometry (degrees, direction, height) — vague "around the
-//     subject" produces drifting wobble; named geometry produces stable arcs
-//   • composition rule the shot is built around
+// ── KLING NEGATIVE PROMPT (research-validated) ──
+// Kling 2.5 Turbo Pro HONORS the negative_prompt API field. Seedance 2.0 does
+// NOT — its docs literally state "negative prompts do not work" so we never
+// send them to Seedance. This single stack is the documented community-tested
+// recipe from VEED, Ambience AI, and klingaio.com, plus real-estate-specific
+// occupancy + geometry-drift terms.
+const KLING_NEGATIVE_PROMPT =
+  // Community-tested anti-defect stack
+  "motion blur, compression artifacts, pixelation, jittery movement, " +
+  "low quality, watermark, text overlay, morphing faces, smooth plastic skin, " +
+  "sliding feet, text morphing, 3D render, cartoonish, " +
+  // Sky / surface defects
+  "banded skies, plastic surface sheen, impossible reflections, " +
+  // Real-estate-specific occupancy (must stay empty)
+  "people, humans, person, figures, hands, faces, body parts, " +
+  "children, occupants, agents, realtors, homeowners, visitors, " +
+  "shadows of people, human silhouettes, reflection of person in window or mirror, " +
+  // Geometry stability for architectural shots
+  "morphing geometry, warping walls, drifting perspective, invented rooms, " +
+  "changed furniture, added animals, pets, weather changes, fish-eye distortion, " +
+  // Frame-level defects
+  "duplicated surfaces, ghost trails, flickering, frame drops, frozen frames"
+
+// ── NAMED MATERIAL VOCABULARY ──
+// Drop one named material per visible surface in every prompt. Research shows
+// this single change addresses plastic, morph, AND consistency issues
+// simultaneously because both models get more concrete nouns to anchor on.
 //
-// Pacing now controls TEMPO of continuous motion. Both "slow" and "medium"
-// keep the camera in motion the entire duration; only the distance covered
-// changes. No "settle" beat anywhere.
+// Source: vidhex.ai "Make AI Skin Look Real", openart.ai "Fix Plastic Skin",
+// Claid AI material vocab, klingaio.com physical-texture anti-banding doc.
+const NAMED_MATERIALS = {
+  // Stone
+  marble_white: "honed Carrara marble with mineral veining and surface micro-pitting",
+  marble_dark: "ink-veined Calacatta with cool grey threads on a milky base",
+  travertine: "honed travertine with natural pitting and warm cream tones",
+  limestone: "honed limestone with subtle fossil texture and uniform cool grey",
+  concrete: "honed concrete with hairline seams and matte surface catching grazing light",
+  granite: "leathered granite with tactile mineral grain and matte specular response",
+  // Wood
+  oak_white: "wide-plank white oak with grain figuration, hairline seams, matte oil finish",
+  oak_european: "European oak floor with matte oil finish and visible long-grain figuration",
+  walnut: "walnut with figured grain and an oiled finish catching directional light",
+  teak: "teak with tight straight grain and warm honeyed tone",
+  reclaimed_pine: "reclaimed pine with knots, nail holes, and a soft satin finish",
+  cedar: "vertical-grain cedar with natural color variation and matte oiled finish",
+  // Metal
+  brass_unlacquered: "unlacquered brass with pull-up patina and warm satin sheen",
+  brass_satin: "satin-brushed brass with directional grain catching raking light",
+  steel_brushed: "brushed stainless steel with fine directional grain",
+  iron_matte: "matte black powder-coated iron with subtle texture",
+  copper_aged: "aged copper with hand-rubbed patina and warm verdigris in seams",
+  // Fabric
+  leather_full_grain: "full-grain leather with natural creasing, pull-up patina, subtle sheen on contact surfaces",
+  boucle_wool: "boucle cream wool weave with looped texture catching directional light",
+  linen_belgian: "Belgian linen with visible weave, natural slubs, and matte texture",
+  velvet_navy: "deep navy channel-tufted velvet with pile catching low-angle light",
+  raw_silk: "raw silk with subtle slub variation and warm dry hand",
+  // Glass / ceramic
+  glass_clear: "low-iron clear glass with real refraction and minimal greenish tint",
+  ceramic_handmade: "hand-thrown ceramic with slight irregularity and matte stoneware glaze",
+  porcelain_satin: "satin-finish porcelain with depth of glaze and subtle reflection",
+  // Plaster / paint
+  plaster_lime: "lime-plaster wall with hand-troweled texture and warm-white tone",
+  paint_matte: "matte chalky paint with deep light absorption and zero glare",
+  paint_satin: "satin paint with low-sheen consistent response across the surface",
+  // Outdoor
+  brick_clinker: "hand-laid clinker brick with mortar joints and varied face color",
+  bluestone_pavers: "honed bluestone pavers with cool blue-grey color and matte response",
+} as const
+
+/** Pick a named material palette for a given context (interior / exterior / kitchen / bath). */
+function materialPalette(context: "interior" | "exterior" | "kitchen" | "bath" | "default" = "default"): string[] {
+  const m = NAMED_MATERIALS
+  if (context === "kitchen") return [m.marble_white, m.oak_white, m.brass_unlacquered, m.steel_brushed, m.ceramic_handmade]
+  if (context === "bath")    return [m.marble_dark, m.brass_unlacquered, m.porcelain_satin, m.bluestone_pavers, m.plaster_lime]
+  if (context === "exterior") return [m.brick_clinker, m.cedar, m.bluestone_pavers, m.iron_matte, m.glass_clear]
+  if (context === "interior") return [m.oak_white, m.linen_belgian, m.marble_white, m.brass_unlacquered, m.leather_full_grain]
+  return [m.oak_white, m.marble_white, m.brass_unlacquered, m.linen_belgian, m.glass_clear]
+}
+
+// ── SHOT LIBRARY (Seedance-canonical, positive-only) ──
+// Research findings applied (per ByteDance ModelArk docs):
+//   • Seedance ignores negative grammar — every "no rotation / no roll /
+//     no tilt drift" was rewritten as a positive ("gimbal-locked horizon,
+//     level horizontal track"). Strips the placebo and stops accidentally
+//     injecting the failure mode.
+//   • Seedance rewards degree adverbs ("steadily," "slowly," "uniformly")
+//     and concrete trajectory verbs (dolly, orbit, track, rise).
+//   • Camera moves stay one declarative sentence each; degree adverb leads.
 const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: string; pacing: "slow" | "medium" }> = {
   slow_push: {
     model: "kling",
     motionHint:
-      "Slow continuous dolly push-in along the subject's centerline — 35mm spherical prime at f/2.8, gimbal-stabilized, no rotation, no roll, no tilt drift. Compose on the rule of thirds: subject anchored at the lower-third intersection as the camera pushes in. 24fps with a 180° shutter for natural cinematic motion blur. The camera moves one continuous unit of distance across the full clip — no stops, no acceleration ramps.",
+      "The camera dollies steadily forward along the subject's centerline at a uniform walking pace — 35mm spherical prime at f/2.8, gimbal-locked horizon throughout. Subject anchored on the lower-third intersection across the move. 24fps with a 180° shutter.",
     pacing: "slow",
   },
   drone_orbit: {
     model: "seedance",
     motionHint:
-      "Slow aerial orbit — drone arcs 60 degrees clockwise around the subject at a consistent elevated altitude, gimbal-locked on the subject's centroid, smooth circular path with no radius drift. 24mm wide field of view at f/4. Composition holds the subject at frame center with the property anchored against a clearly framed horizon. The orbit speed stays uniform — no acceleration, no deceleration mid-arc, no altitude bobbing.",
+      "The camera arcs uniformly 60 degrees clockwise around the subject at a steady elevated altitude — 24mm field of view at f/4, gimbal locked on the subject centroid. Subject stays centered, horizon level throughout. 24fps.",
     pacing: "slow",
   },
   parallax_pan: {
     model: "kling",
     motionHint:
-      "Lateral parallax tracking shot moving slowly left to right — 50mm prime at f/2 on a slider rig, camera at eye level, gimbal-stabilized. Foreground elements drift roughly twice as fast as background elements, revealing depth through parallax separation. Leading-line composition: the subject's strongest horizontal line is held parallel to the frame edge across the move. 24fps with a 180° shutter.",
+      "The camera tracks laterally left-to-right at a steady walking pace on a precision slider — 50mm prime at f/2, eye level, gimbal-stabilized. Foreground drifts at twice the speed of the background, revealing depth. 24fps with a 180° shutter.",
     pacing: "medium",
   },
   reveal_rise: {
     model: "kling",
     motionHint:
-      "Continuous crane rise — camera lifts vertically from ankle height to eye level on a motorized jib, 28mm lens at f/4, no horizontal drift, no rotation. The composition reveals the subject from the bottom up: ground / threshold / mid-body / canopy unfolds as the lens rises. 24fps with a 180° shutter, gimbal-locked horizon. The rise speed is uniform across the full clip.",
+      "The camera rises uniformly from ankle height to eye level on a motorized jib — 28mm at f/4, gimbal-locked horizon, vertical trajectory throughout. The composition opens upward from ground to canopy. 24fps with a 180° shutter.",
     pacing: "medium",
   },
   architectural: {
     model: "seedance",
     motionHint:
-      "Architectural slider track — perfectly horizontal lateral move on a precision dolly, 50mm prime at f/5.6 for sharp edge-to-edge resolution, gimbal-locked, no rotation, no tilt, no vertical drift. Frame is composed around the building's strongest vertical or horizontal symmetry line, held centered across the entire track. 24fps with a 180° shutter for clean architectural motion.",
+      "The camera tracks horizontally on a precision dolly at a steady pace — 50mm prime at f/5.6, gimbal-locked, level horizon. Frame composed around the building's primary symmetry line, held centered across the entire track. 24fps.",
     pacing: "slow",
   },
   establishing: {
     model: "seedance",
     motionHint:
-      "Slow continuous pull-back dolly-out — starts from a tight feature detail and reveals the wider environment as the camera retreats. 24mm wide prime at f/4, gimbal-stabilized, no rotation. The retreat speed is uniform; the framing opens up gradually with foreground elements drifting in to frame the wider scene. 24fps with a 180° shutter.",
+      "The camera pulls back uniformly from a tight feature detail to a wide establishing frame — 24mm at f/4, gimbal-stabilized, steady retreat speed. The wider scene reveals as the camera retreats. 24fps with a 180° shutter.",
     pacing: "slow",
   },
 }
@@ -97,6 +174,15 @@ interface ClipContext {
   total?: number
   /** narrative beat for this clip — "establishing", "hero", "detail", "closing" etc */
   beat?: string
+  /**
+   * Optional verbatim atmospheric/time-of-day lock injected into every clip
+   * in a stitched bundle. Research finding: repeating the SAME lighting
+   * phrase token-for-token across multiple Seedance calls anchors the
+   * model's color grading and time-of-day decision, giving stitched reels
+   * cohesion that they otherwise lack when each clip independently picks
+   * a grade. Set this once at the bundle level and pass it into every clip.
+   */
+  atmosphericLock?: string
 }
 
 function buildClipPrompt(
@@ -105,57 +191,122 @@ function buildClipPrompt(
   vibeLine: string,
   pacing: "slow" | "medium" = "slow",
   context?: ClipContext,
+  model: "seedance" | "kling" = "seedance",
 ): string {
-  // Pacing controls tempo of continuous motion, not the position of a freeze
-  // beat. Both modes keep the camera moving across the full duration.
-  const tempoCue = pacing === "slow"
-    ? "The camera moves at a gentle, slow tempo — the full move unfolds gradually across the entire clip"
-    : "The camera moves at a steady, measured tempo — the full move flows continuously across the entire clip"
+  // ── BRANCH: Seedance gets compressed (~60 words), Kling gets richer
+  // (~140 words). Seedance auto-expands prompts and rewards brevity per
+  // ByteDance docs; Kling 2.5 Turbo Pro accepts up to 2,500 chars and
+  // performs better with shot-list grammar. The shared inputs (motionHint,
+  // vibe, beat) get assembled into different paragraph shapes.
+  if (model === "seedance") {
+    return buildSeedanceClipPrompt(motionHint, duration, vibeLine, pacing, context)
+  }
+  return buildKlingClipPrompt(motionHint, duration, vibeLine, pacing, context)
+}
 
-  // Per-clip narrative position. Each beat gets a slightly different register:
-  // an opener is wider and cooler; a hero shot tightens and warms; a closer
-  // decelerates into a resolution without freezing. This lets stitched
-  // bundles read as a deliberate sequence, not 5 unrelated clips glued
-  // together.
+// ── SEEDANCE 2.0 — compressed (~60 words) ──
+// ByteDance ModelArk canonical structure: Subject+Movement, Background+
+// Movement, Camera+Movement. i2v rule: minimize static descriptions.
+function buildSeedanceClipPrompt(
+  motionHint: string,
+  duration: number,
+  vibeLine: string,
+  pacing: "slow" | "medium" = "slow",
+  context?: ClipContext,
+): string {
+  const tempoCue = pacing === "slow" ? "at a uniform slow tempo" : "at a uniform measured tempo"
+
+  // Pick a small material palette for anchor. Three named materials per
+  // prompt is the sweet spot — enough to give Seedance noun handles, not
+  // enough to trip the >5-noun morph threshold.
+  const materials = materialPalette("interior").slice(0, 3).join("; ")
+
+  // Beat register — single short clause, positive-only.
+  let beat = ""
+  const b = context?.beat?.toLowerCase()
+  if (b === "establishing" || b === "opener") beat = "Wide opening framing, generous negative space. "
+  else if (b === "hero" || b === "feature")   beat = "Hero framing on the strongest architectural feature. "
+  else if (b === "detail" || b === "texture") beat = "Tight framing on a material story, raking light. "
+  else if (b === "amenity")                   beat = "Wider framing on the signature outdoor or amenity space. "
+  else if (b === "closing" || b === "closer" || b === "resolution") beat = "Composed closing framing, warm closing light. "
+  else if (b === "transition" || b === "bridge") beat = "Medium bridging framing. "
+
+  // Verbatim atmospheric lock — when present, repeats across every clip
+  // in a stitched bundle. Token-for-token repetition is what anchors the
+  // grade across separate Seedance predictions.
+  const atmos = context?.atmosphericLock
+    ? `Atmospheric state: ${context.atmosphericLock} ` : ""
+
+  // Seedance-canonical structure: Subject+Movement, Background+Movement,
+  // Camera+Movement, Style. ~70 words target.
+  return (
+    `Cinematic 9:16 vertical real-estate reel, ${duration}s. ${beat}${atmos}` +
+    // Subject + Movement: the room holds its geometry; named materials catch the light
+    `Subject: the unoccupied interior holds its architecture exactly; ${materials} catch directional light as the camera passes. ` +
+    // Background + Movement: ambient particulate motion only
+    `Background: dust motes drift through window light, faint warm haze threads the air; motion comes only from the camera and the ambient light. ` +
+    // Camera + Movement: continuous, decelerating not stopping
+    `Camera: ${motionHint} ${tempoCue}, smoothly easing out across the final second while still drifting forward. ` +
+    // Style: vibe carries lens/stock/DP/anchor
+    `${vibeLine}`
+  )
+}
+
+// ── KLING 2.5 TURBO PRO — richer (~140 words) ──
+// Kling accepts up to 2,500 chars and performs better with shot-list grammar
+// (subject → action → camera → environment → style/mood). Negative defects
+// go in the dedicated negative_prompt API field — never inline here.
+function buildKlingClipPrompt(
+  motionHint: string,
+  duration: number,
+  vibeLine: string,
+  pacing: "slow" | "medium" = "slow",
+  context?: ClipContext,
+): string {
+  const tempoCue = pacing === "slow"
+    ? "at a gentle, uniform slow tempo"
+    : "at a steady, measured tempo"
+
+  // Three named materials per clip — keeps under Kling's 5-7 noun ceiling.
+  const materials = materialPalette("interior").slice(0, 3).join(", ")
+
+  // Beat register — longer, name-rich register language.
   let beatRegister = ""
   const beat = context?.beat?.toLowerCase()
   if (beat === "establishing" || beat === "opener") {
-    beatRegister = "This shot opens the reel — wider framing, cooler register, generous negative space, the cinematic register of a Sotheby's flagship opener. "
+    beatRegister = "The opening shot of the reel — wide architectural framing, generous breathing room, cool register. "
   } else if (beat === "hero" || beat === "feature") {
-    beatRegister = "This shot is the hero of the reel — slightly tighter framing, warmer color register, hero-light on the strongest architectural feature, the cinematic register of an Architectural Digest cover spread. "
+    beatRegister = "The hero shot — tighter framing on the strongest architectural feature, warm hero light. "
   } else if (beat === "detail" || beat === "texture") {
-    beatRegister = "This shot is a detail beat — closer framing on a material story, raking light to reveal texture, the cinematic register of a Kinfolk close-up on a single named finish. "
+    beatRegister = "A detail beat — closer framing on a material story, raking light revealing texture. "
+  } else if (beat === "amenity") {
+    beatRegister = "An amenity beat — outdoor or signature space, wider framing, energy continues. "
   } else if (beat === "closing" || beat === "resolution" || beat === "closer") {
-    beatRegister = "This shot is the closer of the reel — composed framing that decelerates into a magazine-grade resolution, warm closing light, the cinematic register of a final spread before the back cover. "
+    beatRegister = "The closing shot — composed framing easing into a magazine resolution, warm closing light. "
   } else if (beat === "transition" || beat === "bridge") {
-    beatRegister = "This shot bridges between scenes — medium framing, neutral register, designed to connect the previous and next beats without competing with them. "
+    beatRegister = "A bridging shot — medium framing, neutral register connecting adjacent beats. "
   }
 
   const positionHeader = context?.index && context?.total
-    ? `This is shot ${context.index} of ${context.total} in a stitched cinematic listing reel${context.beat ? ` — narrative beat: ${context.beat.toUpperCase()}` : ""}. ${beatRegister}Render with extreme attention to detail: every material finish, every light interaction, every shadow physically plausible. `
+    ? `Shot ${context.index} of ${context.total} in a cinematic 9:16 listing reel${context.beat ? ` — beat: ${context.beat.toUpperCase()}` : ""}. ${beatRegister}`
     : ""
+
+  // Atmospheric lock — shared verbatim across stitched bundle clips so the
+  // grade and time-of-day stay consistent across separate predictions.
+  const atmos = context?.atmosphericLock
+    ? `Atmospheric state: ${context.atmosphericLock} ` : ""
 
   return (
     positionHeader +
-    `Cinematic 9:16 vertical real-estate listing reel, ${duration} seconds total at 24fps with a 180° shutter for natural film-grade motion blur. 1080p photorealistic, magazine-quality, Sotheby's-listing-grade finish — no compromise on detail. ` +
-    // ── MOTION GRAMMAR (continuous, no freeze) ──
-    `${motionHint} ${tempoCue}, gimbal-stabilized, one deliberate uninterrupted move from the opening frame through to the closing frame. The camera is in motion from frame one. Motion is continuous throughout — no held frames, no pauses, no static segments. ` +
-    // ── ATMOSPHERE & DEPTH CUES ──
-    `Atmosphere reads photographically: fine particulates catch any light source — dust motes drift through sun shafts, pollen or warm haze threads the air, condensation softens hard reflections in window glass. Depth is built by parallax between near and far elements, by lens compression, and by light falloff into shadows. ` +
-    // ── MATERIAL MICRO-PHYSICS ──
-    `Material textures stay legible as the camera passes them: wood grain pulls focus along its length, fabric weave catches raking light, stone veining is read as one continuous physical pattern, metal finishes (brushed, polished, satin, lacquered) each reflect light according to their named surface — never plastic, never CGI-flat. ` +
-    // ── DECELERATION INSTEAD OF STOP ──
-    `Across the final second the move eases out gracefully — a smooth deceleration to a gentle resolution, never a hard stop. The camera keeps drifting at a fraction of its earlier speed all the way to the last frame. The closing composition reads as magazine-grade, but as a frame inside a continuing movement, not a frozen still. ` +
-    // ── ARCHITECTURAL ANCHORS ──
-    `Throughout the move the architecture stays exactly identical to the source photo — no morphing, no invented rooms, no weather change, no added objects, no rearranged furniture, no impossible reflections. The room is anchored; the camera is what moves. ` +
-    // ── STABILITY ──
-    `Stability: avoid jitter, avoid camera shake, avoid handheld micro-wobble, avoid sudden direction changes, avoid speed-ramps, avoid flickering, avoid motion blur artifacts beyond the natural 180° shutter. Avoid fish-eye distortion. Avoid plastic AI sheen on surfaces. Avoid banded skies. Avoid over-saturated grading. ` +
-    // ── NO HUMANS (legal/MLS-critical) ──
-    `Property is empty and unoccupied: absolutely no people, no humans, no human figures, no faces, no body parts, no hands, no arms, no legs, no torsos, no children, no occupants, no agents, no realtors, no homeowners, no visitors, no shadows of people, no human silhouettes, no reflections of people in glass or mirrors, no movement of any human, the entire frame is empty of all human presence. ` +
-    // ── VIBE (carries lens, color science, film-stock, aesthetic anchor) ──
-    `${vibeLine} ` +
-    // ── ANTI-FREEZE NEGATIVE CAP (research-validated tail) ──
-    `Motion sustains continuously through every single frame — no freeze frames, no held frames, no static moments, no stop-and-hold, no frozen establishing shot, no frozen closing shot, no pauses on any frame at any time.`
+    `Cinematic 9:16 vertical real-estate reel, ${duration} seconds total. ${atmos}` +
+    // Subject: room + named materials
+    `Subject: the unoccupied interior holds its architectural geometry exactly — walls, windows, doors, finishes remain consistent throughout. Named materials catch directional light as the camera passes: ${materials}. ` +
+    // Background + Movement
+    `Background: fine particulates drift gently — dust motes in window light, faint warm haze building depth; the space is unoccupied, motion comes only from the camera and the ambient light. ` +
+    // Camera + Movement — continuous, deceleration as positive end-state
+    `Camera technique: ${motionHint} ${tempoCue}, one continuous uninterrupted move from the first frame through to the last, smoothly decelerating into a magazine-grade resolution across the final second while still drifting forward toward a settled composition that continues the camera's gentle motion. ` +
+    // Style
+    `${vibeLine}`
   )
 }
 
@@ -296,36 +447,36 @@ async function pollReplicate(predictionId: string, maxAttempts = 120): Promise<s
   throw new Error("Replicate prediction timed out")
 }
 
-// ── Vibe → cinematic suffix (upgraded) ──
-// Each suffix is now an eight-element brief:
-//   1. Camera + lens + f-stop + shutter + frame rate
-//   2. Color science / film-stock emulation (Kodak Vision3, Fuji Eterna, etc.)
-//   3. Light qualities (Kelvin, direction, falloff, motivation)
-//   4. Specularity + how light reads on named materials
-//   5. Atmospheric particulates (dust motes, haze, breath, foliage drift)
-//   6. Aesthetic reference anchor (a named publication or filmmaker style)
-//   7. Composition rule the vibe leans on
-//   8. Negative aesthetic (what NOT to look like)
-//
-// Concrete optical and color targets produce visibly different output than
-// vague mood words. Seedance + Kling are demonstrably stronger when given
-// named film stocks ("Kodak Vision3 250D") than when given "warm tones."
+// ── Vibe → cinematic suffix (research-tuned) ──
+// Research findings applied:
+//   • Each vibe now PAIRS a film stock with a cinematographer/DP name —
+//     this combo has the strongest documented effect in Kling/Seedance
+//     prompt corpora (filmart.ai, klingaio.com).
+//   • Dropped corpus-weak anchors (Sotheby's, Dwell, Conde Nast Traveler).
+//     Promoted corpus-strong anchors (Architectural Digest, Aman Resorts,
+//     Nancy Meyers, Cereal Magazine, Tadao Ando).
+//   • Stripped every "Avoid X" / "no X" line — Seedance ignores negations.
+//   • Added explicit "film grain present including in sky regions" to
+//     suppress sky banding (Klingaio's documented anti-banding language).
+//   • Replaced "polished" / "perfect" / "flawless" with named materials
+//     (honed Carrara, full-grain leather, white oak with grain figuration).
+//   • Compressed to roughly 60-70 words per vibe — Seedance sweet spot.
 function vibeSuffix(vibe: string): string {
   switch (vibe) {
     case "luxury":
-      return "Shot on an Arri Alexa-class digital cinema body with a 35mm spherical prime at f/2, 24fps, 180° shutter — shallow depth of field, creamy circular bokeh on backgrounds. Color science: Kodak Vision3 250D film emulation, graded Rec.709 with a deep navy-and-amber split-tone. Light: golden-hour 3200K rakes from low and side, deep saturated shadows in the cool quadrant, controlled specular highlights on unlacquered brass, honed marble veining, and lacquered stone. Atmosphere: a fine warm haze catches every light source — pollen drift, faint dust motes in the sun shafts. Aesthetic anchor: an Architectural Digest cover spread, a Sotheby's flagship listing reel. Composition: golden-ratio negative space, subject at the lower-left third. Avoid plastic AI sheen, banded skies, over-saturation, flat AI lighting."
+      return "ARRI Alexa Mini LF, 35mm anamorphic at T2.8, 24fps, 180° shutter. Kodak Vision3 500T look with Roger Deakins natural-light treatment. Aman Resorts and Architectural Digest cover cinematography. Golden-hour warm key 3200K rakes across honed Carrara marble with mineral veining, unlacquered brass with pull-up patina, full-grain leather catching grazing light. Fine warm haze through every light shaft, pollen drift in the air, 35mm film grain present throughout including in sky regions."
     case "cozy":
-      return "Shot on a Sony VENICE-class body with a 50mm Cooke S4 prime at f/2.8, 24fps, 180° shutter — natural depth of field, faces and textures in tactile focus. Color science: Fuji Eterna 250D emulation, gentle filmic shadow rolloff, slight warm shift in midtones. Light: motivated tungsten interior at 2700K from practical lamps, soft long shadows, low-key fill, golden bounce off pale linen. Specularity reads as warm halations on lacquered wood and softened glints on ceramic glazes. Atmosphere: drifting steam from a mug, dust catching evening light, slight film grain. Aesthetic anchor: a Kinfolk Magazine interior, a Nancy Meyers kitchen. Composition: rule of thirds with a strong leading line toward a focal lamp. Avoid clinical lighting, hard daylight, flat AI rendering."
+      return "RED Komodo with 50mm Cooke S4 anamorphic prime at T2.8, 24fps, 180° shutter. Kodak Vision3 500T look with Sofia Coppola natural-light interior treatment. Nancy Meyers warm domestic cinematography. Motivated tungsten 2700K from practical lamps, warm halations on white oak with grain figuration, soft glints on hand-thrown ceramic glaze, boucle wool weave catching directional light. Drifting steam from a mug, dust motes in evening light, 35mm film grain throughout the frame."
     case "modern":
-      return "Shot on an Arri Mini LF-class body with a 24mm Zeiss Supreme wide prime at f/4, 24fps, 180° shutter — sharp edge-to-edge, architectural lines crisp without barrel distortion. Color science: Arri Alexa LogC graded to a cool Rec.709 with neutral skin and steel-blue shadows. Light: cool diffuse daylight at 5600K — almost shadowless, gallery-bright, clean white balance. Specularity is restrained: brushed nickel, satin lacquer, honed concrete read with precise micro-contrast, no glare. Atmosphere: minimal — clean cool air, faint paper-thin haze for depth. Aesthetic anchor: a Dwell Magazine spread, a Tadao Ando residence reveal. Composition: symmetric framing built around the strongest architectural vertical. Avoid warm color cast, film grain, hard shadows, decorative clutter."
+      return "ARRI Alexa Mini LF, 24mm Zeiss Supreme at f/4, 24fps, 180° shutter. Fujifilm Eterna pastel grade with Hoyte van Hoytema clean-light treatment. Cereal Magazine and Tadao Ando architectural editorial cinematography. Cool diffuse 5600K daylight, gallery bright, restrained specular on brushed steel and honed-concrete surfaces with hairline seams. Faint cool atmospheric haze for depth, 35mm film grain present including in sky regions."
     case "family":
-      return "Shot on a Canon C500-class body with a 35mm prime at f/2.8, 24fps, 180° shutter — natural eye-level perspective, gentle depth of field. Color science: Kodak Vision3 500T tungsten balanced to daylight, friendly midtone warmth. Light: bright midday natural sun at 5000K through clean windows, soft fill from off-camera bounce, no harsh shadows. Specularity is gentle — softened reflections on wood floors, warm bounce on cream walls. Atmosphere: light air drift through screen doors, slight outdoor warmth pouring inward. Aesthetic anchor: a contemporary Better Homes & Gardens cover, a relaxed Magnolia-network reveal. Composition: rule of thirds with the family-room hearth or kitchen island as the anchor. Avoid over-stylized contrast, moody shadows, AI-fake bokeh."
+      return "Sony FX6 with 35mm prime at f/2.8, 24fps, 180° shutter. Kodak Vision3 250D daylight balance with Nancy Meyers warm-interior treatment. Architectural Digest residential cinematography. Bright 5000K midday sun through clean windows, warm bounce on cream linen and matte white walls, softened reflections on wide-plank oak floor with grain figuration. Light air drift through screen doors, fine 35mm grain throughout."
     case "investment":
-      return "Shot on a Sony FX6-class body with a 28mm prime at f/5.6, 24fps, 180° shutter — deep depth of field so every detail of the layout reads. Color science: neutral Rec.709 with no creative grade, true white balance at 5200K, MLS-compliant clean rendering. Light: bright even daylight, no directional drama, no warm or cool cast. Specularity is precise and uncreative — every surface is read as itself, no flourishes. Atmosphere: clean air, no haze, no particulates. Aesthetic anchor: a top-shelf realtor.com / Zillow flagship video. Composition: centered architectural framing, every door and window clearly legible, rule-of-thirds only when it improves spatial readability. Avoid film grain, color flourishes, moody lighting, anamorphic flares."
+      return "Sony FX6 with 28mm prime at f/5.6, 24fps, 180° shutter. Kodak Vision3 250D daylight balance, neutral Rec.709 documentary cinematography. Even 5200K daylight reads true across the entire layout, every surface rendered as itself. Faint atmospheric haze for depth, 35mm film grain present uniformly including in sky regions, no creative grade applied."
     case "vacation":
-      return "Shot on an Arri Alexa Mini-class body with a 35mm anamorphic at f/2 (2× squeeze where supported), 24fps, 180° shutter — shallow depth of field, oval bokeh, signature horizontal lens flares from any direct light source. Color science: Fuji 8553-style golden-hour grade, warm midtones, deep cyan in the shadows. Light: sunset 3000K with a hot horizon glow, side-rim on foliage and water, soft amber bounce from sand or stone. Atmosphere: gentle haze catching the sun, salt spray or pollen drift, light breeze visible in leaves, fronds, or sheer curtains. Aesthetic anchor: a Conde Nast Traveler spread, an Aman Resorts promotional reel. Composition: rule of thirds with the horizon on the upper line and a foreground anchor like a pool edge or stone deck. Avoid clinical mid-day light, cool color casts, hard sharpness."
+      return "ARRI Alexa Mini LF with 35mm anamorphic prime at T2, 2× squeeze, 24fps, 180° shutter. Kodak Vision3 500T with sunset shift, Vittorio Storaro saturated golden-hour treatment. Aman Resorts hospitality cinematography. Sunset 3000K rim light on tropical foliage and water, signature horizontal anamorphic flare from direct light, gentle salt haze catching the warm air, breeze visible in fronds, 35mm film grain throughout."
     default:
-      return "Shot on a Sony FX6-class body with a 35mm prime at f/2.8, 24fps, 180° shutter — natural depth of field. Color science: Kodak Vision3 250D emulation graded Rec.709, gentle filmic rolloff in highlights and shadows. Light: warm diffuse natural light at 3800K, soft shadows, motivated direction. Specularity reads as photographic, not plastic. Aesthetic anchor: a Dwell Magazine listing reel. Composition: rule of thirds, leading lines into the subject. Avoid plastic AI sheen, flat lighting, over-saturation."
+      return "Sony FX6 with 35mm prime at f/2.8, 24fps, 180° shutter. Kodak Vision3 250D look, Roger Deakins natural-light style. Architectural Digest residential cinematography. Warm 3800K diffuse light with motivated direction, softened reflections on honed stone and white oak surfaces, fine atmospheric haze for depth, 35mm film grain throughout including in sky regions."
   }
 }
 
@@ -579,22 +730,25 @@ async function startVideoGeneration(
   // Auto-promote long-form clips to Seedance 2.0 even when the shot type defaults to Kling
   const useSeedance = config.model === "seedance" || duration >= LONG_FORM_THRESHOLD_SECONDS
 
-  // Timeline-prompted: explicit [0:00–0:0N] beats guide Seedance/Kling to a
-  // controlled open → move → settle structure. Per-clip context (if provided)
-  // tells the model where this clip sits in the larger reel so it leans into
-  // the appropriate cinematic register.
-  const prompt = buildClipPrompt(config.motionHint, duration, vibeSuffix("luxury"), config.pacing, context)
-  // The no-humans stack is intentionally exhaustive — listing reels with
-  // invented occupants are unusable for legal-disclosure reasons, so we
-  // repeat the constraint in many forms to maximize negative-prompt strength.
-  const negativePrompt = "people, humans, human figures, faces, body parts, hands, arms, legs, torsos, children, occupants, agents, realtors, homeowners, visitors, shadows of people, human silhouettes, reflections of people, human movement, invented rooms, new objects, added animals, pets, weather changes, morphing or warping geometry, flickering, motion blur, floating objects, lighting changes, added reflections, ghost trails, duplicated surfaces, fast motion, jitter, camera shake, low resolution, soft focus, blurry edges, compression artifacts."
+  // Per-model prompt grammar:
+  //   Seedance gets compressed (~60 words) per ByteDance docs.
+  //   Kling gets longer (~140 words) with end-state guidance.
+  const prompt = buildClipPrompt(
+    config.motionHint,
+    duration,
+    vibeSuffix("luxury"),
+    config.pacing,
+    context,
+    useSeedance ? "seedance" : "kling",
+  )
 
   const endpoint = useSeedance
     ? `${REPLICATE}/models/${MODEL_SEEDANCE}/predictions`
     : `${REPLICATE}/models/${MODEL_KLING}/predictions`
 
-  // Kling accepts start_image/end_image + negative_prompt.
-  // Seedance Pro accepts `image` only.
+  // Kling accepts start_image/end_image + negative_prompt API field.
+  // Seedance Pro accepts `image` only — Seedance IGNORES negative_prompt
+  // per ByteDance docs, so we never send one.
   const modelInput: Record<string, unknown> = useSeedance
     ? {
         prompt,
@@ -608,7 +762,7 @@ async function startVideoGeneration(
         start_image: imageUrl,
         duration,
         aspect_ratio: "9:16",
-        negative_prompt: negativePrompt,
+        negative_prompt: KLING_NEGATIVE_PROMPT,
       }
 
   console.log(`[generateVideo] model=${useSeedance ? "seedance-2" : "kling"} endpoint=${endpoint} duration=${duration}s`)
@@ -900,30 +1054,20 @@ serve(async (req) => {
     if (category === "sun_to_sun") {
       const exteriorUrl = photo_urls[0]
 
-      // Upgraded day-cycle prompt — film-stock grade, named atmospheric
-      // cues, continuous light evolution. Camera is intentionally locked
-      // (this is a time-lapse; the SKY moves, not the camera) — so the
-      // anti-freeze rules apply to the sky/shadows, not the frame itself.
+      // Day-cycle prompt — Seedance-canonical, positive-only grammar.
+      // Camera is intentionally locked (this is a time-lapse — the SKY
+      // moves, not the camera). Sun + light evolution described as
+      // continuous positive motion across the frame.
       const dayCyclePrompt =
-        "Cinematic 9:16 vertical real-estate time-lapse, 10 seconds total at 24fps with a 180° shutter. 1080p photorealistic, magazine-quality, Architectural Digest exterior-cover finish. " +
-        "Camera: locked tripod composition on a 28mm prime at f/5.6, gimbal-stabilized to zero motion — the camera does not move, does not zoom, does not parallax, does not bob. The entire frame composition stays exact. Time-lapse motion lives in the SKY and SHADOWS, never in the camera. " +
-        "Color science: Kodak Vision3 250D emulation graded Rec.709, with a deliberate cool-shadow / warm-highlight split-tone that evolves across the day cycle. " +
-        // ── Continuous light evolution from sunrise → dusk ──
-        "Time-of-day evolution is continuous across the clip — the sun's position, the sky color, and the shadow direction all evolve smoothly from frame one to frame one-hundred-and-twenty. No abrupt jumps, no flicker, no stepping. " +
-        "[0:00–0:02] SUNRISE: soft pink-and-amber sky above the eastern horizon, sun just clearing the tree line, long cool blue cast shadows pointing west across the lawn. Light has the soft scatter of dawn humidity. " +
-        "[0:02–0:05] Sun arcs continuously toward the south. Light warms into GOLDEN HOUR — orange and amber tones rake across the building, shadows compress and warm, sky transitions through amber into deep gold. Foliage glows backlit. " +
-        "[0:05–0:08] Late golden hour continuously transitions into BLUE HOUR / DUSK — sky deepens through cyan into cobalt, with a sustained warm horizon glow. Ambient light cools while the building face still catches warmth on its western elevation. " +
-        "[0:08–0:10] Full dusk — interior windows glow warm 2700K tungsten from inside, exterior reads as a deep cobalt silhouette with the warm interior reading through every window. Stars begin to faintly emerge in the upper sky. " +
-        // ── Atmosphere & specificity ──
-        "Atmosphere reads photographically: fine air particulates catch the low sun across sunrise and golden hour, evening haze warms the horizon at dusk, foliage drifts subtly in a gentle ambient breeze. " +
-        // ── Anchors ──
-        "Architecture, landscaping, foliage, framing, lens choice, and camera position all stay exactly identical to the source photo throughout — only sky, sun, light direction, shadow direction, and interior window glow evolve. " +
-        // ── Stability ──
-        "Sun motion is continuous and physically accurate — no jump cuts, no flicker, no banding in the sky, no impossible reflections, no plastic surfaces. " +
-        // ── No humans ──
-        "The property is empty and unoccupied: absolutely no people, no humans, no human figures, no faces, no body parts, no children, no occupants, no agents, no homeowners, no visitors, no shadows of people, no human silhouettes, no reflections of people, the entire frame is empty of all human presence throughout. " +
-        // ── Anti-freeze (sky/light must continuously evolve) ──
-        "Sky color, sun position, light direction, and shadow geometry evolve continuously through every single frame — no held sky color, no static shadow segment, no stepping, no flicker, no pauses in the time-lapse evolution."
+        "Cinematic 9:16 vertical real-estate time-lapse, 10 seconds total. " +
+        // ── Subject + Movement ──
+        "Subject: the building's architecture, landscaping, foliage and framing remain exactly consistent throughout; interior windows progressively warm with 2700K tungsten glow as the day cycle moves into dusk. " +
+        // ── Background + Movement ──
+        "Background: the sun arcs continuously from low eastern horizon at sunrise through golden hour into blue-hour dusk; the sky evolves smoothly through soft pink-amber, deep gold, cyan, cobalt; cast shadows lengthen, compress, warm, then deepen — every frame advances the cycle. Foliage drifts gently in an ambient breeze, fine atmospheric particulates catch the warm low sun. " +
+        // ── Camera + Movement ──
+        "Camera: locked tripod composition on a 28mm prime at f/5.6, gimbal-stable, the framing remains exact throughout — all motion lives in the sky and shadows. 24fps, 180° shutter. " +
+        // ── Style ──
+        "Kodak Vision3 250D look with Roger Deakins natural-light treatment, Architectural Digest exterior cover cinematography. Cool-shadow warm-highlight split-tone evolving across the cycle. 35mm film grain present uniformly including in sky regions. The property is unoccupied throughout — motion comes only from the sun, sky, shadows, foliage drift, and the warming interior windows."
 
       console.log("[sun_to_sun] kicking off single Seedance 2.0 day-cycle prediction (10s)")
       const result = await startSeedanceFromImage(
@@ -970,7 +1114,18 @@ serve(async (req) => {
 
     // Category: listing_bundle — fire N Seedance predictions in parallel, return prediction_ids
     if (category === "listing_bundle") {
-      const shotRotation = ["slow_push", "parallax_pan", "reveal_rise", "architectural", "establishing", "drone_orbit"]
+      // Narrative beat ORDER per research (Reels Ninja + Content-to-Closings):
+      // establishing → hero → detail → HERO (not detail) → amenity → closing.
+      // The detail-detail middle was a known engagement drop zone in
+      // listing-reel data. Hero re-appears at slot 4 to inject energy.
+      const shotRotation = [
+        "establishing",   // 1. Wide opener — moving hook
+        "slow_push",      // 2. Hero — strongest interior feature
+        "architectural",  // 3. Detail — read materials
+        "reveal_rise",    // 4. Hero again — second signature space (not another detail)
+        "drone_orbit",    // 5. Amenity — outdoor / signature
+        "parallax_pan",   // 6. Closing — composed pull / lateral
+      ]
       const photos = photo_urls.slice(0, 6)
 
       // Apply realistic effect to first photo only (nano-banana, ~10s)
@@ -988,15 +1143,32 @@ serve(async (req) => {
       // once). Each call gets a unique narrative beat + position context
       // so the model treats it as a deliberate shot in a 6-shot story
       // instead of a generic clip from a batch.
+      // Beat labels match the buildClipPrompt beat register names exactly so
+      // the per-clip register language fires correctly.
       const NARRATIVE_BEATS = [
-        "establishing wide — set the property in its world",
-        "hero push — the strongest single frame, give it weight",
-        "architectural detail — read the materials, finishes, and craft",
-        "interior reveal — open up the space, suggest scale",
-        "atmospheric beat — light, texture, mood",
-        "closing pull-back — leave the viewer with the whole picture",
+        "establishing",
+        "hero",
+        "detail",
+        "hero",
+        "amenity",
+        "closing",
       ]
-      console.log(`[listing_bundle] kicking off ${photos.length} INDIVIDUAL Seedance 2.0 calls @ 5s each (one image per request)`)
+      // ── ATMOSPHERIC LOCK ──
+      // Single time-of-day phrase repeated VERBATIM across every clip in
+      // the bundle. Per research, token-for-token repetition anchors
+      // Seedance's grade and time-of-day decision across separate calls,
+      // giving stitched reels visual cohesion they otherwise lack.
+      // Picked once per bundle from a small palette so different reels
+      // still feel distinct from each other.
+      const ATMOSPHERIC_STATES = [
+        "late-afternoon golden-hour light, warm 3200K amber key from camera-left, cool blue ambient fill, long soft shadows; this exact lighting state holds across every clip in the reel",
+        "soft mid-morning natural daylight, neutral 5400K key from large windows, gentle warm bounce on pale surfaces, faint atmospheric haze; this exact lighting state holds across every clip in the reel",
+        "warm dusk interior with motivated 2700K practicals, lamps reading as warm hero light against cool 5200K residual daylight in shadows; this exact lighting state holds across every clip in the reel",
+        "bright overcast diffuse daylight at 6500K, shadowless gallery brightness, clean white balance, all surfaces evenly lit; this exact lighting state holds across every clip in the reel",
+      ]
+      const atmosphericLock = ATMOSPHERIC_STATES[Math.floor(Math.random() * ATMOSPHERIC_STATES.length)]
+
+      console.log(`[listing_bundle] kicking off ${photos.length} INDIVIDUAL Seedance 2.0 calls @ 5s each, atmospheric_lock="${atmosphericLock.slice(0, 60)}…"`)
       const startResults = await Promise.all(
         photos.map(async (url, i) => {
           try {
@@ -1009,6 +1181,7 @@ serve(async (req) => {
                 index: i + 1,
                 total: photos.length,
                 beat: NARRATIVE_BEATS[i % NARRATIVE_BEATS.length],
+                atmosphericLock,
               },
             )
             return { index: i, ...result }
@@ -1096,25 +1269,15 @@ serve(async (req) => {
       // back-half walkthrough flows out of the front-half transformation
       // without any pause.
       const fullTransformPrompt =
-        `Cinematic 9:16 vertical real-estate virtual-staging reel, 10 seconds total at 24fps with a 180° shutter for natural film motion blur. 1080p photorealistic, magazine-quality interior styling, Architectural Digest cover-grade finish. ` +
-        // ── Already-in-motion opening — camera begins a gentle drift inward AS the dressing starts ──
-        `From the opening frame the camera is already easing into a slow continuous drift forward through the empty source room on a gimbal-stabilized 35mm prime at f/2.8. The architecture — walls, windows, doors, floors, ceiling — stays exactly anchored to the source frame throughout the clip. ` +
-        // ── Dressing phase (continuous, resolves by 0:04, named furniture physics) ──
-        `Across the first four seconds the room fills with its final styling: furniture, area rug, lamps, art, throw pillows, and decor each lift smoothly into their final positions with believable weight and gravity — heavy pieces settle low, soft goods compress under their own weight, fabric drapes naturally, lamps cast their own light as they land. ${stylePrompt} By 0:04 the styling is fully resolved — no further objects appear or move into place — but the camera never stops; it continues uninterrupted into a steady walkthrough push-in across the back six seconds. ` +
-        // ── Material micro-physics during the camera move ──
-        `As the camera passes through the now-styled space, named material finishes read photographically: wood grain pulls focus along its length, fabric weaves catch raking light, stone veining reads as one continuous physical pattern, metal finishes (brushed, polished, satin, lacquered, unlacquered brass) each reflect light according to their named surface. ` +
-        // ── Atmosphere ──
-        `Atmosphere reads photographically: fine dust motes drift through window light, slight warm haze threads the room, soft natural light bounces off pale surfaces, depth is built by parallax and lens compression. ` +
-        // ── Deceleration ──
-        `Across the final second the dolly eases out gracefully — smooth deceleration to a gentle resolution, never a hard stop. The camera keeps drifting at a fraction of its earlier speed all the way to the last frame. The closing composition reads as a magazine cover, but as a frame inside a continuing movement, not a frozen still. ` +
-        // ── Anchors ──
-        `Walls, windows, doors, floors, ceiling, and all architectural features stay anchored exactly as in the source throughout the entire 10 seconds — only the styling layer evolves. No morphed geometry, no invented rooms, no rearranged architecture. ` +
-        // ── Stability ──
-        `Stability: avoid jitter, avoid camera shake, avoid handheld micro-wobble, avoid sudden direction changes, avoid speed-ramps, avoid flickering, avoid plastic AI sheen on fabric, avoid banded skies through windows, avoid impossible reflections. ` +
-        // ── No humans ──
-        `The room is empty and unoccupied: absolutely no people, no humans, no human figures, no faces, no body parts, no hands, no children, no occupants, no agents, no homeowners, no visitors, no shadows of people, no human silhouettes, no reflections of people in glass or mirrors, the entire frame is empty of all human presence throughout. ${vibePromptSuffix} ` +
-        // ── Anti-freeze cap ──
-        `Motion sustains continuously through every single frame — no freeze frames, no held frames, no static moments, no stop-and-hold, no frozen establishing shot, no frozen closing shot, no pauses on any frame at any time.`
+        `Cinematic 9:16 vertical real-estate virtual-staging reel, 10 seconds total. ` +
+        // ── Subject + Movement ──
+        `Subject: the empty source room holds its architecture exactly — walls, windows, doors, floors, ceiling remain constant throughout. Across the first four seconds the room dresses itself: furniture, area rug, lamps, art, throw pillows, and decor each lift smoothly into their final positions with believable weight and gravity — heavy pieces settle low, soft goods compress under their own weight, fabric drapes naturally, lamps cast their own light as they land. ${stylePrompt} By 0:04 the styling is fully resolved and the camera continues forward through the now-styled space; named materials catch directional light — white oak with grain figuration, honed Carrara with mineral veining, boucle wool weave, unlacquered brass with patina. ` +
+        // ── Background + Movement ──
+        `Background: dust motes drift through window light, faint warm haze threads the room, daylight bounces softly off pale surfaces; the space is unoccupied throughout, motion comes only from the dressing animation, the camera move, and the ambient light. ` +
+        // ── Camera + Movement ──
+        `Camera: the camera eases into a uniform forward drift from the opening frame on a gimbal-stabilized 35mm prime at f/2.8, continues uninterrupted through the dressing phase, transitions seamlessly into a steady walkthrough push-in across the back six seconds, and smoothly decelerates into a magazine-grade resolution across the final second while still drifting forward. 24fps, 180° shutter. ` +
+        // ── Style ──
+        `${vibePromptSuffix}`
 
       console.log("[virtual_staging] kicking off SINGLE 10s Seedance dressing+walkthrough")
       const result = await startSeedanceFromImage(
@@ -1185,14 +1348,14 @@ serve(async (req) => {
       // best when given an explicit physical-scene brief instead of an abstract
       // "architectural sketch" prompt.
       const sketchPrompt = sketch_intent === "interior"
-        ? `Generate a photograph: a sheet of warm-cream 90gsm A3 architectural drafting paper sits on a polished walnut desk, oriented landscape, positioned slightly off-centre toward the lower-left. ` +
+        ? `Generate a photograph: a sheet of warm-cream 90gsm A3 architectural drafting paper sits on a walnut desk with oiled grain figuration, oriented landscape, positioned slightly off-centre toward the lower-left. ` +
           `On the paper is a clean architectural sketch in 2H graphite pencil of the interior room shown in the reference image — same room, same proportions, same window placements, same wall lengths, same key furniture positions. ` +
           `Sketch style: a confident architect's hand. Single-weight crisp pencil lines for the room outline, light directional cross-hatching for shadow on the back wall, soft converging perspective lines fading at the edges of the page, faint construction guidelines barely visible. No colour anywhere on the page. Paper has the slightest natural warm tone of real drafting stock. ` +
           `A bare, relaxed right hand enters from the bottom-right of the frame, holding a hexagonal-shafted graphite pencil with the tip currently touching one of the lines as if mid-stroke. The hand is photographed sharply with skin texture visible. ` +
           `Desk surroundings: a ceramic mug of coffee softly out of focus in the upper-left, a small brushed-aluminum architect's scale ruler running along the top edge of the paper, a vintage brass desk lamp camera-left casting warm 2900K motivated directional light onto the paper. Faint warm-toned shadow falls right of the pencil tip. ` +
           `Camera: top-down 3/4 angle, 50mm full-frame equivalent at f/2.5, shallow depth of field with the pencil tip in razor focus, paper edges still sharp, desk softly defocused, mug fully blurred. Photoreal background with hand-drawn pencil sketch on the paper. Kodak Vision3 250D color science. ` +
           `Anti-AI: no plastic AI sheen on the desk or hand, no doubled lines on the sketch, no impossible perspective, no smudged graphite.`
-        : `Generate a photograph: a sheet of warm-cream 90gsm A3 architectural drafting paper sits on a polished walnut desk, oriented landscape, positioned slightly off-centre toward the lower-left. ` +
+        : `Generate a photograph: a sheet of warm-cream 90gsm A3 architectural drafting paper sits on a walnut desk with oiled grain figuration, oriented landscape, positioned slightly off-centre toward the lower-left. ` +
           `On the paper is a clean architectural sketch in 2H graphite pencil of the building exterior shown in the reference image — same façade, same proportions, same window and door placements, same rooflines, same massing. ` +
           `Sketch style: a confident architect's hand. Single-weight crisp pencil lines for the building outline and openings, light directional cross-hatching for siding or stone texture, perspective lines fading at the edges of the page, faint construction guidelines barely visible. No colour anywhere. Paper has the natural warm tone of real drafting stock. ` +
           `A bare, relaxed right hand enters from the bottom-right of the frame, holding a hexagonal-shafted graphite pencil with the tip currently touching one of the rooflines as if mid-stroke. The hand is photographed sharply with skin texture visible. ` +
@@ -1208,46 +1371,25 @@ serve(async (req) => {
       // "transition was too slow" — that was the model improvising pacing. By
       // marking the morph as complete at a specific beat, the model commits
       // to the transformation and gives us a clean reveal in the back half.
-      const ANTI_FREEZE_CAP = `Motion sustains continuously through every single frame — no freeze frames, no held frames, no static moments, no stop-and-hold, no frozen establishing shot, no frozen closing shot, no pauses on any frame at any time.`
       const fullSketchPrompt = sketch_intent === "interior"
-        ? `Cinematic 9:16 vertical real-estate sketch-to-real reveal, 10 seconds total at 24fps with a 180° shutter for natural film motion blur. 1080p photorealistic, magazine-quality, Architectural Digest cover-grade finish. ` +
-          // ── Already-in-motion opening ──
-          `From the opening frame the camera is already in a slow continuous push-in toward the architectural pencil sketch resting on the warm walnut desk, on a gimbal-stabilized 50mm prime at f/2.8. The artist's right hand is mid-stroke at the edge of the paper. Warm 2900K motivated desk lighting from a brass lamp camera-left, soft fill bouncing off the pale paper. ` +
-          // ── Morph phase ──
-          `Across the first four seconds the sketch on the paper transforms continuously into the photorealistic interior it depicts — pencil shading dissolves into real surfaces with weight and depth, walls gain texture and material, daylight floods in through window openings, floors reveal wood grain or stone veining, furniture lifts up out of the page into final positions with gravity-believable settle motion. The desk and the drawing hand fade out smoothly during the morph. By 0:04 the morph is fully resolved — no trace of pencil, paper, desk, or hand remains anywhere in frame. ` +
-          // ── Continuous walkthrough back-half ──
-          `The camera never stops — the push-in transitions seamlessly into a slow continuous dolly walkthrough through the now-photoreal interior across the back six seconds. ` +
-          // ── Material micro-physics ──
-          `As the camera passes through the resolved interior, named material finishes read photographically: wood grain on floors, fabric weave on upholstery, stone veining on counters, metal finishes (brushed, polished, satin, unlacquered brass) each reflect light according to their named surface. ` +
-          // ── Atmosphere ──
-          `Atmosphere: fine dust motes drift through window light, slight warm haze threads the room, soft daylight bounces off pale surfaces, depth is built by parallax and lens compression. ` +
-          // ── Deceleration ──
-          `Across the final second the dolly eases out gracefully — smooth deceleration to a gentle resolution, never a hard stop. The camera keeps drifting at a fraction of its earlier speed all the way to the last frame. ` +
-          // ── Anchors ──
-          `Architectural geometry from the original drawing — wall lines, window placements, room proportions, ceiling height — stays anchored exactly throughout. The geometry of the sketch IS the geometry of the resolved interior. ` +
-          // ── Stability ──
-          `Stability: avoid jitter, avoid camera shake, avoid speed-ramps, avoid flickering, avoid plastic AI sheen on materials, avoid banded skies, avoid impossible reflections. ` +
-          // ── No humans (after 0:04) ──
-          `From 0:04 onward the resolved interior is empty and unoccupied — absolutely no people, no humans, no faces, no body parts beyond the artist's hand which has fully dissolved by 0:04, no children, no occupants, no shadows of people, no human silhouettes, no reflections of people in glass or mirrors during the photoreal reveal phase. ${vibeLine} ${ANTI_FREEZE_CAP}`
-        : `Cinematic 9:16 vertical real-estate sketch-to-real reveal, 10 seconds total at 24fps with a 180° shutter. 1080p photorealistic, magazine-quality, Architectural Digest exterior-cover finish. ` +
-          // ── Already-in-motion opening ──
-          `From the opening frame the camera is already in a slow continuous push-in toward the architectural pencil sketch resting on the warm walnut desk, on a gimbal-stabilized 50mm prime at f/2.8. The artist's right hand is mid-stroke at the edge of the paper. Warm 2900K motivated desk lighting from a brass lamp camera-left. ` +
-          // ── Morph phase ──
-          `Across the first four seconds the sketch transforms continuously into the photorealistic exterior it depicts — pencil shading dissolves into siding texture, brick coursing, glass refraction, and roof material, sky fills with realistic color and depth, foliage gains believable leaf detail, landscaping settles into place. The desk and the drawing hand fade out smoothly during the morph. By 0:04 the morph is fully resolved — no trace of pencil, paper, desk, or hand remains anywhere in frame. ` +
-          // ── Continuous parallax back-half ──
-          `The camera never stops — the push-in transitions seamlessly into a slow continuous parallax tracking shot across the now-photoreal exterior in the back six seconds. Foreground elements (a landscape edge, a fence line, a tree branch) drift roughly twice as fast as background elements, revealing depth through parallax. ` +
-          // ── Material micro-physics ──
-          `As the camera passes the façade, named exterior finishes read photographically: brick coursing reads as physical pattern, wood siding reveals grain, painted finishes (matte, satin, gloss) each catch light according to their named surface, glass panes show real refraction with no impossible double-reflections. ` +
-          // ── Atmosphere ──
-          `Atmosphere: gentle breeze in foliage, soft natural light bounces off the façade, depth built by lens compression and parallax. Sky has a subtle gradient (no banding). ` +
-          // ── Deceleration ──
-          `Across the final second the parallax move eases out gracefully — smooth deceleration to a gentle resolution, never a hard stop. The camera keeps drifting at a fraction of its earlier speed all the way to the last frame. ` +
-          // ── Anchors ──
-          `Façade geometry from the original drawing — window placements, rooflines, massing, door positions — stays anchored exactly throughout. The geometry of the sketch IS the geometry of the resolved exterior. ` +
-          // ── Stability ──
-          `Stability: avoid jitter, avoid camera shake, avoid speed-ramps, avoid flickering, avoid plastic AI sheen, avoid banded skies, avoid impossible reflections, avoid fish-eye distortion. ` +
-          // ── No humans (after 0:04) ──
-          `From 0:04 onward the resolved exterior is empty and unoccupied — absolutely no people, no humans, no faces, no body parts beyond the artist's hand which has fully dissolved by 0:04, no children, no occupants, no shadows of people, no human silhouettes during the photoreal reveal phase. ${vibeLine} ${ANTI_FREEZE_CAP}`
+        ? `Cinematic 9:16 vertical real-estate sketch-to-real reveal, 10 seconds total. ` +
+          // ── Subject + Movement ──
+          `Subject: a 2H pencil architectural sketch on warm cream paper transforms continuously across the first four seconds into the photoreal interior it depicts — pencil shading dissolves into real surfaces with weight and depth, walls gain material, daylight floods in through windows, floors reveal grain and texture, furniture lifts out of the page into final positions with gravity-believable motion; by 0:04 the desk and the artist's hand have fully dissolved out of frame and the resolved interior is fully present. Named materials catch directional light — white oak with grain figuration, honed Carrara with mineral veining, full-grain leather with patina, unlacquered brass. The architectural geometry of the sketch IS the geometry of the resolved interior, anchored exactly throughout. ` +
+          // ── Background + Movement ──
+          `Background: warm 2900K desk lamp light in the opening seconds gives way to cool natural daylight as the morph completes; dust motes drift through window light, faint warm haze threads the room; from 0:04 onward the space is unoccupied, motion comes only from the camera and ambient light. ` +
+          // ── Camera + Movement ──
+          `Camera: the camera eases into a uniform forward push-in from the opening frame on a gimbal-stabilized 50mm prime at f/2.8, continues through the morph, transitions seamlessly into a steady walkthrough across the back six seconds, and smoothly decelerates into a magazine-grade resolution across the final second while still drifting forward. 24fps, 180° shutter. ` +
+          // ── Style ──
+          `${vibeLine}`
+        : `Cinematic 9:16 vertical real-estate sketch-to-real reveal, 10 seconds total. ` +
+          // ── Subject + Movement ──
+          `Subject: a 2H pencil architectural sketch on warm cream paper transforms continuously across the first four seconds into the photoreal exterior it depicts — pencil shading dissolves into siding texture, brick coursing, glass refraction, and roof material; sky fills with realistic color, foliage gains believable leaf detail, landscaping settles into place; by 0:04 the desk and the artist's hand have fully dissolved out of frame and the resolved exterior is fully present. Named exterior finishes catch directional light — brick coursing as physical pattern, wood siding with grain, matte and satin painted surfaces, glass panes with real refraction. Façade geometry from the original sketch — window placements, rooflines, massing, door positions — anchored exactly throughout. ` +
+          // ── Background + Movement ──
+          `Background: warm 2900K desk lamp light in the opening seconds gives way to soft natural daylight as the morph completes; gentle breeze drifts through foliage, fine atmospheric particulates catch the air; from 0:04 onward the exterior is unoccupied, motion comes only from the camera, the breeze in foliage, and the ambient light. ` +
+          // ── Camera + Movement ──
+          `Camera: the camera eases into a uniform forward push-in from the opening frame on a gimbal-stabilized 50mm prime at f/2.8, continues through the morph, transitions seamlessly into a steady parallax tracking shot across the back six seconds with foreground drifting at twice the speed of background, and smoothly decelerates into a magazine-grade resolution across the final second while still drifting forward. 24fps, 180° shutter. ` +
+          // ── Style ──
+          `${vibeLine}`
 
       console.log("[sketch_to_real] kicking off SINGLE 10s Seedance morph+reveal")
       const result = await startSeedanceFromImage(
@@ -1307,29 +1449,17 @@ serve(async (req) => {
       // is resolved by 0:04 so the camera move owns the back half. Drafting
       // lines that linger past 0:04 ruin the magic — by fixing a hard
       // completion beat we get a clean, fully-realized interior reveal.
-      const cameraHint = SHOT_CONFIG[selectedShotType]?.motionHint || "Slow continuous dolly push-in, gimbal-stabilized."
+      const cameraHint = SHOT_CONFIG[selectedShotType]?.motionHint || "uniform continuous forward dolly push-in, gimbal-stabilized."
       const fullFloorPlanPrompt =
-        `Cinematic 9:16 vertical real-estate floor-plan-to-interior reveal, 10 seconds total at 24fps with a 180° shutter. 1080p photorealistic, magazine-quality, Architectural Digest cover-grade finish. ` +
-        // ── Already-in-motion opening ──
-        `From the opening frame the camera is already in a gentle continuous drift across the 2D architectural floor plan / axonometric drawing on a gimbal-stabilized 35mm prime at f/2.8. Drafting linework, room labels, dimension lines, and architectural symbols all clearly visible at the start. ` +
-        // ── Morph phase (continuous, resolves by 0:04) ──
-        `Across the first four seconds the drawing transforms continuously into a fully photorealistic interior of the same room — drafting lines dissolve into wall edges with believable depth, flat plan symbols extrude into 3D objects with proper weight, daylight floods in through window symbols as they become real glass, floor materials reveal grain and texture, furniture lifts up out of the plan into final positions with gravity-believable settle motion. The camera continues its drift uninterrupted throughout the morph. By 0:04 the transformation is fully resolved and no drafting marks, dimension lines, room labels, or technical symbols remain anywhere in frame. ` +
-        // ── Continuous walkthrough back-half ──
-        `The camera never stops — the morph drift transitions seamlessly into ${cameraHint} through the now-photoreal interior across the back six seconds. ` +
-        // ── Material micro-physics ──
-        `As the camera passes through the now-photoreal space, named material finishes read photographically: wood grain on floors, fabric weave on upholstery, stone veining on counters, metal finishes (brushed, polished, satin) each reflect light according to their named surface. ` +
-        // ── Atmosphere ──
-        `Atmosphere: fine dust motes drift through window light, slight warm haze threads the room, soft daylight bounces off pale surfaces, depth is built by parallax and lens compression. ` +
-        // ── Deceleration ──
-        `Across the final second the move eases out gracefully — smooth deceleration to a gentle resolution, never a hard stop. The camera keeps drifting at a fraction of its earlier speed all the way to the last frame. ` +
-        // ── Anchors ──
-        `Architectural geometry from the drawing — wall positions, door and window placements, room proportions, ceiling height — stays anchored exactly throughout. The geometry from the plan IS the geometry of the resolved interior. ` +
-        // ── Stability ──
-        `Stability: avoid jitter, avoid camera shake, avoid handheld micro-wobble, avoid speed-ramps, avoid flickering, avoid plastic AI sheen on materials, avoid banded skies through windows, avoid impossible reflections. ` +
-        // ── No humans ──
-        `The resolved interior is empty and unoccupied — absolutely no people, no humans, no faces, no body parts, no children, no occupants, no agents, no homeowners, no visitors, no shadows of people, no human silhouettes, no reflections of people in glass or mirrors, the entire frame is empty of all human presence throughout. ${vibeLine} ` +
-        // ── Anti-freeze cap ──
-        `Motion sustains continuously through every single frame — no freeze frames, no held frames, no static moments, no stop-and-hold, no frozen establishing shot, no frozen closing shot, no pauses on any frame at any time.`
+        `Cinematic 9:16 vertical real-estate floor-plan-to-interior reveal, 10 seconds total. ` +
+        // ── Subject + Movement ──
+        `Subject: a 2D architectural floor plan / axonometric drawing transforms continuously across the first four seconds into a photoreal interior of the same room — drafting lines dissolve into wall edges with believable depth, flat plan symbols extrude into 3D objects with proper weight, daylight floods in through window symbols as they become real glass, floor materials reveal grain and texture, furniture lifts out of the plan into final positions with gravity-believable motion; by 0:04 the transformation is fully resolved and all drafting marks, dimension lines, room labels and technical symbols are gone. Named materials catch directional light — white oak with grain figuration, honed Carrara with mineral veining, full-grain leather with patina, unlacquered brass. Architectural geometry from the plan IS the geometry of the resolved interior, anchored exactly throughout. ` +
+        // ── Background + Movement ──
+        `Background: dust motes drift through window light, faint warm haze threads the room, daylight bounces softly off pale surfaces; the resolved interior is unoccupied throughout, motion comes only from the camera and ambient light. ` +
+        // ── Camera + Movement ──
+        `Camera: the camera eases into a gentle uniform drift across the floor plan from the opening frame on a gimbal-stabilized 35mm prime at f/2.8, continues uninterrupted through the morph, transitions seamlessly into ${cameraHint} through the photoreal interior across the back six seconds, and smoothly decelerates into a magazine-grade resolution across the final second while still drifting forward. 24fps, 180° shutter. ` +
+        // ── Style ──
+        `${vibeLine}`
 
       console.log("[floor_plan_pan] kicking off SINGLE 10s Seedance morph+walkthrough")
       const result = await startSeedanceFromImage(
@@ -1453,7 +1583,7 @@ async function startKlingTransitionPrediction(
   token: string
 ): Promise<{ videoUrl?: string; predictionId?: string }> {
   const prompt = `${motionPrompt} Cinematic real-estate listing reel. Photorealistic. Smooth physically-plausible transition between the two frames.`
-  const negativePrompt = "people, humans, human figures, faces, body parts, hands, arms, legs, children, occupants, agents, realtors, homeowners, visitors, shadows of people, human silhouettes, reflections of people, human movement, invented objects, added animals, pets, geometry warping, jittery interpolation, flickering, motion artifacts, frame drops, low resolution, soft focus, blurry edges, compression artifacts."
+  const negativePrompt = KLING_NEGATIVE_PROMPT
 
   const res = await fetch(
     `${REPLICATE}/models/${MODEL_KLING}/predictions`,
@@ -1501,7 +1631,7 @@ async function animatePhotoTransition(
   token: string
 ): Promise<string> {
   const prompt = `${motionPrompt} Cinematic real-estate listing reel. Photorealistic. Smooth physically-plausible transition between the two frames.`
-  const negativePrompt = "people, humans, human figures, faces, body parts, hands, arms, legs, children, occupants, agents, realtors, homeowners, visitors, shadows of people, human silhouettes, reflections of people, human movement, invented objects, added animals, pets, geometry warping, jittery interpolation, flickering, motion artifacts, frame drops, low resolution, soft focus, blurry edges, compression artifacts."
+  const negativePrompt = KLING_NEGATIVE_PROMPT
 
   const res = await fetch(
     "https://api.replicate.com/v1/models/kwaivgi/kling-v2.5-turbo-pro/predictions",
