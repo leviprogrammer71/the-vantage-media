@@ -276,9 +276,13 @@ async function grantCredits(
   // 2. Increment balance AND extend expiry to 12 months from now.
   //    Every paid purchase resets the 12-month clock on the entire balance,
   //    so active customers effectively never see expiry.
+  //
+  //    Resilient: if the credits_expire_at column hasn't been migrated yet,
+  //    fall back to updating just the balance — the customer still gets
+  //    their credits, we'll backfill expiry later.
   const newExpiry = new Date()
   newExpiry.setMonth(newExpiry.getMonth() + 12)
-  const { error: updateErr } = await supabase
+  let { error: updateErr } = await supabase
     .from("profiles")
     .update({
       credits_balance: newBalance,
@@ -286,6 +290,19 @@ async function grantCredits(
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId)
+  if (updateErr && /credits_expire_at/.test(updateErr.message)) {
+    log("credits_expire_at column missing — falling back to balance-only update", {
+      userId,
+    })
+    const retry = await supabase
+      .from("profiles")
+      .update({
+        credits_balance: newBalance,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId)
+    updateErr = retry.error
+  }
   if (updateErr) throw new Error(`Update profile failed: ${updateErr.message}`)
 
   // 3. Log the transaction.

@@ -102,7 +102,10 @@ const LuxuryHeader = ({ variant = "bone" }: LuxuryHeaderProps) => {
                 style={{
                   color: variant === "ink" ? "var(--lux-ink)" : "var(--lux-bone)",
                   background: variant === "ink" ? "var(--lux-bone)" : "var(--lux-ink)",
-                  padding: "14px 22px",
+                  padding: "14px 26px",
+                  minHeight: 46,
+                  fontSize: 12,
+                  letterSpacing: "0.2em",
                   border: variant === "ink" ? "1px solid var(--lux-bone)" : "1px solid var(--lux-ink)",
                 }}
               >
@@ -124,7 +127,10 @@ const LuxuryHeader = ({ variant = "bone" }: LuxuryHeaderProps) => {
                 style={{
                   color: variant === "ink" ? "var(--lux-ink)" : "var(--lux-bone)",
                   background: variant === "ink" ? "var(--lux-bone)" : "var(--lux-ink)",
-                  padding: "14px 22px",
+                  padding: "14px 26px",
+                  minHeight: 46,
+                  fontSize: 12,
+                  letterSpacing: "0.2em",
                   border: variant === "ink" ? "1px solid var(--lux-bone)" : "1px solid var(--lux-ink)",
                 }}
               >

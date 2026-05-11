@@ -482,14 +482,16 @@ const Pricing = () => {
                           true, // both monthly and annual are subscriptions now
                         )}
                         disabled={loadingPlan === (isAnnual ? p.priceTypeAnnual : p.priceType)}
-                        className="w-full mt-6 inline-flex items-center justify-center gap-3 transition-colors lux-eyebrow"
+                        className="w-full mt-8 inline-flex items-center justify-center gap-3 transition-colors lux-eyebrow"
                         style={{
-                          padding: "14px 18px",
+                          padding: "18px 28px",
+                          minHeight: 56,
                           background: featured ? "var(--lux-bone)" : "var(--lux-ink)",
                           color: featured ? "var(--lux-ink)" : "var(--lux-bone)",
                           border: featured ? "1px solid var(--lux-bone)" : "1px solid var(--lux-ink)",
-                          fontSize: "0.7rem",
-                          letterSpacing: "0.18em",
+                          fontSize: 13,
+                          letterSpacing: "0.2em",
+                          fontWeight: 500,
                           opacity: loadingPlan === (isAnnual ? p.priceTypeAnnual : p.priceType) ? 0.6 : 1,
                           cursor: loadingPlan === (isAnnual ? p.priceTypeAnnual : p.priceType) ? "wait" : "pointer",
                         }}

@@ -150,7 +150,18 @@ serve(async (req) => {
       );
     }
     const priceId = price.id;
-    logStep("Found price by lookup_key", { priceId, lookup_key: priceType });
+    // Trust the Stripe price object over the client's isSubscription flag.
+    // Recurring prices REQUIRE subscription mode; one-time prices REQUIRE
+    // payment mode. Stripe rejects any mismatch.
+    const priceIsRecurring = !!price.recurring;
+    const mode = priceIsRecurring ? "subscription" : "payment";
+    logStep("Found price by lookup_key", {
+      priceId,
+      lookup_key: priceType,
+      recurring: priceIsRecurring,
+      resolved_mode: mode,
+      client_isSubscription: isSubscription,
+    });
 
     // 2. Find existing customer by email (optional — Stripe also accepts customer_email).
     let customerId: string | undefined;
@@ -171,7 +182,7 @@ serve(async (req) => {
     // 3. Create the Checkout Session.
     const origin = req.headers.get("origin") || "https://thevantage.media";
     const sessionParams: Record<string, unknown> = {
-      mode: isSubscription ? "subscription" : "payment",
+      mode,
       "line_items[0][price]": priceId,
       "line_items[0][quantity]": "1",
       success_url: `${origin}/pricing?success=true&session_id={CHECKOUT_SESSION_ID}`,
