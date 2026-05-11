@@ -31,8 +31,12 @@ const KLING_NEGATIVE_PROMPT =
   "motion blur, compression artifacts, pixelation, jittery movement, " +
   "low quality, watermark, text overlay, morphing faces, smooth plastic skin, " +
   "sliding feet, text morphing, 3D render, cartoonish, " +
+  // Anti-plastic stack (Civitai / Stable-Diffusion community-validated terms
+  // — collected from architectural + interior prompt corpora)
+  "airbrushed blur, over-smoothing, AI smoothing, doll-like finish, " +
+  "invented distortion, CGI look, stylization, plastic surface sheen, " +
   // Sky / surface defects
-  "banded skies, plastic surface sheen, impossible reflections, " +
+  "banded skies, impossible reflections, blown-out highlights, " +
   // Real-estate-specific occupancy (must stay empty)
   "people, humans, person, figures, hands, faces, body parts, " +
   "children, occupants, agents, realtors, homeowners, visitors, " +
@@ -43,51 +47,53 @@ const KLING_NEGATIVE_PROMPT =
   // Frame-level defects
   "duplicated surfaces, ghost trails, flickering, frame drops, frozen frames"
 
-// ── NAMED MATERIAL VOCABULARY ──
-// Drop one named material per visible surface in every prompt. Research shows
-// this single change addresses plastic, morph, AND consistency issues
-// simultaneously because both models get more concrete nouns to anchor on.
-//
-// Source: vidhex.ai "Make AI Skin Look Real", openart.ai "Fix Plastic Skin",
-// Claid AI material vocab, klingaio.com physical-texture anti-banding doc.
+// ── NAMED MATERIAL VOCABULARY (with light-interaction phrases) ──
+// Each entry pairs the named material with the SPECIFIC way light interacts
+// with it. Research finding: community-validated anti-plastic prompts ALWAYS
+// stack material + light-interaction as a single phrase ("warm spotlight
+// reflecting off wet paint surfaces", "raking light catching every vein of
+// the Calacatta marble"). Material name alone is half the lift; the
+// light-behavior verb is the other half. This atomic unit travels into the
+// prompt as one coherent token and addresses plastic AI sheen at the same
+// time it anchors morph-resistance.
 const NAMED_MATERIALS = {
   // Stone
-  marble_white: "honed Carrara marble with mineral veining and surface micro-pitting",
-  marble_dark: "ink-veined Calacatta with cool grey threads on a milky base",
-  travertine: "honed travertine with natural pitting and warm cream tones",
-  limestone: "honed limestone with subtle fossil texture and uniform cool grey",
-  concrete: "honed concrete with hairline seams and matte surface catching grazing light",
-  granite: "leathered granite with tactile mineral grain and matte specular response",
+  marble_white: "honed Carrara marble with mineral veining and surface micro-pitting, raking sunlight catching every vein as the camera passes",
+  marble_dark: "ink-veined Calacatta with cool grey threads on a milky base, directional light revealing the veining as one continuous pattern",
+  travertine: "honed travertine with natural pitting and warm cream tones, warm afternoon light grazing across the textured surface",
+  limestone: "honed limestone with subtle fossil texture, soft daylight pooling evenly across the uniform cool grey",
+  concrete: "honed concrete with hairline seams, grazing light reading every micro-bevel along the matte surface",
+  granite: "leathered granite with tactile mineral grain, low-angle light catching the matte specular response",
   // Wood
-  oak_white: "wide-plank white oak with grain figuration, hairline seams, matte oil finish",
-  oak_european: "European oak floor with matte oil finish and visible long-grain figuration",
-  walnut: "walnut with figured grain and an oiled finish catching directional light",
-  teak: "teak with tight straight grain and warm honeyed tone",
-  reclaimed_pine: "reclaimed pine with knots, nail holes, and a soft satin finish",
-  cedar: "vertical-grain cedar with natural color variation and matte oiled finish",
+  oak_white: "wide-plank white oak with grain figuration and a matte oil finish, warm directional light pulling focus along the grain",
+  oak_european: "European oak floor with matte oil finish, motivated daylight raking across the long-grain figuration",
+  walnut: "walnut with figured grain and an oiled finish, warm key light bringing out the depth of the figure",
+  teak: "teak with tight straight grain and warm honeyed tone, raking sunlight catching the sheen on each board",
+  reclaimed_pine: "reclaimed pine with knots and nail holes, soft side-light revealing the satin patina",
+  cedar: "vertical-grain cedar with natural color variation, warm afternoon light raking across the matte oiled finish",
   // Metal
-  brass_unlacquered: "unlacquered brass with pull-up patina and warm satin sheen",
-  brass_satin: "satin-brushed brass with directional grain catching raking light",
-  steel_brushed: "brushed stainless steel with fine directional grain",
-  iron_matte: "matte black powder-coated iron with subtle texture",
-  copper_aged: "aged copper with hand-rubbed patina and warm verdigris in seams",
+  brass_unlacquered: "unlacquered brass with pull-up patina, warm directional light catching the satin sheen on contact areas",
+  brass_satin: "satin-brushed brass with directional grain, raking light revealing the brushwork striations",
+  steel_brushed: "brushed stainless steel with fine directional grain, cool ambient light catching the anisotropic reflection",
+  iron_matte: "matte black powder-coated iron, grazing light reading the subtle surface texture",
+  copper_aged: "aged copper with hand-rubbed patina, warm side-light bringing out the verdigris in the seams",
   // Fabric
-  leather_full_grain: "full-grain leather with natural creasing, pull-up patina, subtle sheen on contact surfaces",
-  boucle_wool: "boucle cream wool weave with looped texture catching directional light",
-  linen_belgian: "Belgian linen with visible weave, natural slubs, and matte texture",
-  velvet_navy: "deep navy channel-tufted velvet with pile catching low-angle light",
-  raw_silk: "raw silk with subtle slub variation and warm dry hand",
+  leather_full_grain: "full-grain leather with natural creasing and pull-up patina, soft directional light catching the subtle sheen on contact surfaces",
+  boucle_wool: "boucle cream wool weave with looped texture, raking light bringing out every loop of the weave",
+  linen_belgian: "Belgian linen with visible weave and natural slubs, soft afternoon light catching the matte texture",
+  velvet_navy: "deep navy channel-tufted velvet, low-angle light catching the pile with deep saturated shadow in the recesses",
+  raw_silk: "raw silk with subtle slub variation, soft window light catching the warm dry hand of the weave",
   // Glass / ceramic
-  glass_clear: "low-iron clear glass with real refraction and minimal greenish tint",
-  ceramic_handmade: "hand-thrown ceramic with slight irregularity and matte stoneware glaze",
-  porcelain_satin: "satin-finish porcelain with depth of glaze and subtle reflection",
+  glass_clear: "low-iron clear glass with real refraction, light passing through with minimal greenish tint",
+  ceramic_handmade: "hand-thrown ceramic with slight irregularity, soft ambient light catching the matte stoneware glaze",
+  porcelain_satin: "satin-finish porcelain with depth of glaze, raking light catching the subtle reflection across the surface",
   // Plaster / paint
-  plaster_lime: "lime-plaster wall with hand-troweled texture and warm-white tone",
-  paint_matte: "matte chalky paint with deep light absorption and zero glare",
-  paint_satin: "satin paint with low-sheen consistent response across the surface",
+  plaster_lime: "lime-plaster wall with hand-troweled texture, soft ambient light revealing the warm-white tone",
+  paint_matte: "matte chalky paint with deep light absorption, soft fill producing zero glare across the surface",
+  paint_satin: "satin paint with low-sheen response, raking light producing a consistent gentle highlight across the wall",
   // Outdoor
-  brick_clinker: "hand-laid clinker brick with mortar joints and varied face color",
-  bluestone_pavers: "honed bluestone pavers with cool blue-grey color and matte response",
+  brick_clinker: "hand-laid clinker brick with mortar joints and varied face color, warm side-light revealing the texture of each course",
+  bluestone_pavers: "honed bluestone pavers with cool blue-grey color, grazing light catching the matte stone surface",
 } as const
 
 /** Pick a named material palette for a given context (interior / exterior / kitchen / bath). */
@@ -222,9 +228,14 @@ function buildSeedanceClipPrompt(
   const materials = materialPalette("interior").slice(0, 3).join("; ")
 
   // Beat register — single short clause, positive-only.
+  // Note on `establishing`: research-validated (top 90-day real-estate
+  // reels on IG/TikTok) that hook-second-zero MUST be in motion, never a
+  // static reveal. The brief from @leslie_grillon: "first 3 seconds
+  // determine scroll-stop." @ae.visual.kevin's 32K-like reel opens with
+  // camera already drifting. We bake this into the establishing beat.
   let beat = ""
   const b = context?.beat?.toLowerCase()
-  if (b === "establishing" || b === "opener") beat = "Wide opening framing, generous negative space. "
+  if (b === "establishing" || b === "opener") beat = "Wide opening framing, generous negative space. Shot opens mid-motion — camera already drifting forward at frame zero, foliage already breeze-driven, no static opening reveal. "
   else if (b === "hero" || b === "feature")   beat = "Hero framing on the strongest architectural feature. "
   else if (b === "detail" || b === "texture") beat = "Tight framing on a material story, raking light. "
   else if (b === "amenity")                   beat = "Wider framing on the signature outdoor or amenity space. "
@@ -274,7 +285,7 @@ function buildKlingClipPrompt(
   let beatRegister = ""
   const beat = context?.beat?.toLowerCase()
   if (beat === "establishing" || beat === "opener") {
-    beatRegister = "The opening shot of the reel — wide architectural framing, generous breathing room, cool register. "
+    beatRegister = "The opening shot of the reel — wide architectural framing, generous breathing room, cool register. Shot opens MID-MOTION (research finding: 3-second hook window on IG / TikTok demands no static opening frame) — camera already drifting forward at frame zero, foliage already moving, light already in play, never a static reveal. "
   } else if (beat === "hero" || beat === "feature") {
     beatRegister = "The hero shot — tighter framing on the strongest architectural feature, warm hero light. "
   } else if (beat === "detail" || beat === "texture") {
@@ -301,10 +312,12 @@ function buildKlingClipPrompt(
     `Cinematic 9:16 vertical real-estate reel, ${duration} seconds total. ${atmos}` +
     // Subject: room + named materials
     `Subject: the unoccupied interior holds its architectural geometry exactly — walls, windows, doors, finishes remain consistent throughout. Named materials catch directional light as the camera passes: ${materials}. ` +
-    // Background + Movement
-    `Background: fine particulates drift gently — dust motes in window light, faint warm haze building depth; the space is unoccupied, motion comes only from the camera and the ambient light. ` +
+    // Background + Movement — Higgsfield-documented atmospheric vocabulary
+    // that Kling 2.5 Turbo Pro responds to specifically (dust, soft wind,
+    // light flicker, reflections, slight camera shake — official tip).
+    `Background: dust motes drift through window light, a soft wind moves any visible fronds or sheer curtains, light flickers gently in reflections on glass and stone, faint warm haze builds depth; the space is unoccupied, motion comes only from the camera and the ambient light. ` +
     // Camera + Movement — continuous, deceleration as positive end-state
-    `Camera technique: ${motionHint} ${tempoCue}, one continuous uninterrupted move from the first frame through to the last, smoothly decelerating into a magazine-grade resolution across the final second while still drifting forward toward a settled composition that continues the camera's gentle motion. ` +
+    `Camera technique: ${motionHint} ${tempoCue}, one continuous uninterrupted move from the first frame through to the last, with slight micro camera shake characteristic of a real gimbal at this focal length, smoothly decelerating into a magazine-grade resolution across the final second while still drifting forward toward a settled composition that continues the camera's gentle motion. Start frame and end frame share identical focal length and lighting state — no perspective jumps. ` +
     // Style
     `${vibeLine}`
   )
@@ -464,7 +477,7 @@ async function pollReplicate(predictionId: string, maxAttempts = 120): Promise<s
 function vibeSuffix(vibe: string): string {
   switch (vibe) {
     case "luxury":
-      return "ARRI Alexa Mini LF, 35mm anamorphic at T2.8, 24fps, 180° shutter. Kodak Vision3 500T look with Roger Deakins natural-light treatment. Aman Resorts and Architectural Digest cover cinematography. Golden-hour warm key 3200K rakes across honed Carrara marble with mineral veining, unlacquered brass with pull-up patina, full-grain leather catching grazing light. Fine warm haze through every light shaft, pollen drift in the air, 35mm film grain present throughout including in sky regions."
+      return "ARRI Alexa Mini LF, 35mm anamorphic prime at T2.8 with practical lighting and negative fill from camera-right, 24fps, 180° shutter. Kodak Vision3 500T look with Roger Deakins natural-light treatment, occasionally Greig Fraser for high-contrast exterior cuts. Aman Resorts and Architectural Digest cover cinematography. Golden-hour warm 3200K key rakes from low and side, deep saturated shadows in the negative-fill quadrant, controlled specular highlights on honed Carrara marble veining and unlacquered brass patina. Fine warm haze through every light shaft, pollen drift in the air, 35mm film grain present throughout including in sky regions."
     case "cozy":
       return "RED Komodo with 50mm Cooke S4 anamorphic prime at T2.8, 24fps, 180° shutter. Kodak Vision3 500T look with Sofia Coppola natural-light interior treatment. Nancy Meyers warm domestic cinematography. Motivated tungsten 2700K from practical lamps, warm halations on white oak with grain figuration, soft glints on hand-thrown ceramic glaze, boucle wool weave catching directional light. Drifting steam from a mug, dust motes in evening light, 35mm film grain throughout the frame."
     case "modern":
@@ -474,7 +487,7 @@ function vibeSuffix(vibe: string): string {
     case "investment":
       return "Sony FX6 with 28mm prime at f/5.6, 24fps, 180° shutter. Kodak Vision3 250D daylight balance, neutral Rec.709 documentary cinematography. Even 5200K daylight reads true across the entire layout, every surface rendered as itself. Faint atmospheric haze for depth, 35mm film grain present uniformly including in sky regions, no creative grade applied."
     case "vacation":
-      return "ARRI Alexa Mini LF with 35mm anamorphic prime at T2, 2× squeeze, 24fps, 180° shutter. Kodak Vision3 500T with sunset shift, Vittorio Storaro saturated golden-hour treatment. Aman Resorts hospitality cinematography. Sunset 3000K rim light on tropical foliage and water, signature horizontal anamorphic flare from direct light, gentle salt haze catching the warm air, breeze visible in fronds, 35mm film grain throughout."
+      return "ARRI Alexa Mini LF with 35mm anamorphic prime at T2, 2× squeeze, practical lighting from sun, 24fps, 180° shutter. Kodak Vision3 500T with sunset shift, Vittorio Storaro saturated golden-hour treatment. Aman Resorts hospitality cinematography. Magic-hour 3000K rim light on tropical foliage and water, signature horizontal anamorphic flare from direct sun, selective focus on a foreground anchor (pool edge, stone deck), gentle salt haze catching the warm air, breeze visible in fronds, 35mm film grain throughout."
     default:
       return "Sony FX6 with 35mm prime at f/2.8, 24fps, 180° shutter. Kodak Vision3 250D look, Roger Deakins natural-light style. Architectural Digest residential cinematography. Warm 3800K diffuse light with motivated direction, softened reflections on honed stone and white oak surfaces, fine atmospheric haze for depth, 35mm film grain throughout including in sky regions."
   }
