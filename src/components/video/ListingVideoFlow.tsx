@@ -202,7 +202,7 @@ const VALID_INITIAL_CATEGORIES: ListingCategory[] = [
 export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}) {
   const { user } = useAuth();
   const { credits, refreshCredits, deductCredits } = useCredits();
-  const { isPaid } = useSubscriptionTier();
+  const { isPaid, isStarter } = useSubscriptionTier();
   // Free users always see the watermark (baked-in deal). Paid users default to off,
   // but can opt-in via the toggle on the result screen if they want the credibility.
   const [showBranding, setShowBranding] = useState<boolean>(false);
@@ -1757,20 +1757,82 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                 {showBranding ? "ON" : "OFF"}
               </button>
             </div>
+          ) : isStarter ? (
+            // STARTER pack — specific BUILDER upsell. The $39 anchor is what
+            // gets users to the watermark-free tier in one click.
+            <div
+              className="p-5 mb-6"
+              style={{
+                background: "var(--lux-ink)",
+                color: "var(--lux-bone)",
+                border: "1px solid var(--lux-ink)",
+              }}
+            >
+              <div
+                className="lux-eyebrow mb-2"
+                style={{ color: "var(--lux-champagne)", letterSpacing: "0.18em", fontSize: "0.7rem" }}
+              >
+                ✦ UNLOCK WATERMARK-FREE EXPORTS
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                <p
+                  className="lux-prose text-sm"
+                  style={{ color: "var(--lux-bone)", opacity: 0.92, maxWidth: 540 }}
+                >
+                  Your STARTER pack still carries the subtle &ldquo;AI · The Vantage&rdquo; mark.
+                  Upgrade to <strong style={{ color: "var(--lux-champagne)" }}>BUILDER</strong> at
+                  <strong style={{ color: "var(--lux-champagne)" }}> $39/month</strong> and the
+                  watermark comes off every film &mdash; this one too.
+                </p>
+                <Link
+                  to="/pricing"
+                  className="lux-eyebrow flex-shrink-0 inline-flex items-center gap-2 self-start sm:self-auto"
+                  style={{
+                    background: "var(--lux-bone)",
+                    color: "var(--lux-ink)",
+                    padding: "14px 22px",
+                    fontSize: "0.72rem",
+                    letterSpacing: "0.2em",
+                    border: "1px solid var(--lux-bone)",
+                    minHeight: 46,
+                  }}
+                >
+                  UPGRADE TO BUILDER →
+                </Link>
+              </div>
+            </div>
           ) : (
+            // True free tier — generic upgrade nudge that still names the $39 hook.
             <div
               className="p-5 mb-6"
               style={{ background: "var(--lux-parchment)", border: "1px solid var(--lux-hairline)" }}
             >
-              <div className="flex gap-3 items-start">
-                <span className="lux-eyebrow flex-shrink-0 mt-0.5" style={{ color: "var(--lux-brass)" }}>FREE TIER</span>
-                <p className="lux-prose text-sm" style={{ color: "var(--lux-ink)" }}>
-                  This film carries the subtle "AI · The Vantage" mark. Upgrade to a paid pack to remove it on every film going forward.
-                  {" "}
-                  <Link to="/pricing" style={{ color: "var(--lux-rust)", textDecoration: "underline", textUnderlineOffset: "3px" }}>
-                    See pricing →
-                  </Link>
-                </p>
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                <div>
+                  <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>
+                    FREE TIER · WATERMARK INCLUDED
+                  </div>
+                  <p className="lux-prose text-sm" style={{ color: "var(--lux-ink)", maxWidth: 540 }}>
+                    This film carries the subtle &ldquo;AI · The Vantage&rdquo; mark. Upgrade to
+                    <strong> BUILDER ($39/month)</strong> or above to remove it on every film going
+                    forward.
+                  </p>
+                </div>
+                <Link
+                  to="/pricing"
+                  className="lux-eyebrow flex-shrink-0 inline-flex items-center gap-2 self-start sm:self-auto"
+                  style={{
+                    background: "var(--lux-ink)",
+                    color: "var(--lux-bone)",
+                    padding: "14px 22px",
+                    fontSize: "0.72rem",
+                    letterSpacing: "0.2em",
+                    border: "1px solid var(--lux-ink)",
+                    minHeight: 46,
+                  }}
+                >
+                  REMOVE FROM $39 →
+                </Link>
               </div>
             </div>
           )}
