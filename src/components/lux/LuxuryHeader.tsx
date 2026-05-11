@@ -16,10 +16,10 @@ const publicNavLinks = [
 ];
 
 const authedNavLinks = [
-  { to: "/real-estate-photographers", label: "For Photographers" },
   { to: "/for-agents", label: "For Agents" },
   { to: "/gallery", label: "My Gallery" },
   { to: "/dashboard", label: "Dashboard" },
+  { to: "/profile", label: "Profile" },
   { to: "/pricing", label: "Pricing" },
 ];
 
@@ -89,9 +89,10 @@ const LuxuryHeader = ({ variant = "bone" }: LuxuryHeaderProps) => {
           {user ? (
             <>
               <Link
-                to="/credits"
+                to="/profile"
                 className="hidden md:inline-flex lux-eyebrow"
                 style={{ color: fg, opacity: 0.7 }}
+                title="View profile, credits, and sign out"
               >
                 {credits ?? 0} CREDITS
               </Link>

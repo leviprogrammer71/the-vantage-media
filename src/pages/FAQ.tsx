@@ -31,7 +31,7 @@ const groups = [
     items: [
       {
         q: "Do credits expire?",
-        a: "Never. Credits never expire on any pack. Subscription credits refresh monthly but unused credits roll over.",
+        a: "Credits are valid for 12 months from your most recent purchase. Buying more credits resets the 12-month clock for your whole balance, so active users effectively never see expiry. You can always see your current expiry date on your /profile page.",
       },
       {
         q: "What does a typical film cost in credits?",

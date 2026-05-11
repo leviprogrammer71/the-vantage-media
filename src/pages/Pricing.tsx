@@ -103,7 +103,12 @@ const Pricing = () => {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { priceType, isSubscription },
       });
-      if (error) throw error;
+      if (error) {
+        // supabase.functions.invoke returns a generic message for non-2xx responses;
+        // the real error is in the response body parsed into `data`.
+        const detail = data?.error || error.message;
+        throw new Error(detail);
+      }
       if (data?.url) {
         window.location.href = data.url;
         return;
@@ -123,7 +128,7 @@ const Pricing = () => {
         <title>The Price List — The Vantage</title>
         <meta
           name="description"
-          content="Pay-as-you-create credits for cinematic listing films. No subscriptions. No tiers. Credits never expire."
+          content="Pay-as-you-create credits for cinematic listing films. Choose monthly or annual — credits valid 12 months from purchase."
         />
         <link rel="canonical" href="https://thevantage.media/pricing" />
       </Helmet>

@@ -74,7 +74,11 @@ serve(async (req) => {
     return new Response("Server misconfigured", { status: 500 })
   }
 
-  const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" })
+  // Deno-compatible fetch transport — required in Supabase Edge Runtime.
+  // Omit apiVersion → use account default. Avoids "version not found" 500s.
+  const stripe = new Stripe(stripeKey, {
+    httpClient: Stripe.createFetchHttpClient(),
+  })
 
   // 1. Verify the signature so we know this request is really from Stripe.
   const signature = req.headers.get("stripe-signature")
@@ -269,10 +273,18 @@ async function grantCredits(
   const currentBalance = (profile as { credits_balance: number } | null)?.credits_balance ?? 0
   const newBalance = currentBalance + credits
 
-  // 2. Increment balance.
+  // 2. Increment balance AND extend expiry to 12 months from now.
+  //    Every paid purchase resets the 12-month clock on the entire balance,
+  //    so active customers effectively never see expiry.
+  const newExpiry = new Date()
+  newExpiry.setMonth(newExpiry.getMonth() + 12)
   const { error: updateErr } = await supabase
     .from("profiles")
-    .update({ credits_balance: newBalance, updated_at: new Date().toISOString() })
+    .update({
+      credits_balance: newBalance,
+      credits_expire_at: newExpiry.toISOString(),
+      updated_at: new Date().toISOString(),
+    })
     .eq("user_id", userId)
   if (updateErr) throw new Error(`Update profile failed: ${updateErr.message}`)
 

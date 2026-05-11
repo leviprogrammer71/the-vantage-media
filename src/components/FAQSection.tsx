@@ -25,7 +25,7 @@ const faqs = [
   },
   {
     q: "What happens when my credits run out?",
-    a: "Buy more whenever you need them. No subscription, no auto-renewal, no hidden charges. Credits never expire. You're in control.",
+    a: "Buy more whenever you need them. You can pick monthly or annual billing — credits are valid 12 months from purchase, and buying more resets the 12-month clock on your whole balance. You're in control.",
   },
   {
     q: "Will it actually get me more jobs?",
