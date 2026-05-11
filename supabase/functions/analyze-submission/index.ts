@@ -219,7 +219,7 @@ function buildVideoPrompt(opts: {
 
 ${move} ${pace}
 
-Every change is physically caused — water flows downward from a visible source, loose materials fall and settle on impact, shadows track the sun. Final beat: workers step back, camera settles on warm light over the finished composition.
+Every change is physically caused — water flows downward from a visible source, loose materials fall and rest on impact, shadows track the sun. Final beat: the camera continues its move at half-speed into the last second, easing out gracefully while workers complete their final gesture — never a freeze, never a hard stop, motion sustains through to the last frame.
 
 Type: ${transformationType}.${description ? ` Context: ${description}.` : ""}`.trim()
 }
