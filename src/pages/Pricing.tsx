@@ -438,6 +438,40 @@ const Pricing = () => {
                         {p.perCredit} per credit{p.savings ? ` · ${p.savings}` : ""}
                       </div>
 
+                      {/* CRO P0 #5 — Value anchor on PRO (best-value tier).
+                          The single biggest lever for AOV: visitors gravitate
+                          to STARTER ($19) without context. Showing the per-reel
+                          cost next to the cheapest competitor reframes PRO as
+                          the obvious deal — "$2.60 per reel vs $300 from a
+                          videographer." Only renders on the bestValue tier so
+                          it doesn't distract elsewhere. */}
+                      {p.bestValue && (
+                        <div
+                          className="mt-3"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "8px 12px",
+                            background: "rgba(244,239,230,0.10)",
+                            border: "1px solid rgba(244,239,230,0.22)",
+                            fontFamily: "Inter, sans-serif",
+                            fontSize: "0.75rem",
+                            lineHeight: 1.35,
+                            color: "var(--lux-bone)",
+                            letterSpacing: "0.02em",
+                          }}
+                        >
+                          <span style={{ color: "var(--lux-champagne)", fontWeight: 700 }}>
+                            $2.60 / reel
+                          </span>
+                          <span style={{ opacity: 0.55 }}>·</span>
+                          <span style={{ opacity: 0.78 }}>
+                            videographer = <s>$300+</s>
+                          </span>
+                        </div>
+                      )}
+
                       {/* Divider */}
                       <div
                         className="mt-5 mb-4"

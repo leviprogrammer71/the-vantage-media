@@ -134,7 +134,7 @@ const LuxuryHeader = ({ variant = "bone" }: LuxuryHeaderProps) => {
                   border: variant === "ink" ? "1px solid var(--lux-bone)" : "1px solid var(--lux-ink)",
                 }}
               >
-                BEGIN FREE →
+                TRY FREE →
               </Link>
             </>
           )}

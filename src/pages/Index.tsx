@@ -1205,8 +1205,8 @@ const Index = () => {
           >
             <div className="lux-container flex items-center justify-between gap-4 py-4">
               <span className="lux-eyebrow hidden sm:inline" style={{ color: "var(--lux-champagne)" }}>50 free credits · No card required</span>
-              <Link to={destination} className="lux-btn lux-btn-bone" style={{ padding: "12px 22px", fontSize: "0.7rem" }}>
-                {isLoggedIn ? "ENTER STUDIO →" : "BEGIN FREE →"}
+              <Link to={destination} className="lux-btn lux-btn-bone" style={{ padding: "14px 26px", minHeight: 46, fontSize: 12, letterSpacing: "0.2em" }}>
+                {isLoggedIn ? "ENTER STUDIO →" : "START FREE — 50 CREDITS →"}
               </Link>
             </div>
           </div>
