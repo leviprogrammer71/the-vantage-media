@@ -1,4 +1,4 @@
-import { Type, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { useEffect } from "react";
 
 /**
@@ -9,20 +9,18 @@ import { useEffect } from "react";
  * literal text. The model respects named Google fonts (Tangerine, Noto Sans),
  * which we surface as preset styles below.
  *
- * Working prompt patterns user A/B tested:
- *   - "scribble title \"0.25 acres\"" → handwritten cursive
- *   - "san-serif title \"1487 N Echo, Fresno, CA\"" → clean modern overlay
- *   - "font: Tangerine + Noto Sans, title \"1487 N Echo, Fresno, CA\""
- *       → luxury cursive heading + clean address line (BEST FOR REAL ESTATE)
+ * SCOPE — only the two prompt templates the user A/B tested with success:
+ *   - "font: Tangerine + Noto Sans, title \"…\""   → luxury (real-estate default)
+ *   - "scribble title \"…\""                        → handwritten cursive
+ *
+ * Other style words ("san-serif", "elegant serif", "neon", "stamp") were
+ * removed pending empirical validation — they may work, but until tested we
+ * don't ship them as presets.
  */
 
 export type TitleFontPreset =
   | "luxury"        // font: Tangerine + Noto Sans, — luxury real-estate default
-  | "scribble"      // handwritten cursive
-  | "sans"          // clean san-serif
-  | "serif"         // elegant serif
-  | "neon"          // glowing modern
-  | "stamp";        // bold display block
+  | "scribble";     // handwritten cursive — playful / casual
 
 export type TitleTiming = "intro" | "middle" | "outro";
 
@@ -45,61 +43,27 @@ interface TitleOverlayControlsProps {
 export const FONT_PRESET_TO_PROMPT: Record<TitleFontPreset, string> = {
   luxury: "font: Tangerine + Noto Sans,",
   scribble: "scribble",
-  sans: "san-serif",
-  serif: "elegant serif",
-  neon: "glowing neon",
-  stamp: "bold block stamp",
 };
 
-const FONT_PRESETS: { id: TitleFontPreset; label: string; subtitle: string; sample: string; sampleFont: string }[] = [
+const FONT_PRESETS: { id: TitleFontPreset; label: string; sample: string; sampleFont: string }[] = [
   {
     id: "luxury",
     label: "Luxury",
-    subtitle: "Tangerine + Noto Sans",
-    sample: "1487 N Echo",
+    sample: "Aa",
     sampleFont: "'Tangerine', 'Times New Roman', serif",
   },
   {
     id: "scribble",
     label: "Scribble",
-    subtitle: "Handwritten cursive",
-    sample: "0.25 acres",
+    sample: "Aa",
     sampleFont: "'Caveat', 'Comic Sans MS', cursive",
-  },
-  {
-    id: "sans",
-    label: "Sans",
-    subtitle: "Clean & modern",
-    sample: "1487 N Echo",
-    sampleFont: "system-ui, sans-serif",
-  },
-  {
-    id: "serif",
-    label: "Serif",
-    subtitle: "Editorial display",
-    sample: "1487 N Echo",
-    sampleFont: "Georgia, 'Times New Roman', serif",
-  },
-  {
-    id: "neon",
-    label: "Neon",
-    subtitle: "Glowing accent",
-    sample: "Just listed",
-    sampleFont: "system-ui, sans-serif",
-  },
-  {
-    id: "stamp",
-    label: "Stamp",
-    subtitle: "Bold display block",
-    sample: "FOR SALE",
-    sampleFont: "Impact, 'Arial Black', sans-serif",
   },
 ];
 
-const TIMING_OPTIONS: { id: TitleTiming; label: string; hint: string }[] = [
-  { id: "intro", label: "Intro", hint: "Appears at the opening" },
-  { id: "middle", label: "Middle", hint: "Reveals halfway through" },
-  { id: "outro", label: "Outro", hint: "Lands at the closing beat" },
+const TIMING_OPTIONS: { id: TitleTiming; label: string }[] = [
+  { id: "intro", label: "Intro" },
+  { id: "middle", label: "Middle" },
+  { id: "outro", label: "Outro" },
 ];
 
 export function TitleOverlayControls({
@@ -121,10 +85,10 @@ export function TitleOverlayControls({
   };
 
   return (
-    <div className="space-y-5">
-      {/* Toggle row */}
+    <div className="space-y-3">
+      {/* Compact toggle row */}
       <label
-        className="flex items-start gap-4 p-5 cursor-pointer border transition-colors"
+        className="flex items-center gap-3 px-4 py-3 cursor-pointer border transition-colors"
         style={{
           backgroundColor: value.enabled ? "#0E0E0C" : "#F4EFE6",
           borderColor: value.enabled ? "#0E0E0C" : "var(--lux-hairline)",
@@ -135,145 +99,99 @@ export function TitleOverlayControls({
           type="checkbox"
           checked={value.enabled}
           onChange={(e) => update({ enabled: e.target.checked })}
-          className="mt-1"
         />
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles className="h-4 w-4" style={{ color: value.enabled ? "#C9A96E" : "#8C7A52" }} />
-            <span className="lux-display text-lg leading-tight">
-              Burn title into the video
-            </span>
-          </div>
-          <p
-            className="lux-prose text-sm"
-            style={{ color: value.enabled ? "#A39E94" : "#6B6760" }}
-          >
-            Seedance 2.0 renders the text directly into the frame —
-            handwritten, luxury serif, or neon. No post-production needed.
-          </p>
-        </div>
+        <Sparkles className="h-4 w-4" style={{ color: value.enabled ? "#C9A96E" : "#8C7A52" }} />
+        <span className="lux-display text-base leading-tight flex-1">
+          Burn title into the video
+        </span>
+        <span
+          className="lux-eyebrow hidden sm:inline"
+          style={{
+            color: value.enabled ? "#A39E94" : "#8C7A52",
+            fontSize: 10,
+            letterSpacing: "0.16em",
+          }}
+        >
+          {value.enabled ? "ON" : "OFF"}
+        </span>
       </label>
 
       {value.enabled && (
         <div
-          className="space-y-6 p-5 border"
+          className="space-y-3 p-4 border"
           style={{
             backgroundColor: "#F4EFE6",
             borderColor: "var(--lux-hairline)",
           }}
         >
-          {/* Text input */}
-          <div>
-            <label className="lux-eyebrow mb-2 block" style={{ color: "var(--lux-brass)" }}>
-              <Type className="inline h-3 w-3 mr-1" />
-              Title text
-            </label>
-            <input
-              type="text"
-              value={value.text}
-              onChange={(e) => update({ text: e.target.value })}
-              placeholder={suggestedText || "e.g., 1487 N Echo, Fresno, CA"}
-              maxLength={80}
-              className="w-full px-4 py-3 border bg-bone text-ink lux-prose text-base focus:outline-none focus:border-ink"
-              style={{
-                borderColor: "var(--lux-hairline)",
-                backgroundColor: "#FFFFFF",
-              }}
-            />
-            <div
-              className="lux-eyebrow mt-1.5"
-              style={{ color: "#8C7A52", fontSize: 10 }}
-            >
-              {value.text.length}/80 · Address, price, sq ft, or any short callout
-            </div>
-          </div>
+          {/* Compact single-row text input */}
+          <input
+            type="text"
+            value={value.text}
+            onChange={(e) => update({ text: e.target.value })}
+            placeholder={suggestedText || "Address, price, or short callout"}
+            maxLength={80}
+            className="w-full px-3 py-2 border bg-bone text-ink lux-prose text-sm focus:outline-none focus:border-ink"
+            style={{
+              borderColor: "var(--lux-hairline)",
+              backgroundColor: "#FFFFFF",
+            }}
+          />
 
-          {/* Font preset grid */}
-          <div>
-            <label className="lux-eyebrow mb-3 block" style={{ color: "var(--lux-brass)" }}>
-              Style
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {FONT_PRESETS.map((preset) => {
-                const isSelected = value.fontStyle === preset.id;
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => update({ fontStyle: preset.id })}
-                    className="text-left p-3 border transition-colors"
+          {/* Style — only 2 presets, compact pill-style */}
+          <div className="grid grid-cols-2 gap-2">
+            {FONT_PRESETS.map((preset) => {
+              const isSelected = value.fontStyle === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => update({ fontStyle: preset.id })}
+                  className="flex items-center justify-center gap-2 px-3 py-2 border transition-colors"
+                  style={{
+                    backgroundColor: isSelected ? "#0E0E0C" : "#FFFFFF",
+                    borderColor: isSelected ? "#0E0E0C" : "var(--lux-hairline)",
+                    color: isSelected ? "#F4EFE6" : "#0E0E0C",
+                  }}
+                >
+                  <span
+                    className="leading-none"
                     style={{
-                      backgroundColor: isSelected ? "#0E0E0C" : "#FFFFFF",
-                      borderColor: isSelected ? "#0E0E0C" : "var(--lux-hairline)",
-                      color: isSelected ? "#F4EFE6" : "#0E0E0C",
+                      fontFamily: preset.sampleFont,
+                      fontSize: 22,
+                      color: isSelected ? "#C9A96E" : "#8C7A52",
                     }}
                   >
-                    <div
-                      className="text-xl leading-none mb-2"
-                      style={{
-                        fontFamily: preset.sampleFont,
-                        color: isSelected ? "#F4EFE6" : "#0E0E0C",
-                      }}
-                    >
-                      {preset.sample}
-                    </div>
-                    <div
-                      className="lux-display text-sm leading-tight"
-                      style={{ color: isSelected ? "#F4EFE6" : "#0E0E0C" }}
-                    >
-                      {preset.label}
-                    </div>
-                    <div
-                      className="lux-eyebrow"
-                      style={{
-                        color: isSelected ? "#C9A96E" : "#8C7A52",
-                        fontSize: 9,
-                        letterSpacing: "0.14em",
-                      }}
-                    >
-                      {preset.subtitle}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                    {preset.sample}
+                  </span>
+                  <span className="lux-display text-sm leading-tight">
+                    {preset.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Timing toggle */}
-          <div>
-            <label className="lux-eyebrow mb-3 block" style={{ color: "var(--lux-brass)" }}>
-              When does it appear?
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {TIMING_OPTIONS.map((opt) => {
-                const isSelected = value.timing === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => update({ timing: opt.id })}
-                    className="p-3 text-left border transition-colors"
-                    style={{
-                      backgroundColor: isSelected ? "#0E0E0C" : "#FFFFFF",
-                      borderColor: isSelected ? "#0E0E0C" : "var(--lux-hairline)",
-                      color: isSelected ? "#F4EFE6" : "#0E0E0C",
-                    }}
-                  >
-                    <div className="lux-display text-sm leading-tight">{opt.label}</div>
-                    <div
-                      className="lux-eyebrow"
-                      style={{
-                        color: isSelected ? "#C9A96E" : "#8C7A52",
-                        fontSize: 9,
-                        letterSpacing: "0.14em",
-                      }}
-                    >
-                      {opt.hint}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+          {/* Timing — compact tri-toggle */}
+          <div className="grid grid-cols-3 gap-2">
+            {TIMING_OPTIONS.map((opt) => {
+              const isSelected = value.timing === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => update({ timing: opt.id })}
+                  className="px-2 py-2 border transition-colors lux-display text-xs"
+                  style={{
+                    backgroundColor: isSelected ? "#0E0E0C" : "#FFFFFF",
+                    borderColor: isSelected ? "#0E0E0C" : "var(--lux-hairline)",
+                    color: isSelected ? "#F4EFE6" : "#0E0E0C",
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
