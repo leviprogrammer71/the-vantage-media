@@ -144,15 +144,41 @@ const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: str
     motionHint: "slow camera dolly pulling back wide from",
     pacing: "slow",
   },
-  // ── LATERAL (slides + parallax, both directions) ──
+  // ── LATERAL (truck slides + parallax, both directions) ──
+  // "truck" is the cinematography term Seedance responds to best (user A/B
+  // tested "slow camera truck" → clean output). Kept slide_* as aliases for
+  // backward compat with existing rotations.
+  truck_left: {
+    model: "seedance",
+    motionHint: "slow camera truck right to left across",
+    pacing: "slow",
+  },
+  truck_right: {
+    model: "seedance",
+    motionHint: "slow camera truck left to right across",
+    pacing: "slow",
+  },
   slide_left: {
     model: "seedance",
-    motionHint: "slow camera slide right to left across",
+    motionHint: "slow camera truck right to left across",
     pacing: "slow",
   },
   slide_right: {
     model: "seedance",
-    motionHint: "slow camera slide left to right across",
+    motionHint: "slow camera truck left to right across",
+    pacing: "slow",
+  },
+  // ── PAN (rotation while stationary) ──
+  // From the camera-moves diagram: PAN is rotational, not translational.
+  // The camera body stays put; only the lens swings horizontally.
+  pan_left: {
+    model: "seedance",
+    motionHint: "slow camera pan right to left across",
+    pacing: "slow",
+  },
+  pan_right: {
+    model: "seedance",
+    motionHint: "slow camera pan left to right across",
     pacing: "slow",
   },
   parallax_left: {
@@ -263,6 +289,28 @@ interface ClipContext {
    * a grade. Set this once at the bundle level and pass it into every clip.
    */
   atmosphericLock?: string
+  /**
+   * Burn-in title overlay. Seedance 2.0 can render text directly into the
+   * frame and even respect named Google fonts ("font: Tangerine + Noto Sans").
+   * Empirically validated May 11, 2026 — see screenshots in repo notes.
+   *
+   * fontStyle examples:
+   *   "scribble"                       → handwritten cursive
+   *   "san-serif"                      → clean Helvetica-style
+   *   "font: Tangerine + Noto Sans,"   → luxury cursive heading + clean
+   *                                      subheading (BEST FOR REAL ESTATE)
+   *   "elegant serif"                  → editorial display
+   *
+   * timing:
+   *   "intro"     → appears at the opening
+   *   "middle"    → appears halfway through (default)
+   *   "outro"     → appears at the closing beat
+   */
+  textOverlay?: {
+    text: string
+    fontStyle?: string
+    timing?: "intro" | "middle" | "outro"
+  }
 }
 
 function buildClipPrompt(
@@ -329,7 +377,33 @@ function buildSeedanceClipPrompt(
   const subject = context?.beat?.toLowerCase() === "amenity" ? "still house exterior"
                 : context?.beat?.toLowerCase() === "establishing" ? "still house"
                 : "the still subject"
-  return `${motionHint} ${subject}`
+  let prompt = `${motionHint} ${subject}`
+
+  // ── BURN-IN TITLE OVERLAY ──
+  // Empirically validated May 11, 2026: Seedance 2.0 renders text directly
+  // into the frame when the prompt names the typography style and the text.
+  // The model even respects named Google fonts (Tangerine, Noto Sans).
+  // Working pattern (user-tested):
+  //   "slow camera truck on still house and then font: Tangerine + Noto
+  //    Sans, title \"1487 N Echo, Fresno, CA\" in the middle halfway
+  //    through the video"
+  if (context?.textOverlay?.text) {
+    const { text, fontStyle, timing } = context.textOverlay
+    const styleClause = fontStyle?.trim() || "elegant"
+    // Default timing → middle (this is what user A/B tested as the
+    // strongest beat for property addresses).
+    const timingClause = timing === "intro"
+      ? "near the start of the video"
+      : timing === "outro"
+        ? "near the end of the video"
+        : "in the middle halfway through the video"
+    // Sanitize text — strip any double quotes the user might have typed
+    // to prevent breaking the prompt grammar.
+    const safeText = text.replace(/"/g, "'").trim()
+    prompt += ` and then ${styleClause} title "${safeText}" ${timingClause}`
+  }
+
+  return prompt
 }
 
 // ── KLING 2.5 TURBO PRO — richer (~140 words) ──
@@ -1032,6 +1106,11 @@ serve(async (req) => {
       listing,
       duration,
       credits_cost,
+      // ── BURN-IN TITLE OVERLAY ──
+      // Optional. Seedance 2.0 renders text directly into the frame.
+      // Shape: { text: string, fontStyle?: string, timing?: "intro"|"middle"|"outro" }
+      // Empirically validated May 11, 2026.
+      text_overlay,
     } = body
 
     // Validate
@@ -1072,11 +1151,17 @@ serve(async (req) => {
 
       // Kick off video generation. If it completes within wait window, return URL.
       // Otherwise return prediction_id so the client can poll without hitting edge timeout.
+      // If the caller passed text_overlay, propagate it via context so the
+      // prompt builder burns the title directly into the frame.
+      const animateContext = text_overlay?.text
+        ? { textOverlay: text_overlay as { text: string; fontStyle?: string; timing?: "intro" | "middle" | "outro" } }
+        : undefined
       const result = await startVideoGeneration(
         sourceImageUrl,
         shot_type,
         duration || 5,
-        REPLICATE_TOKEN
+        REPLICATE_TOKEN,
+        animateContext,
       )
 
       // Synchronous success
@@ -1244,21 +1329,41 @@ serve(async (req) => {
       ]
       const atmosphericLock = ATMOSPHERIC_STATES[Math.floor(Math.random() * ATMOSPHERIC_STATES.length)]
 
-      console.log(`[listing_bundle] kicking off ${photos.length} INDIVIDUAL Seedance 2.0 calls @ 5s each, atmospheric_lock="${atmosphericLock.slice(0, 60)}…"`)
+      // ── TITLE OVERLAY ROUTING ──
+      // If the caller provided text_overlay, attach it to the CLOSING clip
+      // by default so the address/price burns into the reel's resolution
+      // beat. Empirically tested winner: middle timing on the last clip
+      // gives the title maximum dwell time without competing with the hero.
+      // If the caller wants a different position, they can pass
+      // text_overlay.clipIndex (0-based) to override.
+      const overlayClipIndex = (text_overlay?.text && typeof text_overlay?.clipIndex === "number")
+        ? text_overlay.clipIndex
+        : photos.length - 1 // default: closing clip
+
+      console.log(`[listing_bundle] kicking off ${photos.length} INDIVIDUAL Seedance 2.0 calls @ 5s each, atmospheric_lock="${atmosphericLock.slice(0, 60)}…", overlayOnClip=${text_overlay?.text ? overlayClipIndex : "none"}`)
       const startResults = await Promise.all(
         photos.map(async (url, i) => {
           try {
+            const clipContext: ClipContext = {
+              index: i + 1,
+              total: photos.length,
+              beat: NARRATIVE_BEATS[i % NARRATIVE_BEATS.length],
+              atmosphericLock,
+            }
+            // Attach burn-in title to the chosen clip only.
+            if (text_overlay?.text && i === overlayClipIndex) {
+              clipContext.textOverlay = {
+                text: text_overlay.text,
+                fontStyle: text_overlay.fontStyle,
+                timing: text_overlay.timing,
+              }
+            }
             const result = await startVideoGeneration(
               url,
               shotRotation[i % shotRotation.length],
               5,
               REPLICATE_TOKEN,
-              {
-                index: i + 1,
-                total: photos.length,
-                beat: NARRATIVE_BEATS[i % NARRATIVE_BEATS.length],
-                atmosphericLock,
-              },
+              clipContext,
             )
             return { index: i, ...result }
           } catch (err) {

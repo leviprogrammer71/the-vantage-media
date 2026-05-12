@@ -5,6 +5,12 @@ import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
 import { supabase } from "@/integrations/supabase/client";
 import { InsufficientCreditsModal } from "./InsufficientCreditsModal";
 import { ShotTypePicker } from "./ShotTypePicker";
+import {
+  TitleOverlayControls,
+  buildTextOverlayPayload,
+  DEFAULT_TITLE_OVERLAY,
+  type TitleOverlayValue,
+} from "./TitleOverlayControls";
 import { VibePicker } from "./VibePicker";
 import { SettingTooltip } from "./SettingTooltip";
 import { TransformationProcessing } from "./TransformationProcessing";
@@ -223,6 +229,8 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   const [shotType, setShotType] = useState<ShotType>("push_in");
   const [effectId, setEffectId] = useState<EffectId>("none");
   const [vibe, setVibe] = useState<Vibe>("luxury");
+  // Burn-in title overlay (Seedance renders text directly into the frame).
+  const [titleOverlay, setTitleOverlay] = useState<TitleOverlayValue>(DEFAULT_TITLE_OVERLAY);
   const [stagingStyle, setStagingStyle] = useState<StagingStyle>("modern");
   const [sketchIntent, setSketchIntent] = useState<"interior" | "exterior">("interior");
 
@@ -345,6 +353,11 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
           },
           duration: category === "animate_single" ? 8 : category === "sun_to_sun" ? 12 : category === "virtual_staging" ? 8 : category === "sketch_to_real" ? 8 : category === "floor_plan_pan" ? 5 : 20,
           credits_cost: creditCost,
+          // Burn-in title overlay — only sent when enabled and non-empty.
+          // Edge function attaches the overlay to the closing clip for
+          // listing_bundle/done_for_you_reel paths; for animate_single it
+          // applies to the single clip.
+          text_overlay: buildTextOverlayPayload(titleOverlay),
         },
       });
 
@@ -1232,6 +1245,31 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                   CAMERA MOVEMENT
                 </h3>
                 <ShotTypePicker value={shotType} onChange={setShotType} />
+              </div>
+            )}
+
+            {/* ── BURN-IN TITLE OVERLAY ──
+                Seedance 2.0 renders text directly into the video frame. We
+                surface this for every category except virtual_staging (where
+                the input image transformation is the subject) and
+                sketch_to_real (similar). For listing flows we pre-fill with
+                the property address. */}
+            {category !== "virtual_staging" && category !== "sketch_to_real" && (
+              <div className="mt-8 pt-6" style={{ borderTop: "1px solid var(--lux-hairline)" }}>
+                <h3 className="lux-eyebrow mb-4" style={{ color: "var(--lux-ink)", fontWeight: 700 }}>
+                  TEXT OVERLAY ✨ NEW
+                </h3>
+                <TitleOverlayControls
+                  value={titleOverlay}
+                  onChange={setTitleOverlay}
+                  suggestedText={
+                    location.trim()
+                      ? location.trim()
+                      : realtorName.trim()
+                        ? realtorName.trim()
+                        : undefined
+                  }
+                />
               </div>
             )}
           </div>

@@ -17,9 +17,13 @@ export type ShotType =
   | "push_in"             // 🎬 Push In — cinematic forward dolly (default)
   | "pull_out"            // ◀️ Pull Out — reveal-by-retreat
   | "establishing"        // 🏞️ Wide Establishing — pull back to master shot
-  // Lateral (slides + parallax, both directions)
-  | "slide_left"          // ⬅️ Slide Left — smooth lateral track
-  | "slide_right"         // ➡️ Slide Right
+  // Lateral (truck slides + pans + parallax, both directions)
+  | "truck_left"          // ⬅️ Truck Left — body slides laterally
+  | "truck_right"         // ➡️ Truck Right
+  | "slide_left"          // alias of truck_left
+  | "slide_right"         // alias of truck_right
+  | "pan_left"            // ↩️ Pan Left — rotation while stationary
+  | "pan_right"           // ↪️ Pan Right
   | "parallax_left"       // ◀️📐 Parallax Left — depth-revealing pan
   | "parallax_right"      // 📐▶️ Parallax Right
   // Vertical (rises + tilts + pedestals)
@@ -92,6 +96,32 @@ export const SHOT_TYPES: ShotTypeConfig[] = [
     creditCost: 30,
   },
   // ── LATERAL ─────────────────────────────────────────────────────────
+  // "truck" is the canonical cinematography term — Seedance responds best
+  // to "slow camera truck" per A/B testing. slide_* IDs kept as aliases.
+  {
+    id: "truck_left",
+    label: "Truck Left",
+    tagline: "Body slides sideways",
+    description: "Camera body slides right-to-left on a precision slider — the move user-tested as Seedance's cleanest lateral.",
+    category: "lateral",
+    recommendedFor: ["interior", "kitchen", "feature", "exterior"],
+    model: "seedance-2",
+    motionPrompt: "Slow camera truck right to left across the subject — pure horizontal translation, gimbal-locked horizon, no rotation.",
+    isPremium: false,
+    creditCost: 20,
+  },
+  {
+    id: "truck_right",
+    label: "Truck Right",
+    tagline: "Body slides sideways",
+    description: "Camera body slides left-to-right on a precision slider — Seedance-clean lateral move.",
+    category: "lateral",
+    recommendedFor: ["interior", "kitchen", "feature", "exterior"],
+    model: "seedance-2",
+    motionPrompt: "Slow camera truck left to right across the subject — pure horizontal translation, gimbal-locked horizon, no rotation.",
+    isPremium: false,
+    creditCost: 20,
+  },
   {
     id: "slide_left",
     label: "Slide Left",
@@ -113,6 +143,31 @@ export const SHOT_TYPES: ShotTypeConfig[] = [
     recommendedFor: ["interior", "kitchen", "feature"],
     model: "kling-2.5-turbo",
     motionPrompt: "Camera tracks laterally left-to-right at a steady pace on a precision slider, gimbal-locked horizon, no rotation, revealing each element of the composition in sequence.",
+    isPremium: false,
+    creditCost: 20,
+  },
+  // Pan = rotation while stationary (yaw axis only — body stays put)
+  {
+    id: "pan_left",
+    label: "Pan Left",
+    tagline: "Rotate, don't slide",
+    description: "Camera rotates right-to-left while the body stays still — pure yaw rotation.",
+    category: "lateral",
+    recommendedFor: ["interior", "landscape", "establishing"],
+    model: "seedance-2",
+    motionPrompt: "Slow camera pan right to left across the subject — rotation only, body fixed in place.",
+    isPremium: false,
+    creditCost: 20,
+  },
+  {
+    id: "pan_right",
+    label: "Pan Right",
+    tagline: "Rotate, don't slide",
+    description: "Camera rotates left-to-right while the body stays still — pure yaw rotation.",
+    category: "lateral",
+    recommendedFor: ["interior", "landscape", "establishing"],
+    model: "seedance-2",
+    motionPrompt: "Slow camera pan left to right across the subject — rotation only, body fixed in place.",
     isPremium: false,
     creditCost: 20,
   },
@@ -286,9 +341,9 @@ export function shotsByCategory(): Record<ShotCategory, ShotTypeConfig[]> {
 
 export const SHOT_CATEGORY_LABELS: Record<ShotCategory, string> = {
   linear: "Forward & Back",
-  lateral: "Slides & Parallax",
+  lateral: "Trucks, Pans & Parallax",
   vertical: "Rises & Tilts",
-  rotational: "Orbits",
+  rotational: "Orbits & Roll",
   architectural: "Architectural",
 };
 
