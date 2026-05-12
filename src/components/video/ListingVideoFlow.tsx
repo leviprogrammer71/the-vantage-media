@@ -354,10 +354,14 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
           duration: category === "animate_single" ? 8 : category === "sun_to_sun" ? 12 : category === "virtual_staging" ? 8 : category === "sketch_to_real" ? 8 : category === "floor_plan_pan" ? 5 : 20,
           credits_cost: creditCost,
           // Burn-in title overlay — only sent when enabled and non-empty.
-          // Edge function attaches the overlay to the closing clip for
-          // listing_bundle/done_for_you_reel paths; for animate_single it
-          // applies to the single clip.
-          text_overlay: buildTextOverlayPayload(titleOverlay),
+          // Suppressed for done_for_you_reel (the auto-stitch adds its own
+          // title card, so a Seedance-burned title would compete with that)
+          // and for transformation categories where the morph is the subject.
+          text_overlay: (
+            category === "done_for_you_reel"
+            || category === "virtual_staging"
+            || category === "sketch_to_real"
+          ) ? undefined : buildTextOverlayPayload(titleOverlay),
         },
       });
 
@@ -1255,12 +1259,16 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             )}
 
             {/* ── BURN-IN TITLE OVERLAY ──
-                Seedance 2.0 renders text directly into the video frame. We
-                surface this for every category except virtual_staging (where
-                the input image transformation is the subject) and
-                sketch_to_real (similar). For listing flows we pre-fill with
-                the property address. */}
-            {category !== "virtual_staging" && category !== "sketch_to_real" && (
+                Seedance 2.0 renders text directly into the video frame.
+                Suppressed for:
+                  • virtual_staging — the staging transformation is the subject
+                  • sketch_to_real — same reason
+                  • done_for_you_reel — the auto-stitch already adds an
+                    address title card client-side; a burned Seedance title
+                    on top would compete with that and look messy. */}
+            {category !== "virtual_staging"
+              && category !== "sketch_to_real"
+              && category !== "done_for_you_reel" && (
               <div className="mt-8 pt-6" style={{ borderTop: "1px solid var(--lux-hairline)" }}>
                 <h3 className="lux-eyebrow mb-4" style={{ color: "var(--lux-ink)", fontWeight: 700 }}>
                   TEXT OVERLAY ✨ NEW

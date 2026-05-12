@@ -49,10 +49,32 @@ const W = 1080
 const H = 1920
 const FPS = 30
 
-/** Pick a MediaRecorder mimeType the current browser supports. */
-function pickMimeType(): { mimeType: string; ext: string } {
-  // Safari only supports mp4/h264 here
-  const candidates = [
+/** Pick a MediaRecorder mimeType the current browser supports.
+ *
+ * CRITICAL: when `withAudio` is true the mimeType MUST declare BOTH a video
+ * codec AND an audio codec — otherwise MediaRecorder throws:
+ *   "An audio track cannot be recorded: video/webm;codecs=vp8 indicates an
+ *    unsupported codec"
+ * (We hit this in production May 12, 2026 when a user tried to stitch a
+ * done-for-you reel with background music.)
+ *
+ * Strategy: probe a list of full audio+video codec strings first, fall back
+ * to video-only strings, and finally let the browser pick.
+ */
+function pickMimeType(withAudio = false): { mimeType: string; ext: string } {
+  // Combined audio+video candidates — required when streaming audio tracks
+  // into MediaRecorder. Safari uses mp4/h264+aac, Chrome/Firefox use
+  // webm/(vp9|vp8|h264)+opus.
+  const withAudioCandidates = [
+    { mimeType: "video/mp4;codecs=avc1.42E01E,mp4a.40.2", ext: "mp4" }, // h264 + AAC-LC
+    { mimeType: "video/mp4;codecs=h264,aac", ext: "mp4" },
+    { mimeType: "video/webm;codecs=h264,opus", ext: "webm" },
+    { mimeType: "video/webm;codecs=vp9,opus", ext: "webm" },
+    { mimeType: "video/webm;codecs=vp8,opus", ext: "webm" },
+    { mimeType: "video/webm;codecs=opus", ext: "webm" }, // browser picks video codec
+  ]
+  // Video-only candidates — used when the recording is silent.
+  const videoOnlyCandidates = [
     { mimeType: "video/mp4;codecs=avc1.42E01E", ext: "mp4" },
     { mimeType: "video/mp4;codecs=h264", ext: "mp4" },
     { mimeType: "video/mp4", ext: "mp4" },
@@ -61,10 +83,11 @@ function pickMimeType(): { mimeType: string; ext: string } {
     { mimeType: "video/webm;codecs=vp8", ext: "webm" },
     { mimeType: "video/webm", ext: "webm" },
   ]
+  const candidates = withAudio ? withAudioCandidates : videoOnlyCandidates
   for (const c of candidates) {
     if ((window as any).MediaRecorder?.isTypeSupported?.(c.mimeType)) return c
   }
-  // Fallback — let the browser pick
+  // Fallback — let the browser pick. Safer than guessing.
   return { mimeType: "", ext: "webm" }
 }
 
@@ -577,16 +600,6 @@ export async function stitchClipsClientSide(
   //    track mixed in via WebAudio so the chosen song is permanently
   //    baked into the output MP4.
   const videoStream = (canvas as any).captureStream(FPS) as MediaStream
-  const { mimeType, ext } = pickMimeType()
-  // Bitrate: 12 Mbps for 1080×1920 vertical. The previous 6 Mbps was the
-  // 1080p horizontal target and looked noticeably soft when applied to a
-  // taller canvas — the bits-per-pixel ratio at 6 Mbps for a 9:16 1080p
-  // frame is below YouTube/Reels minimum quality. 12 Mbps puts us on par
-  // with what Reels recompresses to anyway, so we lose less in the upload
-  // re-encode.
-  const recorderOpts: MediaRecorderOptions = mimeType
-    ? { mimeType, videoBitsPerSecond: 12_000_000, audioBitsPerSecond: 192_000 }
-    : { videoBitsPerSecond: 12_000_000, audioBitsPerSecond: 192_000 }
 
   // Audio mixdown (optional). When opts.audioUrl is set, we fetch the file,
   // decode it via WebAudio, route it through a MediaStreamDestination, and
@@ -596,6 +609,7 @@ export async function stitchClipsClientSide(
   let audioCtx: AudioContext | null = null
   let audioSource: AudioBufferSourceNode | null = null
   let audioGainNode: GainNode | null = null
+  let hasAudio = false
   const stream = await (async (): Promise<MediaStream> => {
     if (!opts.audioUrl) return videoStream
     try {
@@ -625,6 +639,7 @@ export async function stitchClipsClientSide(
       ])
       // Fire the audio source the same instant recording starts.
       audioSource.start(0)
+      hasAudio = true
       return merged
     } catch (err) {
       console.warn("[stitch] audio mixdown failed, recording silent video:", err)
@@ -632,7 +647,48 @@ export async function stitchClipsClientSide(
     }
   })()
 
-  const recorder = new MediaRecorder(stream, recorderOpts)
+  // CRITICAL: pick the mimeType AFTER we know whether the stream has an audio
+  // track. Picking a video-only mimeType (e.g. "video/webm;codecs=vp8") when
+  // the stream carries audio causes MediaRecorder to throw at .start():
+  //   "An audio track cannot be recorded: video/webm;codecs=vp8 indicates an
+  //    unsupported codec"
+  let { mimeType, ext } = pickMimeType(hasAudio)
+  // Bitrate: 12 Mbps for 1080×1920 vertical. The previous 6 Mbps was the
+  // 1080p horizontal target and looked noticeably soft when applied to a
+  // taller canvas — the bits-per-pixel ratio at 6 Mbps for a 9:16 1080p
+  // frame is below YouTube/Reels minimum quality. 12 Mbps puts us on par
+  // with what Reels recompresses to anyway, so we lose less in the upload
+  // re-encode.
+  const recorderOpts: MediaRecorderOptions = mimeType
+    ? { mimeType, videoBitsPerSecond: 12_000_000, audioBitsPerSecond: 192_000 }
+    : { videoBitsPerSecond: 12_000_000, audioBitsPerSecond: 192_000 }
+
+  // Defensive recorder construction. If MediaRecorder still rejects the
+  // mimeType we picked (some browsers report isTypeSupported as true but
+  // throw at construction time), fall back to a silent video-only recording
+  // so the user at least gets the visual reel rather than nothing.
+  let recorder: MediaRecorder
+  try {
+    recorder = new MediaRecorder(stream, recorderOpts)
+  } catch (err) {
+    console.warn("[stitch] MediaRecorder rejected combined audio+video, falling back to silent recording:", err)
+    // Tear down audio so we don't leak the AudioContext
+    try { audioSource?.stop() } catch { /* ignore */ }
+    try { await audioCtx?.close() } catch { /* ignore */ }
+    audioCtx = null
+    audioSource = null
+    audioGainNode = null
+    hasAudio = false
+    const fallback = pickMimeType(false)
+    mimeType = fallback.mimeType
+    ext = fallback.ext
+    recorder = new MediaRecorder(
+      videoStream,
+      fallback.mimeType
+        ? { mimeType: fallback.mimeType, videoBitsPerSecond: 12_000_000 }
+        : { videoBitsPerSecond: 12_000_000 },
+    )
+  }
   const chunks: Blob[] = []
   recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data) }
   const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve() })
