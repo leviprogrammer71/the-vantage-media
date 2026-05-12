@@ -890,11 +890,56 @@ const Gallery = () => {
     toast({ title: "Link copied", description: "Share it anywhere." });
   };
 
+  // REFRESH LINK button on broken video tiles.
+  // Three-stage recovery:
+  //   1. If we have a permanent storage path, re-sign it (cheapest path —
+  //      handles the "signed URL just expired" case).
+  //   2. Otherwise, invoke the edge function in `backfill` mode to download
+  //      the original Replicate URL (if still alive) into permanent storage
+  //      and patch the submission row.
+  //   3. If both fail, show the user a clear "expired — regenerate" toast
+  //      so they aren't stuck staring at a black tile.
   const refreshVideoUrl = useCallback(async (s: Submission) => {
-    const newUrl = s.output_video_path
-      ? await signPath(s.output_video_path)
-      : s.output_video_url ?? null;
-    if (newUrl) setSignedUrls((prev) => ({ ...prev, [`video-${s.id}`]: newUrl }));
+    // Stage 1 — re-sign existing storage path
+    if (s.output_video_path) {
+      const fresh = await signPath(s.output_video_path);
+      if (fresh) {
+        setSignedUrls((prev) => ({ ...prev, [`video-${s.id}`]: fresh }));
+        return;
+      }
+    }
+
+    // Stage 2 — backfill from the original Replicate URL
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "generate-listing-video",
+        { body: { mode: "backfill", submission_id: s.id } },
+      );
+      if (error) throw error;
+      const newPath = (data as any)?.output_video_path
+        ?? (Array.isArray((data as any)?.output_clip_paths) ? (data as any).output_clip_paths[0] : null);
+      if (newPath) {
+        const fresh = await signPath(newPath);
+        if (fresh) {
+          setSignedUrls((prev) => ({ ...prev, [`video-${s.id}`]: fresh }));
+          // Update the in-memory submission so future renders use the new path
+          setSubmissions((prev) => prev.map((row) =>
+            row.id === s.id ? { ...row, output_video_path: newPath } : row,
+          ));
+          toast({ title: "Recovered", description: "Your film is back. We re-saved it permanently." });
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn(`[gallery] manual backfill failed for ${s.id}:`, err);
+    }
+
+    // Stage 3 — truly expired. Let the user know they can regenerate.
+    toast({
+      title: "This film has expired",
+      description: "The original source is no longer available. Regenerate from your photos to get a fresh permanent copy.",
+      variant: "destructive",
+    });
   }, []);
 
   // Counts and filtering
