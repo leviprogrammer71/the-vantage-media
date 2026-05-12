@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/hooks/useCredits";
 import { supabase } from "@/integrations/supabase/client";
+import { withFreshAuth } from "@/lib/auth-refresh";
 import { InsufficientCreditsModal } from "./InsufficientCreditsModal";
 import { SettingTooltip } from "./SettingTooltip";
 import { ShotTypePicker } from "./ShotTypePicker";
@@ -205,18 +206,19 @@ export function TransformationFlow({ transformationCategory }: { transformationC
     const fileExt = file.name.split(".").pop();
     const filePath = `${user!.id}/transform-${prefix}-${timestamp}.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("property-photos")
-      .upload(filePath, file);
+    // Auto-refresh JWT before upload; retry once on "exp claim" expiry.
+    return await withFreshAuth(async () => {
+      const { error: uploadError } = await supabase.storage
+        .from("property-photos")
+        .upload(filePath, file);
+      if (uploadError) throw new Error(uploadError.message);
 
-    if (uploadError) throw new Error(uploadError.message);
-
-    const { data: urlData, error: signedUrlError } = await supabase.storage
-      .from("property-photos")
-      .createSignedUrl(filePath, 86400);
-
-    if (signedUrlError || !urlData?.signedUrl) throw new Error("Failed to get image URL");
-    return urlData.signedUrl;
+      const { data: urlData, error: signedUrlError } = await supabase.storage
+        .from("property-photos")
+        .createSignedUrl(filePath, 86400);
+      if (signedUrlError || !urlData?.signedUrl) throw new Error("Failed to get image URL");
+      return urlData.signedUrl;
+    });
   };
 
   const uploadToSubmissionsBucket = async (file: File, subPath: string): Promise<string> => {

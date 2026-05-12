@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/hooks/useCredits";
 import { supabase } from "@/integrations/supabase/client";
+import { withFreshAuth } from "@/lib/auth-refresh";
 import { InsufficientCreditsModal } from "./InsufficientCreditsModal";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -90,17 +91,22 @@ export function ListingVideoForm() {
       const fileExt = file.name.split(".").pop();
       const filePath = `${user!.id}/listing-${timestamp}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("property-photos")
-        .upload(filePath, file);
-      if (uploadError) throw new Error(uploadError.message);
+      // Refresh JWT before upload to avoid "exp claim timestamp check failed"
+      // when users idle past the access-token TTL.
+      const signedUrl = await withFreshAuth(async () => {
+        const { error: uploadError } = await supabase.storage
+          .from("property-photos")
+          .upload(filePath, file);
+        if (uploadError) throw new Error(uploadError.message);
 
-      const { data: urlData, error: signedUrlError } = await supabase.storage
-        .from("property-photos")
-        .createSignedUrl(filePath, 86400);
-      if (signedUrlError || !urlData?.signedUrl) throw new Error("Failed to get image URL");
+        const { data: urlData, error: signedUrlError } = await supabase.storage
+          .from("property-photos")
+          .createSignedUrl(filePath, 86400);
+        if (signedUrlError || !urlData?.signedUrl) throw new Error("Failed to get image URL");
+        return urlData.signedUrl;
+      });
 
-      setImageUrl(urlData.signedUrl);
+      setImageUrl(signedUrl);
       toast.success("Photo uploaded");
     } catch (err) {
       toast.error("Failed to upload photo");

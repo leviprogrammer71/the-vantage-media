@@ -96,8 +96,13 @@ const LuxuryHeader = ({ variant = "bone" }: LuxuryHeaderProps) => {
               >
                 {credits ?? 0} CREDITS
               </Link>
+              {/* Logged-in NEW FILM goes to the category picker so users can
+                  see ALL 7 films, not just Done-For-You. Marketing CTAs on
+                  unauthenticated landing pages still deep-link straight to
+                  DFY — that's the conversion funnel. But once you're in the
+                  product, every film should be one click away. */}
               <Link
-                to="/video?mode=listing&category=done_for_you_reel"
+                to="/video?mode=listing"
                 className="lux-eyebrow inline-flex items-center gap-3"
                 style={{
                   color: variant === "ink" ? "var(--lux-ink)" : "var(--lux-bone)",

@@ -15,6 +15,7 @@ import { VibePicker } from "./VibePicker";
 import { SettingTooltip } from "./SettingTooltip";
 import { TransformationProcessing } from "./TransformationProcessing";
 import { normalizeImageForUpload } from "@/lib/normalize-image";
+import { withFreshAuth } from "@/lib/auth-refresh";
 import { stitchClipsClientSide, downloadBlobOrUrl } from "@/lib/client-stitch";
 import { SHOT_TYPES, STAGING_STYLES } from "@/lib/shot-types";
 import { VIBES } from "@/lib/vibes";
@@ -266,18 +267,22 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     const fileExt = normalized.name.split(".").pop();
     const filePath = `${user!.id}/listing-${timestamp}.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("property-photos")
-      .upload(filePath, normalized);
+    // Wrap with withFreshAuth — refreshes the access token if it's about to
+    // expire, and retries once on the specific "exp claim timestamp check
+    // failed" JWT error that fires when a user idles past 1h before clicking
+    // upload.
+    return await withFreshAuth(async () => {
+      const { error: uploadError } = await supabase.storage
+        .from("property-photos")
+        .upload(filePath, normalized);
+      if (uploadError) throw uploadError;
 
-    if (uploadError) throw uploadError;
-
-    const { data: urlData, error: signedUrlError } = await supabase.storage
-      .from("property-photos")
-      .createSignedUrl(filePath, 86400);
-
-    if (signedUrlError || !urlData?.signedUrl) throw signedUrlError;
-    return { url: urlData.signedUrl, path: filePath };
+      const { data: urlData, error: signedUrlError } = await supabase.storage
+        .from("property-photos")
+        .createSignedUrl(filePath, 86400);
+      if (signedUrlError || !urlData?.signedUrl) throw signedUrlError;
+      return { url: urlData.signedUrl, path: filePath };
+    });
   };
 
   const handlePhotoSelect = async (files: FileList | null) => {
@@ -731,12 +736,28 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     return (
       <div className="lux-section lux-bg-bone">
         <div className="lux-container max-w-2xl">
+          {/* ── DISCOVERABILITY: surface the other 6 films ──
+              Top-level CTAs deep-link straight into Done-For-You Reel, which
+              hid the other 6 categories behind a vague "← Back" label. This
+              banner replaces that with a clear invitation to browse the full
+              menu so users know the breadth of the product. */}
           <button
             onClick={() => setStep(1)}
-            className="lux-eyebrow mb-8"
-            style={{ color: "var(--lux-ash)", background: "none", border: "none", cursor: "pointer" }}
+            className="mb-8 inline-flex items-center gap-2 px-4 py-2.5 border transition-colors"
+            style={{
+              color: "var(--lux-ink)",
+              background: "var(--lux-cream)",
+              borderColor: "var(--lux-hairline-strong)",
+              cursor: "pointer",
+              fontSize: "0.78rem",
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              fontFamily: "var(--lux-display-font, inherit)",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--lux-ink)"; e.currentTarget.style.color = "var(--lux-bone)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--lux-cream)"; e.currentTarget.style.color = "var(--lux-ink)"; }}
           >
-            ← Back
+            ← Browse all 7 films
           </button>
 
           <div className="mb-12">
@@ -801,12 +822,28 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     return (
       <div className="lux-section lux-bg-bone">
         <div className="lux-container max-w-3xl">
+          {/* ── DISCOVERABILITY: surface the other 6 films ──
+              Top-level CTAs deep-link straight into Done-For-You Reel, which
+              hid the other 6 categories behind a vague "← Back" label. This
+              banner replaces that with a clear invitation to browse the full
+              menu so users know the breadth of the product. */}
           <button
             onClick={() => setStep(1)}
-            className="lux-eyebrow mb-8"
-            style={{ color: "var(--lux-ash)", background: "none", border: "none", cursor: "pointer" }}
+            className="mb-8 inline-flex items-center gap-2 px-4 py-2.5 border transition-colors"
+            style={{
+              color: "var(--lux-ink)",
+              background: "var(--lux-cream)",
+              borderColor: "var(--lux-hairline-strong)",
+              cursor: "pointer",
+              fontSize: "0.78rem",
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              fontFamily: "var(--lux-display-font, inherit)",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--lux-ink)"; e.currentTarget.style.color = "var(--lux-bone)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--lux-cream)"; e.currentTarget.style.color = "var(--lux-ink)"; }}
           >
-            ← Back
+            ← Browse all 7 films
           </button>
 
           <div className="mb-12">
@@ -837,12 +874,28 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     return (
       <div className="lux-section lux-bg-bone">
         <div className="lux-container max-w-2xl">
+          {/* ── DISCOVERABILITY: surface the other 6 films ──
+              Top-level CTAs deep-link straight into Done-For-You Reel, which
+              hid the other 6 categories behind a vague "← Back" label. This
+              banner replaces that with a clear invitation to browse the full
+              menu so users know the breadth of the product. */}
           <button
             onClick={() => setStep(1)}
-            className="lux-eyebrow mb-8"
-            style={{ color: "var(--lux-ash)", background: "none", border: "none", cursor: "pointer" }}
+            className="mb-8 inline-flex items-center gap-2 px-4 py-2.5 border transition-colors"
+            style={{
+              color: "var(--lux-ink)",
+              background: "var(--lux-cream)",
+              borderColor: "var(--lux-hairline-strong)",
+              cursor: "pointer",
+              fontSize: "0.78rem",
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              fontFamily: "var(--lux-display-font, inherit)",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--lux-ink)"; e.currentTarget.style.color = "var(--lux-bone)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--lux-cream)"; e.currentTarget.style.color = "var(--lux-ink)"; }}
           >
-            ← Back
+            ← Browse all 7 films
           </button>
 
           <div className="mb-12">
@@ -905,12 +958,28 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     return (
       <div className="lux-section lux-bg-bone">
         <div className="lux-container max-w-3xl">
+          {/* ── DISCOVERABILITY: surface the other 6 films ──
+              Top-level CTAs deep-link straight into Done-For-You Reel, which
+              hid the other 6 categories behind a vague "← Back" label. This
+              banner replaces that with a clear invitation to browse the full
+              menu so users know the breadth of the product. */}
           <button
             onClick={() => setStep(1)}
-            className="lux-eyebrow mb-8"
-            style={{ color: "var(--lux-ash)", background: "none", border: "none", cursor: "pointer" }}
+            className="mb-8 inline-flex items-center gap-2 px-4 py-2.5 border transition-colors"
+            style={{
+              color: "var(--lux-ink)",
+              background: "var(--lux-cream)",
+              borderColor: "var(--lux-hairline-strong)",
+              cursor: "pointer",
+              fontSize: "0.78rem",
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              fontFamily: "var(--lux-display-font, inherit)",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--lux-ink)"; e.currentTarget.style.color = "var(--lux-bone)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--lux-cream)"; e.currentTarget.style.color = "var(--lux-ink)"; }}
           >
-            ← Back
+            ← Browse all 7 films
           </button>
           <div className="mb-10">
             <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-rust)" }}>
@@ -1004,12 +1073,28 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     return (
       <div className="lux-section lux-bg-bone">
         <div className="lux-container max-w-2xl">
+          {/* ── DISCOVERABILITY: surface the other 6 films ──
+              Top-level CTAs deep-link straight into Done-For-You Reel, which
+              hid the other 6 categories behind a vague "← Back" label. This
+              banner replaces that with a clear invitation to browse the full
+              menu so users know the breadth of the product. */}
           <button
             onClick={() => setStep(1)}
-            className="lux-eyebrow mb-8"
-            style={{ color: "var(--lux-ash)", background: "none", border: "none", cursor: "pointer" }}
+            className="mb-8 inline-flex items-center gap-2 px-4 py-2.5 border transition-colors"
+            style={{
+              color: "var(--lux-ink)",
+              background: "var(--lux-cream)",
+              borderColor: "var(--lux-hairline-strong)",
+              cursor: "pointer",
+              fontSize: "0.78rem",
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              fontFamily: "var(--lux-display-font, inherit)",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--lux-ink)"; e.currentTarget.style.color = "var(--lux-bone)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--lux-cream)"; e.currentTarget.style.color = "var(--lux-ink)"; }}
           >
-            ← Back
+            ← Browse all 7 films
           </button>
 
           <div className="mb-12">

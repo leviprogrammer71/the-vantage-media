@@ -653,15 +653,20 @@ export async function stitchClipsClientSide(
   //   "An audio track cannot be recorded: video/webm;codecs=vp8 indicates an
   //    unsupported codec"
   let { mimeType, ext } = pickMimeType(hasAudio)
-  // Bitrate: 12 Mbps for 1080×1920 vertical. The previous 6 Mbps was the
-  // 1080p horizontal target and looked noticeably soft when applied to a
-  // taller canvas — the bits-per-pixel ratio at 6 Mbps for a 9:16 1080p
-  // frame is below YouTube/Reels minimum quality. 12 Mbps puts us on par
-  // with what Reels recompresses to anyway, so we lose less in the upload
-  // re-encode.
+  // Bitrate: 24 Mbps for 1080×1920 vertical @ 30 FPS. Earlier values:
+  //   6 Mbps  → readable but visibly soft, especially in foliage / windows
+  //   12 Mbps → still soft after Reels/TikTok re-encode (they re-encode at
+  //             ~4-8 Mbps, so we have to ship something with enough quality
+  //             headroom to survive the second encode pass)
+  //   24 Mbps → magazine-grade output; survives Reels recompression at
+  //             roughly the same perceived quality as the source.
+  // 1080×1920 @ 30fps has 1.78× more pixels than 1080×1080 — bitrate has
+  // to scale with pixel count, not fall back to landscape defaults.
+  // For VP8 fallback (some Firefox builds), 24 Mbps is necessary just to
+  // match VP9 at 14-16 Mbps.
   const recorderOpts: MediaRecorderOptions = mimeType
-    ? { mimeType, videoBitsPerSecond: 12_000_000, audioBitsPerSecond: 192_000 }
-    : { videoBitsPerSecond: 12_000_000, audioBitsPerSecond: 192_000 }
+    ? { mimeType, videoBitsPerSecond: 24_000_000, audioBitsPerSecond: 256_000 }
+    : { videoBitsPerSecond: 24_000_000, audioBitsPerSecond: 256_000 }
 
   // Defensive recorder construction. If MediaRecorder still rejects the
   // mimeType we picked (some browsers report isTypeSupported as true but
@@ -685,8 +690,8 @@ export async function stitchClipsClientSide(
     recorder = new MediaRecorder(
       videoStream,
       fallback.mimeType
-        ? { mimeType: fallback.mimeType, videoBitsPerSecond: 12_000_000 }
-        : { videoBitsPerSecond: 12_000_000 },
+        ? { mimeType: fallback.mimeType, videoBitsPerSecond: 24_000_000 }
+        : { videoBitsPerSecond: 24_000_000 },
     )
   }
   const chunks: Blob[] = []
@@ -738,9 +743,13 @@ export async function stitchClipsClientSide(
         blend = Math.min(1, (t - starts[next]) / transitionSec)
       }
 
-      // Lazily start the next clip the first frame we cross into its start.
-      if (next >= 0 && !playState[next] && t >= starts[next] - 0.05) {
-        videos[next].currentTime = 0
+      // Lazily start the next clip well BEFORE we need it on-screen so the
+      // decoder has time to present the first frame. 0.05s was too tight —
+      // on slower devices the canvas read a black frame during the first
+      // ~50ms of the crossfade. 0.3s gives ~9 frames of warmup at 30 FPS.
+      // We don't reset currentTime — the preloaded video is already at 0
+      // and a setter call forces a seek that delays first-frame delivery.
+      if (next >= 0 && !playState[next] && t >= starts[next] - 0.3) {
         videos[next].play().catch(() => {})
         playState[next] = true
       }
