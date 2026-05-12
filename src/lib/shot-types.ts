@@ -22,14 +22,17 @@ export type ShotType =
   | "slide_right"         // ➡️ Slide Right
   | "parallax_left"       // ◀️📐 Parallax Left — depth-revealing pan
   | "parallax_right"      // 📐▶️ Parallax Right
-  // Vertical (rises + tilts)
+  // Vertical (rises + tilts + pedestals)
   | "reveal_rise"         // ⬆️ Rise & Reveal — crane up
-  | "tilt_up"             // ⤴️ Tilt Up — ceiling / sky reveal
-  | "tilt_down"           // ⤵️ Tilt Down — top-down sweep
-  // Rotational (orbits, ground + drone)
+  | "tilt_up"             // ⤴️ Tilt Up — ceiling / sky reveal (rotation only)
+  | "tilt_down"           // ⤵️ Tilt Down — top-down sweep (rotation only)
+  | "pedestal_up"         // 🛗 Pedestal Up — vertical camera translation (no tilt)
+  | "pedestal_down"       // 🛗 Pedestal Down — vertical descent (no tilt)
+  // Rotational (orbits, ground + drone + roll)
   | "orbit_left"          // ↺ Orbit Left — ground-level subject orbit
   | "orbit_right"         // ↻ Orbit Right
   | "drone_orbit"         // 🛸 Aerial Orbit — drone-style elevated arc
+  | "camera_roll"         // 🌀 Camera Roll — rotation around lens axis
   // Architectural (precision slider)
   | "architectural";      // 🏛️ Architectural Slider — perfectly level lateral
 
@@ -174,6 +177,30 @@ export const SHOT_TYPES: ShotTypeConfig[] = [
     isPremium: false,
     creditCost: 20,
   },
+  {
+    id: "pedestal_up",
+    label: "Pedestal Up",
+    tagline: "Lift, don't tilt",
+    description: "Camera lifts straight up without rotating — pure vertical translation. User-tested clean output.",
+    category: "vertical",
+    recommendedFor: ["exterior", "feature", "double-height"],
+    model: "seedance-2",
+    motionPrompt: "Slow camera pedestal up on the subject — pure vertical translation, no rotation, no tilt.",
+    isPremium: false,
+    creditCost: 25,
+  },
+  {
+    id: "pedestal_down",
+    label: "Pedestal Down",
+    tagline: "Lower, don't tilt",
+    description: "Camera descends straight down without rotating — pure vertical translation downward.",
+    category: "vertical",
+    recommendedFor: ["pool", "exterior", "amenity"],
+    model: "seedance-2",
+    motionPrompt: "Slow camera pedestal down on the subject — pure vertical translation downward, no rotation, no tilt.",
+    isPremium: false,
+    creditCost: 25,
+  },
   // ── ROTATIONAL ──────────────────────────────────────────────────────
   {
     id: "orbit_left",
@@ -207,9 +234,21 @@ export const SHOT_TYPES: ShotTypeConfig[] = [
     category: "rotational",
     recommendedFor: ["exterior", "landscape", "property"],
     model: "seedance-2",
-    motionPrompt: "Camera arcs uniformly 60 degrees clockwise around the subject at a steady elevated altitude, drone-style gimbal locked on the subject centroid, smooth circular path with no radius drift.",
+    motionPrompt: "Slow aerial drone orbit around the subject.",
     isPremium: true,
     creditCost: 35,
+  },
+  {
+    id: "camera_roll",
+    label: "Camera Roll",
+    tagline: "Cinematic rotation",
+    description: "Subtle rotation around the lens axis — a signature cinematic flourish. User-tested clean output.",
+    category: "rotational",
+    recommendedFor: ["exterior", "hero", "feature"],
+    model: "seedance-2",
+    motionPrompt: "Slow camera roll of the subject — gentle rotation around the lens axis.",
+    isPremium: false,
+    creditCost: 25,
   },
   // ── ARCHITECTURAL ───────────────────────────────────────────────────
   {

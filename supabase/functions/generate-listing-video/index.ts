@@ -106,113 +106,124 @@ function materialPalette(context: "interior" | "exterior" | "kitchen" | "bath" |
   return [m.oak_white, m.marble_white, m.brass_unlacquered, m.linen_belgian, m.glass_clear]
 }
 
-// ── SHOT LIBRARY (research-validated, 13 shot types) ──
-// Coverage matches src/lib/shot-types.ts and the user-requested set from
-// Rendy.io + StagerGo + @maxfernandez.mp4 viral spec-ad comment data.
-// Grammar: Seedance-canonical (positive-only, degree adverbs, concrete
-// trajectory verbs).
+// ── SHOT LIBRARY (empirically-validated minimal Seedance prompts) ──
+// User-verified May 11, 2026: simple "slow camera [movement] of still
+// [subject]" prompts produce clean Seedance output; rich 150-word prompts
+// produce glitches. Pattern proven on three test renders:
+//   "slow camera roll of still house"      → clean
+//   "slow camera dolly as if cameraman     → clean
+//    stepping towards still house"
+//   "slow camera pedestal on still house"  → clean
+//
+// motionHint for Seedance is the SHORT phrase that gets dropped into
+// buildSeedanceClipPrompt as `${motionHint} of still subject`.
+//
+// motionHint for Kling stays richer — Kling does benefit from longer prompts
+// (fal/Higgsfield-validated up to 2,500 chars) and pairs with a separate
+// negative_prompt API field.
 const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: string; pacing: "slow" | "medium" }> = {
-  // ── LINEAR ──
+  // ── LINEAR (forward / reverse / wide reveal) ──
   push_in: {
-    model: "kling",
-    motionHint:
-      "The camera dollies steadily forward along the subject's centerline at a uniform walking pace — 35mm spherical prime at f/2.8, gimbal-locked horizon throughout. Subject anchored on the lower-third intersection. 24fps with a 180° shutter.",
+    model: "seedance",
+    motionHint: "slow camera dolly as if cameraman stepping towards",
     pacing: "slow",
   },
-  // Legacy alias — accept old "slow_push" as push_in
+  // Legacy alias
   slow_push: {
-    model: "kling",
-    motionHint:
-      "The camera dollies steadily forward along the subject's centerline at a uniform walking pace — 35mm spherical prime at f/2.8, gimbal-locked horizon throughout. Subject anchored on the lower-third intersection. 24fps with a 180° shutter.",
+    model: "seedance",
+    motionHint: "slow camera dolly as if cameraman stepping towards",
     pacing: "slow",
   },
   pull_out: {
-    model: "kling",
-    motionHint:
-      "The camera pulls back steadily along the subject's centerline at a uniform retreat pace — 35mm prime at f/2.8, gimbal-locked horizon. The frame opens up as the camera retreats, revealing wider context. 24fps with a 180° shutter.",
+    model: "seedance",
+    motionHint: "slow camera dolly as if cameraman stepping backwards from",
     pacing: "slow",
   },
   establishing: {
     model: "seedance",
-    motionHint:
-      "The camera pulls back uniformly from a tight feature detail to a wide establishing frame — 24mm at f/4, gimbal-stabilized, steady retreat speed. The wider scene reveals as the camera retreats. 24fps with a 180° shutter.",
+    motionHint: "slow camera dolly pulling back wide from",
     pacing: "slow",
   },
-  // ── LATERAL ──
+  // ── LATERAL (slides + parallax, both directions) ──
   slide_left: {
-    model: "kling",
-    motionHint:
-      "The camera tracks laterally right-to-left at a steady walking pace on a precision slider — 35mm prime at f/2.8, eye level, gimbal-locked horizon, level horizontal trajectory, no rotation. 24fps with a 180° shutter.",
+    model: "seedance",
+    motionHint: "slow camera slide right to left across",
     pacing: "slow",
   },
   slide_right: {
-    model: "kling",
-    motionHint:
-      "The camera tracks laterally left-to-right at a steady walking pace on a precision slider — 35mm prime at f/2.8, eye level, gimbal-locked horizon, level horizontal trajectory, no rotation. 24fps with a 180° shutter.",
+    model: "seedance",
+    motionHint: "slow camera slide left to right across",
     pacing: "slow",
   },
   parallax_left: {
-    model: "kling",
-    motionHint:
-      "The camera tracks laterally right-to-left at a steady walking pace on a precision slider — 50mm prime at f/2, eye level, gimbal-stabilized. Foreground drifts at twice the speed of the background, revealing depth through parallax. 24fps with a 180° shutter.",
+    model: "seedance",
+    motionHint: "slow parallax pan right to left across",
     pacing: "medium",
   },
   parallax_right: {
-    model: "kling",
-    motionHint:
-      "The camera tracks laterally left-to-right at a steady walking pace on a precision slider — 50mm prime at f/2, eye level, gimbal-stabilized. Foreground drifts at twice the speed of the background, revealing depth through parallax. 24fps with a 180° shutter.",
+    model: "seedance",
+    motionHint: "slow parallax pan left to right across",
     pacing: "medium",
   },
-  // Legacy alias — old "parallax_pan" maps to parallax_left
+  // Legacy alias
   parallax_pan: {
-    model: "kling",
-    motionHint:
-      "The camera tracks laterally left-to-right at a steady walking pace on a precision slider — 50mm prime at f/2, eye level, gimbal-stabilized. Foreground drifts at twice the speed of the background, revealing depth through parallax. 24fps with a 180° shutter.",
+    model: "seedance",
+    motionHint: "slow parallax pan left to right across",
     pacing: "medium",
   },
-  // ── VERTICAL ──
+  // ── VERTICAL (jib rise + tilts + NEW pedestal moves) ──
   reveal_rise: {
-    model: "kling",
-    motionHint:
-      "The camera rises uniformly from ankle height to eye level on a motorized jib — 28mm at f/4, gimbal-locked horizon, vertical trajectory throughout. The composition opens upward from ground to canopy. 24fps with a 180° shutter.",
+    model: "seedance",
+    motionHint: "slow camera crane rising up over",
     pacing: "medium",
   },
   tilt_up: {
-    model: "kling",
-    motionHint:
-      "The camera tilts uniformly upward from eye level at a steady angular rate, anchored to a fixed pivot point — 28mm at f/4, gimbal-stable on the pivot, no horizontal drift. Reveals the upper composition (vaulted ceiling, skyline, tall feature). 24fps with a 180° shutter.",
+    model: "seedance",
+    motionHint: "slow camera tilt up on",
     pacing: "slow",
   },
   tilt_down: {
-    model: "kling",
-    motionHint:
-      "The camera tilts uniformly downward from an elevated angle at a steady angular rate, anchored to a fixed pivot point — 35mm at f/4, gimbal-stable on the pivot, no horizontal drift. Reveals the lower composition (pool, deck, ground-level amenity). 24fps with a 180° shutter.",
+    model: "seedance",
+    motionHint: "slow camera tilt down on",
     pacing: "slow",
   },
-  // ── ROTATIONAL ──
+  // NEW — user-verified working: "slow camera pedestal on still house"
+  pedestal_up: {
+    model: "seedance",
+    motionHint: "slow camera pedestal up on",
+    pacing: "slow",
+  },
+  pedestal_down: {
+    model: "seedance",
+    motionHint: "slow camera pedestal down on",
+    pacing: "slow",
+  },
+  // ── ROTATIONAL (orbits + NEW roll) ──
   orbit_left: {
-    model: "kling",
-    motionHint:
-      "The camera arcs uniformly 45 degrees counter-clockwise around the subject at a steady radius — 50mm prime at f/2.8, eye-level height, gimbal locked on the subject centroid. Smooth circular path with no radius drift, subject stays centered. 24fps with a 180° shutter.",
+    model: "seedance",
+    motionHint: "slow camera orbit left around",
     pacing: "slow",
   },
   orbit_right: {
-    model: "kling",
-    motionHint:
-      "The camera arcs uniformly 45 degrees clockwise around the subject at a steady radius — 50mm prime at f/2.8, eye-level height, gimbal locked on the subject centroid. Smooth circular path with no radius drift, subject stays centered. 24fps with a 180° shutter.",
+    model: "seedance",
+    motionHint: "slow camera orbit right around",
     pacing: "slow",
   },
   drone_orbit: {
     model: "seedance",
-    motionHint:
-      "The camera arcs uniformly 60 degrees clockwise around the subject at a steady elevated altitude — 24mm field of view at f/4, gimbal locked on the subject centroid. Subject stays centered, horizon level throughout. 24fps.",
+    motionHint: "slow aerial drone orbit around",
+    pacing: "slow",
+  },
+  // NEW — user-verified working: "slow camera roll of still house"
+  camera_roll: {
+    model: "seedance",
+    motionHint: "slow camera roll of",
     pacing: "slow",
   },
   // ── ARCHITECTURAL ──
   architectural: {
     model: "seedance",
-    motionHint:
-      "The camera tracks horizontally on a precision dolly at a steady pace — 50mm prime at f/5.6, gimbal-locked, level horizon. Frame composed around the building's primary symmetry line, held centered across the entire track. 24fps.",
+    motionHint: "slow architectural slider across",
     pacing: "slow",
   },
 }
@@ -283,47 +294,42 @@ function buildSeedanceClipPrompt(
   pacing: "slow" | "medium" = "slow",
   context?: ClipContext,
 ): string {
-  const tempoCue = pacing === "slow" ? "at a uniform slow tempo" : "at a uniform measured tempo"
-
-  // Pick a small material palette for anchor. Three named materials per
-  // prompt is the sweet spot — enough to give Seedance noun handles, not
-  // enough to trip the >5-noun morph threshold.
-  const materials = materialPalette("interior").slice(0, 3).join("; ")
-
-  // Beat register — single short clause, positive-only.
-  // Note on `establishing`: research-validated (top 90-day real-estate
-  // reels on IG/TikTok) that hook-second-zero MUST be in motion, never a
-  // static reveal. The brief from @leslie_grillon: "first 3 seconds
-  // determine scroll-stop." @ae.visual.kevin's 32K-like reel opens with
-  // camera already drifting. We bake this into the establishing beat.
-  let beat = ""
-  const b = context?.beat?.toLowerCase()
-  if (b === "establishing" || b === "opener") beat = "Wide opening framing, generous negative space. Shot opens mid-motion — camera already drifting forward at frame zero, foliage already breeze-driven, no static opening reveal. "
-  else if (b === "hero" || b === "feature")   beat = "Hero framing on the strongest architectural feature. "
-  else if (b === "detail" || b === "texture") beat = "Tight framing on a material story, raking light. "
-  else if (b === "amenity")                   beat = "Wider framing on the signature outdoor or amenity space. "
-  else if (b === "closing" || b === "closer" || b === "resolution") beat = "Composed closing framing, warm closing light. "
-  else if (b === "transition" || b === "bridge") beat = "Medium bridging framing. "
-
-  // Verbatim atmospheric lock — when present, repeats across every clip
-  // in a stitched bundle. Token-for-token repetition is what anchors the
-  // grade across separate Seedance predictions.
-  const atmos = context?.atmosphericLock
-    ? `Atmospheric state: ${context.atmosphericLock} ` : ""
-
-  // Seedance-canonical structure: Subject+Movement, Background+Movement,
-  // Camera+Movement, Style. ~70 words target.
-  return (
-    `Cinematic 9:16 vertical real-estate reel, ${duration}s. ${beat}${atmos}` +
-    // Subject + Movement: the room holds its geometry; named materials catch the light
-    `Subject: the unoccupied interior holds its architecture exactly; ${materials} catch directional light as the camera passes. ` +
-    // Background + Movement: ambient particulate motion only
-    `Background: dust motes drift through window light, faint warm haze threads the air; motion comes only from the camera and the ambient light. ` +
-    // Camera + Movement: continuous, decelerating not stopping
-    `Camera: ${motionHint} ${tempoCue}, smoothly easing out across the final second while still drifting forward. ` +
-    // Style: vibe carries lens/stock/DP/anchor
-    `${vibeLine}`
-  )
+  // ── EMPIRICAL FINDING — May 11, 2026 ──
+  // User A/B tested rich (~150-word) prompts vs ultra-minimal prompts on
+  // Seedance 2.0 (bytedance/seedance-1-pro). Minimal prompts won decisively:
+  //   "slow camera roll of still house"            → clean glide, no glitches
+  //   "slow camera dolly as if cameraman stepping  → clean push-in
+  //    towards still house"
+  //   "slow camera pedestal on still house"        → clean rise, no morph
+  // The rich prompts produced glitchy outputs with the same source image.
+  // This confirms ByteDance ModelArk's own guidance:
+  //   "Simple and direct — the model will expand the prompt word according
+  //    to our expression and understanding."
+  // Seedance auto-expands; over-prompting fights its internal expansion.
+  //
+  // For Seedance we now pass JUST the camera-movement clause. Subject is
+  // already provided by the input image; vibe/light/material is inferred
+  // from the image; the model fills the rest.
+  //
+  // The `motionHint` for Seedance shots is now a SHORT directive
+  // (~6-12 words), defined in SHOT_CONFIG. We DO NOT add vibe/material/
+  // atmosphere/anchors — those choked the model on prior generations.
+  //
+  // Kling keeps the richer grammar via buildKlingClipPrompt — Kling does
+  // benefit from longer prompts per fal/Higgsfield docs.
+  //
+  // The arguments duration/vibeLine/pacing/context are kept on the
+  // signature for caller compatibility but most are unused on Seedance.
+  void duration; void vibeLine; void pacing
+  // motionHints in SHOT_CONFIG ALREADY end with their appropriate preposition
+  // ("of", "towards", "across", "around", "on") so we append the subject
+  // directly. Adding another "of" here yields ungrammatical double-prepositions
+  // like "slow camera roll of of still house" which Seedance handles worse
+  // than clean phrasing.
+  const subject = context?.beat?.toLowerCase() === "amenity" ? "still house exterior"
+                : context?.beat?.toLowerCase() === "establishing" ? "still house"
+                : "the still subject"
+  return `${motionHint} ${subject}`
 }
 
 // ── KLING 2.5 TURBO PRO — richer (~140 words) ──
@@ -1134,16 +1140,10 @@ serve(async (req) => {
       // Camera is intentionally locked (this is a time-lapse — the SKY
       // moves, not the camera). Sun + light evolution described as
       // continuous positive motion across the frame.
+      // Minimal Seedance prompt — user-empirically-verified that short
+      // prompts produce dramatically cleaner output than rich ones.
       const dayCyclePrompt =
-        "Cinematic 9:16 vertical real-estate time-lapse, 10 seconds total. " +
-        // ── Subject + Movement ──
-        "Subject: the building's architecture, landscaping, foliage and framing remain exactly consistent throughout; interior windows progressively warm with 2700K tungsten glow as the day cycle moves into dusk. " +
-        // ── Background + Movement ──
-        "Background: the sun arcs continuously from low eastern horizon at sunrise through golden hour into blue-hour dusk; the sky evolves smoothly through soft pink-amber, deep gold, cyan, cobalt; cast shadows lengthen, compress, warm, then deepen — every frame advances the cycle. Foliage drifts gently in an ambient breeze, fine atmospheric particulates catch the warm low sun. " +
-        // ── Camera + Movement ──
-        "Camera: locked tripod composition on a 28mm prime at f/5.6, gimbal-stable, the framing remains exact throughout — all motion lives in the sky and shadows. 24fps, 180° shutter. " +
-        // ── Style ──
-        "Kodak Vision3 250D look with Roger Deakins natural-light treatment, Architectural Digest exterior cover cinematography. Cool-shadow warm-highlight split-tone evolving across the cycle. 35mm film grain present uniformly including in sky regions. The property is unoccupied throughout — motion comes only from the sun, sky, shadows, foliage drift, and the warming interior windows."
+        "time-lapse from sunrise to dusk on still house, locked camera, sun moves across the sky"
 
       console.log("[sun_to_sun] kicking off single Seedance 2.0 day-cycle prediction (10s)")
       const result = await startSeedanceFromImage(
@@ -1344,16 +1344,10 @@ serve(async (req) => {
       // 0:04 and the camera is already in motion as the room fills — the
       // back-half walkthrough flows out of the front-half transformation
       // without any pause.
+      // Minimal Seedance prompt — empirically-verified short prompts
+      // produce cleaner output than rich 150-word grammar.
       const fullTransformPrompt =
-        `Cinematic 9:16 vertical real-estate virtual-staging reel, 10 seconds total. ` +
-        // ── Subject + Movement ──
-        `Subject: the empty source room holds its architecture exactly — walls, windows, doors, floors, ceiling remain constant throughout. Across the first four seconds the room dresses itself: furniture, area rug, lamps, art, throw pillows, and decor each lift smoothly into their final positions with believable weight and gravity — heavy pieces settle low, soft goods compress under their own weight, fabric drapes naturally, lamps cast their own light as they land. ${stylePrompt} By 0:04 the styling is fully resolved and the camera continues forward through the now-styled space; named materials catch directional light — white oak with grain figuration, honed Carrara with mineral veining, boucle wool weave, unlacquered brass with patina. ` +
-        // ── Background + Movement ──
-        `Background: dust motes drift through window light, faint warm haze threads the room, daylight bounces softly off pale surfaces; the space is unoccupied throughout, motion comes only from the dressing animation, the camera move, and the ambient light. ` +
-        // ── Camera + Movement ──
-        `Camera: the camera eases into a uniform forward drift from the opening frame on a gimbal-stabilized 35mm prime at f/2.8, continues uninterrupted through the dressing phase, transitions seamlessly into a steady walkthrough push-in across the back six seconds, and smoothly decelerates into a magazine-grade resolution across the final second while still drifting forward. 24fps, 180° shutter. ` +
-        // ── Style ──
-        `${vibePromptSuffix}`
+        `empty room dresses itself with ${stylePrompt}, then slow camera dolly forward through the finished space`
 
       console.log("[virtual_staging] kicking off SINGLE 10s Seedance dressing+walkthrough")
       const result = await startSeedanceFromImage(
@@ -1447,25 +1441,10 @@ serve(async (req) => {
       // "transition was too slow" — that was the model improvising pacing. By
       // marking the morph as complete at a specific beat, the model commits
       // to the transformation and gives us a clean reveal in the back half.
+      // Minimal Seedance prompt — empirically-verified short prompts win.
       const fullSketchPrompt = sketch_intent === "interior"
-        ? `Cinematic 9:16 vertical real-estate sketch-to-real reveal, 10 seconds total. ` +
-          // ── Subject + Movement ──
-          `Subject: a 2H pencil architectural sketch on warm cream paper transforms continuously across the first four seconds into the photoreal interior it depicts — pencil shading dissolves into real surfaces with weight and depth, walls gain material, daylight floods in through windows, floors reveal grain and texture, furniture lifts out of the page into final positions with gravity-believable motion; by 0:04 the desk and the artist's hand have fully dissolved out of frame and the resolved interior is fully present. Named materials catch directional light — white oak with grain figuration, honed Carrara with mineral veining, full-grain leather with patina, unlacquered brass. The architectural geometry of the sketch IS the geometry of the resolved interior, anchored exactly throughout. ` +
-          // ── Background + Movement ──
-          `Background: warm 2900K desk lamp light in the opening seconds gives way to cool natural daylight as the morph completes; dust motes drift through window light, faint warm haze threads the room; from 0:04 onward the space is unoccupied, motion comes only from the camera and ambient light. ` +
-          // ── Camera + Movement ──
-          `Camera: the camera eases into a uniform forward push-in from the opening frame on a gimbal-stabilized 50mm prime at f/2.8, continues through the morph, transitions seamlessly into a steady walkthrough across the back six seconds, and smoothly decelerates into a magazine-grade resolution across the final second while still drifting forward. 24fps, 180° shutter. ` +
-          // ── Style ──
-          `${vibeLine}`
-        : `Cinematic 9:16 vertical real-estate sketch-to-real reveal, 10 seconds total. ` +
-          // ── Subject + Movement ──
-          `Subject: a 2H pencil architectural sketch on warm cream paper transforms continuously across the first four seconds into the photoreal exterior it depicts — pencil shading dissolves into siding texture, brick coursing, glass refraction, and roof material; sky fills with realistic color, foliage gains believable leaf detail, landscaping settles into place; by 0:04 the desk and the artist's hand have fully dissolved out of frame and the resolved exterior is fully present. Named exterior finishes catch directional light — brick coursing as physical pattern, wood siding with grain, matte and satin painted surfaces, glass panes with real refraction. Façade geometry from the original sketch — window placements, rooflines, massing, door positions — anchored exactly throughout. ` +
-          // ── Background + Movement ──
-          `Background: warm 2900K desk lamp light in the opening seconds gives way to soft natural daylight as the morph completes; gentle breeze drifts through foliage, fine atmospheric particulates catch the air; from 0:04 onward the exterior is unoccupied, motion comes only from the camera, the breeze in foliage, and the ambient light. ` +
-          // ── Camera + Movement ──
-          `Camera: the camera eases into a uniform forward push-in from the opening frame on a gimbal-stabilized 50mm prime at f/2.8, continues through the morph, transitions seamlessly into a steady parallax tracking shot across the back six seconds with foreground drifting at twice the speed of background, and smoothly decelerates into a magazine-grade resolution across the final second while still drifting forward. 24fps, 180° shutter. ` +
-          // ── Style ──
-          `${vibeLine}`
+        ? "pencil sketch on paper transforms into a photoreal interior, then slow camera dolly forward through the room"
+        : "pencil sketch on paper transforms into a photoreal house exterior, then slow parallax pan across the building"
 
       console.log("[sketch_to_real] kicking off SINGLE 10s Seedance morph+reveal")
       const result = await startSeedanceFromImage(
@@ -1521,21 +1500,12 @@ serve(async (req) => {
       const floorPlanUrl = photo_urls[0]
       const vibeLine = vibeSuffix(selectedVibe)
 
-      // Timeline-prompted floor plan morph. The drawing → photoreal transition
-      // is resolved by 0:04 so the camera move owns the back half. Drafting
-      // lines that linger past 0:04 ruin the magic — by fixing a hard
-      // completion beat we get a clean, fully-realized interior reveal.
-      const cameraHint = SHOT_CONFIG[selectedShotType]?.motionHint || "uniform continuous forward dolly push-in, gimbal-stabilized."
-      const fullFloorPlanPrompt =
-        `Cinematic 9:16 vertical real-estate floor-plan-to-interior reveal, 10 seconds total. ` +
-        // ── Subject + Movement ──
-        `Subject: a 2D architectural floor plan / axonometric drawing transforms continuously across the first four seconds into a photoreal interior of the same room — drafting lines dissolve into wall edges with believable depth, flat plan symbols extrude into 3D objects with proper weight, daylight floods in through window symbols as they become real glass, floor materials reveal grain and texture, furniture lifts out of the plan into final positions with gravity-believable motion; by 0:04 the transformation is fully resolved and all drafting marks, dimension lines, room labels and technical symbols are gone. Named materials catch directional light — white oak with grain figuration, honed Carrara with mineral veining, full-grain leather with patina, unlacquered brass. Architectural geometry from the plan IS the geometry of the resolved interior, anchored exactly throughout. ` +
-        // ── Background + Movement ──
-        `Background: dust motes drift through window light, faint warm haze threads the room, daylight bounces softly off pale surfaces; the resolved interior is unoccupied throughout, motion comes only from the camera and ambient light. ` +
-        // ── Camera + Movement ──
-        `Camera: the camera eases into a gentle uniform drift across the floor plan from the opening frame on a gimbal-stabilized 35mm prime at f/2.8, continues uninterrupted through the morph, transitions seamlessly into ${cameraHint} through the photoreal interior across the back six seconds, and smoothly decelerates into a magazine-grade resolution across the final second while still drifting forward. 24fps, 180° shutter. ` +
-        // ── Style ──
-        `${vibeLine}`
+      // Minimal Seedance prompt — empirically-verified short prompts win.
+      // User A/B tested: "slow camera roll of still house" produced clean output
+      // while 150-word rich prompts caused glitching and frame pauses.
+      void vibeLine // intentionally unused — rich style language confuses Seedance
+      const cameraMove = SHOT_CONFIG[selectedShotType]?.motionHint || "slow camera dolly forward through"
+      const fullFloorPlanPrompt = `2D floor plan transforms into a photoreal interior, then ${cameraMove} the room`
 
       console.log("[floor_plan_pan] kicking off SINGLE 10s Seedance morph+walkthrough")
       const result = await startSeedanceFromImage(
