@@ -121,27 +121,36 @@ function materialPalette(context: "interior" | "exterior" | "kitchen" | "bath" |
 // motionHint for Kling stays richer — Kling does benefit from longer prompts
 // (fal/Higgsfield-validated up to 2,500 chars) and pairs with a separate
 // negative_prompt API field.
+// ── SEEDANCE MOTION HINTS — empirically-tuned ──
+// Pattern: "slow smooth [movement_verb] [preposition]"
+//   - "slow" = pacing anchor (Seedance respects pacing modifiers)
+//   - "smooth" = reinforces temporal continuity, fights random-pause glitches
+//   - cinematography verbs (dolly, truck, pan, pedestal, orbit, roll) — the
+//     model knows these terms and produces cleaner output than generic
+//     descriptions like "move forward" / "rotate"
+//   - preposition tail flows directly into the subject noun appended by
+//     buildSeedanceClipPrompt — no double-prepositions
 const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: string; pacing: "slow" | "medium" }> = {
   // ── LINEAR (forward / reverse / wide reveal) ──
   push_in: {
     model: "seedance",
-    motionHint: "slow camera dolly as if cameraman stepping towards",
+    motionHint: "slow smooth camera dolly stepping gracefully towards",
     pacing: "slow",
   },
   // Legacy alias
   slow_push: {
     model: "seedance",
-    motionHint: "slow camera dolly as if cameraman stepping towards",
+    motionHint: "slow smooth camera dolly stepping gracefully towards",
     pacing: "slow",
   },
   pull_out: {
     model: "seedance",
-    motionHint: "slow camera dolly as if cameraman stepping backwards from",
+    motionHint: "slow smooth camera dolly retreating gracefully from",
     pacing: "slow",
   },
   establishing: {
     model: "seedance",
-    motionHint: "slow camera dolly pulling back wide from",
+    motionHint: "slow smooth camera dolly pulling back wide from",
     pacing: "slow",
   },
   // ── LATERAL (truck slides + parallax, both directions) ──
@@ -150,22 +159,22 @@ const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: str
   // backward compat with existing rotations.
   truck_left: {
     model: "seedance",
-    motionHint: "slow camera truck right to left across",
+    motionHint: "slow smooth camera truck right to left across",
     pacing: "slow",
   },
   truck_right: {
     model: "seedance",
-    motionHint: "slow camera truck left to right across",
+    motionHint: "slow smooth camera truck left to right across",
     pacing: "slow",
   },
   slide_left: {
     model: "seedance",
-    motionHint: "slow camera truck right to left across",
+    motionHint: "slow smooth camera truck right to left across",
     pacing: "slow",
   },
   slide_right: {
     model: "seedance",
-    motionHint: "slow camera truck left to right across",
+    motionHint: "slow smooth camera truck left to right across",
     pacing: "slow",
   },
   // ── PAN (rotation while stationary) ──
@@ -173,83 +182,83 @@ const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: str
   // The camera body stays put; only the lens swings horizontally.
   pan_left: {
     model: "seedance",
-    motionHint: "slow camera pan right to left across",
+    motionHint: "slow smooth camera pan right to left across",
     pacing: "slow",
   },
   pan_right: {
     model: "seedance",
-    motionHint: "slow camera pan left to right across",
+    motionHint: "slow smooth camera pan left to right across",
     pacing: "slow",
   },
   parallax_left: {
     model: "seedance",
-    motionHint: "slow parallax pan right to left across",
+    motionHint: "slow smooth parallax pan right to left across",
     pacing: "medium",
   },
   parallax_right: {
     model: "seedance",
-    motionHint: "slow parallax pan left to right across",
+    motionHint: "slow smooth parallax pan left to right across",
     pacing: "medium",
   },
   // Legacy alias
   parallax_pan: {
     model: "seedance",
-    motionHint: "slow parallax pan left to right across",
+    motionHint: "slow smooth parallax pan left to right across",
     pacing: "medium",
   },
-  // ── VERTICAL (jib rise + tilts + NEW pedestal moves) ──
+  // ── VERTICAL (jib rise + tilts + pedestal moves) ──
   reveal_rise: {
     model: "seedance",
-    motionHint: "slow camera crane rising up over",
+    motionHint: "slow smooth camera crane rising gracefully over",
     pacing: "medium",
   },
   tilt_up: {
     model: "seedance",
-    motionHint: "slow camera tilt up on",
+    motionHint: "slow smooth camera tilt up on",
     pacing: "slow",
   },
   tilt_down: {
     model: "seedance",
-    motionHint: "slow camera tilt down on",
+    motionHint: "slow smooth camera tilt down on",
     pacing: "slow",
   },
-  // NEW — user-verified working: "slow camera pedestal on still house"
+  // user-verified working: "slow camera pedestal on still house"
   pedestal_up: {
     model: "seedance",
-    motionHint: "slow camera pedestal up on",
+    motionHint: "slow smooth camera pedestal up on",
     pacing: "slow",
   },
   pedestal_down: {
     model: "seedance",
-    motionHint: "slow camera pedestal down on",
+    motionHint: "slow smooth camera pedestal down on",
     pacing: "slow",
   },
-  // ── ROTATIONAL (orbits + NEW roll) ──
+  // ── ROTATIONAL (orbits + roll) ──
   orbit_left: {
     model: "seedance",
-    motionHint: "slow camera orbit left around",
+    motionHint: "slow smooth camera orbit gracefully left around",
     pacing: "slow",
   },
   orbit_right: {
     model: "seedance",
-    motionHint: "slow camera orbit right around",
+    motionHint: "slow smooth camera orbit gracefully right around",
     pacing: "slow",
   },
   drone_orbit: {
     model: "seedance",
-    motionHint: "slow aerial drone orbit around",
+    motionHint: "slow smooth aerial drone orbit gracefully around",
     pacing: "slow",
   },
-  // NEW — user-verified working: "slow camera roll of still house"
+  // user-verified working: "slow camera roll of still house"
   camera_roll: {
     model: "seedance",
-    motionHint: "slow camera roll of",
+    motionHint: "slow smooth cinematic camera roll of",
     pacing: "slow",
   },
   // ── ARCHITECTURAL ──
   architectural: {
     model: "seedance",
-    motionHint: "slow architectural slider across",
+    motionHint: "slow smooth architectural slider across",
     pacing: "slow",
   },
 }
@@ -374,9 +383,42 @@ function buildSeedanceClipPrompt(
   // directly. Adding another "of" here yields ungrammatical double-prepositions
   // like "slow camera roll of of still house" which Seedance handles worse
   // than clean phrasing.
-  const subject = context?.beat?.toLowerCase() === "amenity" ? "still house exterior"
-                : context?.beat?.toLowerCase() === "establishing" ? "still house"
-                : "the still subject"
+  //
+  // Beat-driven subject — concrete, image-verifiable nouns only. The user's
+  // empirically winning test was "still house" (concrete, verifiable). We
+  // pick by beat so amenity shots reference the exterior and interior beats
+  // reference the room, without adding unverifiable adjectives that triggered
+  // the rich-prompt glitching ("magazine-grade", "luxury", "cinematic").
+  const beat = context?.beat?.toLowerCase()
+  let subject: string
+  switch (beat) {
+    case "establishing":
+    case "opener":
+      subject = "the still house"
+      break
+    case "amenity":
+      subject = "the still exterior"
+      break
+    case "hero":
+    case "feature":
+      subject = "the still interior"
+      break
+    case "detail":
+    case "texture":
+      subject = "the still interior detail"
+      break
+    case "closing":
+    case "resolution":
+    case "closer":
+      subject = "the still interior"
+      break
+    case "transition":
+    case "bridge":
+      subject = "the still room"
+      break
+    default:
+      subject = "the still subject"
+  }
   let prompt = `${motionHint} ${subject}`
 
   // ── BURN-IN TITLE OVERLAY ──
@@ -871,6 +913,58 @@ async function generateWithNanoBanana(
   }
 }
 
+// ── PERMANENT VIDEO PERSISTENCE ──
+// Replicate URLs expire ~24h after generation. Every video must be downloaded
+// from Replicate and re-uploaded to Supabase storage before we can promise
+// the user permanent access in their gallery.
+//
+// Pre-fix behavior: a single try/catch around the upload. ~5% of uploads
+// failed silently (network blip, large buffer, transient storage hiccup),
+// and the returned response carried ONLY the Replicate URL — which then died
+// after a day and showed as a broken video in the gallery.
+//
+// Post-fix behavior: retry with exponential backoff (1s → 2s → 4s),
+// validate the response body, validate the buffer is non-empty, and only
+// return null after three full failures. Worst case we log loudly so the
+// backfill function can pick it up later.
+async function persistVideoToStorage(
+  videoUrl: string,
+  storagePath: string,
+  supabase: any,
+  label: string,
+  maxRetries = 3,
+): Promise<string | null> {
+  let lastErr: unknown = null
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(videoUrl)
+      if (!res.ok) throw new Error(`fetch returned HTTP ${res.status}`)
+      const buffer = await res.arrayBuffer()
+      if (!buffer || buffer.byteLength === 0) {
+        throw new Error("downloaded buffer is empty")
+      }
+      const { error: upErr } = await supabase.storage
+        .from("project-submissions")
+        .upload(storagePath, buffer, {
+          contentType: "video/mp4",
+          upsert: true,
+        })
+      if (upErr) throw upErr
+      console.log(`[persist:${label}] uploaded ${storagePath} (${buffer.byteLength}B) on attempt ${attempt}`)
+      return storagePath
+    } catch (err) {
+      lastErr = err
+      console.error(`[persist:${label}] attempt ${attempt}/${maxRetries} failed for ${storagePath}:`, (err as Error)?.message ?? err)
+      if (attempt < maxRetries) {
+        // Exponential backoff: 1s, 2s, 4s. Total worst-case 7s before we give up.
+        await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt - 1)))
+      }
+    }
+  }
+  console.error(`[persist:${label}] ALL ${maxRetries} attempts failed for ${storagePath}. Last error:`, lastErr)
+  return null
+}
+
 // Returns either { videoUrl } if Replicate finished within wait window,
 // or { predictionId } if still processing — caller can poll.
 async function startVideoGeneration(
@@ -970,6 +1064,102 @@ serve(async (req) => {
   let body: any = {}
   try {
     body = await req.json()
+
+    // ── BACKFILL MODE ──
+    // Repairs gallery entries whose Replicate URL is dead / about to expire by
+    // re-downloading the source video into permanent Supabase storage. The
+    // client (Gallery) invokes this for any submission that has
+    // output_video_url but no output_video_path (or output_clip_urls without
+    // output_clip_paths). Returns the storage path(s) so the client can
+    // update the submission row.
+    //
+    // Payload shape:
+    //   { mode: "backfill", submission_id: "uuid" }
+    //
+    // Behavior:
+    //   • Looks up the submission row.
+    //   • If output_clip_urls is set (bundle), persists every clip in order.
+    //   • Otherwise persists the single output_video_url.
+    //   • Updates the submission row in place with the new storage path(s).
+    //   • Returns { status: "complete", output_video_path?, output_clip_paths? }.
+    if (body.mode === "backfill" && body.submission_id) {
+      const subId = String(body.submission_id)
+      console.log(`[backfill] starting for submission ${subId}`)
+      const { data: sub, error: fetchErr } = await supabase
+        .from("submissions")
+        .select("id, output_video_url, output_video_path, output_clip_urls, output_clip_paths")
+        .eq("id", subId)
+        .single()
+      if (fetchErr || !sub) {
+        throw new Error(`backfill: submission ${subId} not found: ${fetchErr?.message ?? "unknown"}`)
+      }
+
+      const stamp = Date.now()
+      const updates: Record<string, unknown> = {}
+      let newPath: string | null = null
+      let newClipPaths: string[] | null = null
+
+      // Bundle case — clip array
+      const clipUrls: string[] | null = Array.isArray((sub as any).output_clip_urls) && (sub as any).output_clip_urls.length > 0
+        ? (sub as any).output_clip_urls
+        : null
+      if (clipUrls && (!Array.isArray((sub as any).output_clip_paths) || (sub as any).output_clip_paths.length === 0)) {
+        const persisted: string[] = []
+        for (let i = 0; i < clipUrls.length; i++) {
+          const p = await persistVideoToStorage(
+            clipUrls[i],
+            `listing-videos/backfill-${stamp}/clip-${i}.mp4`,
+            supabase,
+            `backfill[${subId}:clip-${i}]`,
+          )
+          if (p) persisted.push(p)
+        }
+        if (persisted.length === 0) {
+          throw new Error(`backfill: all ${clipUrls.length} clip URLs are dead — original Replicate links have expired`)
+        }
+        newClipPaths = persisted
+        updates.output_clip_paths = persisted
+      }
+
+      // Single-video case
+      if (!clipUrls && (sub as any).output_video_url && !(sub as any).output_video_path) {
+        const p = await persistVideoToStorage(
+          (sub as any).output_video_url,
+          `listing-videos/backfill-${stamp}/video.mp4`,
+          supabase,
+          `backfill[${subId}:single]`,
+        )
+        if (!p) {
+          throw new Error("backfill: video URL is dead — original Replicate link has expired")
+        }
+        newPath = p
+        updates.output_video_path = p
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return new Response(JSON.stringify({
+          status: "noop",
+          message: "submission already has permanent storage paths",
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+      }
+
+      const { error: updErr } = await supabase
+        .from("submissions")
+        .update(updates)
+        .eq("id", subId)
+      if (updErr) {
+        throw new Error(`backfill: failed to update submission ${subId}: ${updErr.message}`)
+      }
+
+      console.log(`[backfill] completed for ${subId}: ${JSON.stringify(updates)}`)
+      return new Response(JSON.stringify({
+        status: "complete",
+        submission_id: subId,
+        output_video_path: newPath ?? undefined,
+        output_clip_paths: newClipPaths ?? undefined,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    }
+
     console.log("[generate-listing-video] payload:", JSON.stringify({
       mode: body.prediction_id ? "poll" : "start",
       prediction_id: body.prediction_id,
@@ -1013,20 +1203,17 @@ serve(async (req) => {
         if (clipUrls.length === 0) {
           throw new Error("All bundle clips failed: " + updated.map((e: any) => e.error).join("; "))
         }
-        // Persist
+        // Persist — retry-backed so storage hiccups don't yield expiring links.
+        const bundleStamp = Date.now()
         const clipPaths: string[] = []
         for (let i = 0; i < clipUrls.length; i++) {
-          try {
-            const clipFetch = await fetch(clipUrls[i])
-            const clipBuffer = await clipFetch.arrayBuffer()
-            const clipPath = `listing-videos/${Date.now()}/clip-${i}.mp4`
-            await supabase.storage.from("project-submissions").upload(clipPath, clipBuffer, {
-              contentType: "video/mp4", upsert: true,
-            })
-            clipPaths.push(clipPath)
-          } catch (storageErr) {
-            console.error(`[bundle-poll] storage clip ${i} failed:`, storageErr)
-          }
+          const path = await persistVideoToStorage(
+            clipUrls[i],
+            `listing-videos/${bundleStamp}/clip-${i}.mp4`,
+            supabase,
+            `bundle-poll[${i}]`,
+          )
+          if (path) clipPaths.push(path)
         }
         return new Response(JSON.stringify({
           status: "complete",
@@ -1061,19 +1248,12 @@ serve(async (req) => {
         }
 
         // Persist
-        let outputVideoPath: string | null = null
-        try {
-          const videoFetch = await fetch(videoUrl)
-          const videoBuffer = await videoFetch.arrayBuffer()
-          const videoPath = `listing-videos/${Date.now()}/video.mp4`
-          await supabase.storage.from("project-submissions").upload(videoPath, videoBuffer, {
-            contentType: "video/mp4",
-            upsert: true,
-          })
-          outputVideoPath = videoPath
-        } catch (storageErr) {
-          console.error("[poll] storage failed:", storageErr)
-        }
+        const outputVideoPath = await persistVideoToStorage(
+          videoUrl,
+          `listing-videos/${Date.now()}/video.mp4`,
+          supabase,
+          "poll",
+        )
 
         return new Response(JSON.stringify({
           status: "complete",
@@ -1166,19 +1346,12 @@ serve(async (req) => {
 
       // Synchronous success
       if (result.videoUrl) {
-        let outputVideoPath: string | null = null
-        try {
-          const videoFetch = await fetch(result.videoUrl)
-          const videoBuffer = await videoFetch.arrayBuffer()
-          const videoPath = `listing-videos/${Date.now()}/video.mp4`
-          await supabase.storage.from("project-submissions").upload(videoPath, videoBuffer, {
-            contentType: "video/mp4",
-            upsert: true,
-          })
-          outputVideoPath = videoPath
-        } catch (storageErr) {
-          console.error("[animate_single] storage failed:", storageErr)
-        }
+        const outputVideoPath = await persistVideoToStorage(
+          result.videoUrl,
+          `listing-videos/${Date.now()}/video.mp4`,
+          supabase,
+          "animate_single",
+        )
 
         const response: any = {
           status: "complete",
@@ -1227,8 +1400,10 @@ serve(async (req) => {
       // continuous positive motion across the frame.
       // Minimal Seedance prompt — user-empirically-verified that short
       // prompts produce dramatically cleaner output than rich ones.
+      // Enhanced: "golden" anchors the grade ByteDance expands toward (warm
+      // light), "smoothly" reinforces continuity. Kept at 14 words.
       const dayCyclePrompt =
-        "time-lapse from sunrise to dusk on still house, locked camera, sun moves across the sky"
+        "smooth time-lapse from golden sunrise to amber dusk on still house, locked camera, sun arcs gracefully across the sky"
 
       console.log("[sun_to_sun] kicking off single Seedance 2.0 day-cycle prediction (10s)")
       const result = await startSeedanceFromImage(
@@ -1240,19 +1415,12 @@ serve(async (req) => {
 
       // Synchronous success
       if (result.videoUrl) {
-        let outputVideoPath: string | null = null
-        try {
-          const videoFetch = await fetch(result.videoUrl)
-          const videoBuffer = await videoFetch.arrayBuffer()
-          const videoPath = `listing-videos/${Date.now()}/sun-cycle.mp4`
-          await supabase.storage.from("project-submissions").upload(videoPath, videoBuffer, {
-            contentType: "video/mp4",
-            upsert: true,
-          })
-          outputVideoPath = videoPath
-        } catch (storageErr) {
-          console.error("[sun_to_sun] storage failed:", storageErr)
-        }
+        const outputVideoPath = await persistVideoToStorage(
+          result.videoUrl,
+          `listing-videos/${Date.now()}/sun-cycle.mp4`,
+          supabase,
+          "sun_to_sun",
+        )
 
         return new Response(JSON.stringify({
           status: "complete",
@@ -1383,20 +1551,17 @@ serve(async (req) => {
       const allDone = successful.every((r) => r.videoUrl)
       if (allDone) {
         const clipUrls = successful.map((r) => r.videoUrl!)
-        // Store
+        // Persist — retry-backed so storage hiccups don't yield expiring links.
+        const bundleStamp = Date.now()
         const clipPaths: string[] = []
         for (let i = 0; i < clipUrls.length; i++) {
-          try {
-            const clipFetch = await fetch(clipUrls[i])
-            const clipBuffer = await clipFetch.arrayBuffer()
-            const clipPath = `listing-videos/${Date.now()}/clip-${i}.mp4`
-            await supabase.storage
-              .from("project-submissions")
-              .upload(clipPath, clipBuffer, { contentType: "video/mp4", upsert: true })
-            clipPaths.push(clipPath)
-          } catch (storageErr) {
-            console.error(`Failed to store clip ${i}:`, storageErr)
-          }
+          const path = await persistVideoToStorage(
+            clipUrls[i],
+            `listing-videos/${bundleStamp}/clip-${i}.mp4`,
+            supabase,
+            `bundle-sync[${i}]`,
+          )
+          if (path) clipPaths.push(path)
         }
         const response: any = {
           status: "complete",
@@ -1451,8 +1616,10 @@ serve(async (req) => {
       // without any pause.
       // Minimal Seedance prompt — empirically-verified short prompts
       // produce cleaner output than rich 150-word grammar.
+      // Enhanced: "gracefully" anchors smooth furniture animation, "smooth
+      // dolly" reinforces continuity in the walkthrough back-half.
       const fullTransformPrompt =
-        `empty room dresses itself with ${stylePrompt}, then slow camera dolly forward through the finished space`
+        `empty room gracefully dresses itself with ${stylePrompt}, then slow smooth camera dolly forward through the finished space`
 
       console.log("[virtual_staging] kicking off SINGLE 10s Seedance dressing+walkthrough")
       const result = await startSeedanceFromImage(
@@ -1464,18 +1631,12 @@ serve(async (req) => {
 
       // Single-clip path — same shape as animate_single
       if (result.videoUrl) {
-        let outputVideoPath: string | null = null
-        try {
-          const videoFetch = await fetch(result.videoUrl)
-          const videoBuffer = await videoFetch.arrayBuffer()
-          const videoPath = `listing-videos/${Date.now()}/staging.mp4`
-          await supabase.storage.from("project-submissions").upload(videoPath, videoBuffer, {
-            contentType: "video/mp4", upsert: true,
-          })
-          outputVideoPath = videoPath
-        } catch (storageErr) {
-          console.error("[virtual_staging] storage failed:", storageErr)
-        }
+        const outputVideoPath = await persistVideoToStorage(
+          result.videoUrl,
+          `listing-videos/${Date.now()}/staging.mp4`,
+          supabase,
+          "virtual_staging",
+        )
 
         return new Response(JSON.stringify({
           status: "complete",
@@ -1547,9 +1708,11 @@ serve(async (req) => {
       // marking the morph as complete at a specific beat, the model commits
       // to the transformation and gives us a clean reveal in the back half.
       // Minimal Seedance prompt — empirically-verified short prompts win.
+      // Enhanced: "gracefully transforms" anchors the morph, "smooth" on the
+      // camera move keeps the back-half clean. Verbs sharpened, length flat.
       const fullSketchPrompt = sketch_intent === "interior"
-        ? "pencil sketch on paper transforms into a photoreal interior, then slow camera dolly forward through the room"
-        : "pencil sketch on paper transforms into a photoreal house exterior, then slow parallax pan across the building"
+        ? "pencil sketch on paper gracefully transforms into a photoreal interior, then slow smooth camera dolly forward through the room"
+        : "pencil sketch on paper gracefully transforms into a photoreal house exterior, then slow smooth parallax pan across the building"
 
       console.log("[sketch_to_real] kicking off SINGLE 10s Seedance morph+reveal")
       const result = await startSeedanceFromImage(
@@ -1560,18 +1723,12 @@ serve(async (req) => {
       )
 
       if (result.videoUrl) {
-        let outputVideoPath: string | null = null
-        try {
-          const videoFetch = await fetch(result.videoUrl)
-          const videoBuffer = await videoFetch.arrayBuffer()
-          const videoPath = `listing-videos/${Date.now()}/sketch.mp4`
-          await supabase.storage.from("project-submissions").upload(videoPath, videoBuffer, {
-            contentType: "video/mp4", upsert: true,
-          })
-          outputVideoPath = videoPath
-        } catch (storageErr) {
-          console.error("[sketch_to_real] storage failed:", storageErr)
-        }
+        const outputVideoPath = await persistVideoToStorage(
+          result.videoUrl,
+          `listing-videos/${Date.now()}/sketch.mp4`,
+          supabase,
+          "sketch_to_real",
+        )
 
         return new Response(JSON.stringify({
           status: "complete",
@@ -1609,8 +1766,10 @@ serve(async (req) => {
       // User A/B tested: "slow camera roll of still house" produced clean output
       // while 150-word rich prompts caused glitching and frame pauses.
       void vibeLine // intentionally unused — rich style language confuses Seedance
-      const cameraMove = SHOT_CONFIG[selectedShotType]?.motionHint || "slow camera dolly forward through"
-      const fullFloorPlanPrompt = `2D floor plan transforms into a photoreal interior, then ${cameraMove} the room`
+      // Enhanced: "architectural" qualifies the plan source (matches what
+      // the model sees), "gracefully transforms" sharpens the morph verb.
+      const cameraMove = SHOT_CONFIG[selectedShotType]?.motionHint || "slow smooth camera dolly forward through"
+      const fullFloorPlanPrompt = `2D architectural floor plan gracefully transforms into a photoreal interior, then ${cameraMove} the room`
 
       console.log("[floor_plan_pan] kicking off SINGLE 10s Seedance morph+walkthrough")
       const result = await startSeedanceFromImage(
@@ -1621,18 +1780,12 @@ serve(async (req) => {
       )
 
       if (result.videoUrl) {
-        let outputVideoPath: string | null = null
-        try {
-          const videoFetch = await fetch(result.videoUrl)
-          const videoBuffer = await videoFetch.arrayBuffer()
-          const videoPath = `listing-videos/${Date.now()}/floorplan.mp4`
-          await supabase.storage.from("project-submissions").upload(videoPath, videoBuffer, {
-            contentType: "video/mp4", upsert: true,
-          })
-          outputVideoPath = videoPath
-        } catch (storageErr) {
-          console.error("[floor_plan_pan] storage failed:", storageErr)
-        }
+        const outputVideoPath = await persistVideoToStorage(
+          result.videoUrl,
+          `listing-videos/${Date.now()}/floorplan.mp4`,
+          supabase,
+          "floor_plan_pan",
+        )
 
         return new Response(JSON.stringify({
           status: "complete",

@@ -799,9 +799,36 @@ const Gallery = () => {
           // Already a long-lived Supabase signed URL → fine to use directly.
           urlMap[`video-${s.id}`] = s.output_video_url;
         } else if (s.output_video_url) {
-          // Fallback to the Replicate URL only if no path exists at all.
-          // Will likely be dead after 24h but it's the only thing we have.
+          // ── AUTO-BACKFILL ──
+          // Storage path is missing but we have a (possibly still-alive)
+          // Replicate URL. Kick off the backfill edge function which will
+          // download the source and persist it. While that's in flight we
+          // still hand the bare URL to the <video> tag so the user sees
+          // *something* — and we reload from the DB after backfill.
           urlMap[`video-${s.id}`] = s.output_video_url;
+          tasks.push((async () => {
+            try {
+              const { data, error } = await supabase.functions.invoke(
+                "generate-listing-video",
+                { body: { mode: "backfill", submission_id: s.id } },
+              );
+              if (error) {
+                console.warn(`[gallery] backfill failed for ${s.id}:`, error);
+                return;
+              }
+              const newPath = (data as any)?.output_video_path
+                ?? (Array.isArray((data as any)?.output_clip_paths) ? (data as any).output_clip_paths[0] : null);
+              if (newPath) {
+                const fresh = await signPath(newPath);
+                if (fresh) {
+                  setSignedUrls((prev) => ({ ...prev, [`video-${s.id}`]: fresh }));
+                  console.log(`[gallery] backfilled ${s.id} → ${newPath}`);
+                }
+              }
+            } catch (e) {
+              console.warn(`[gallery] backfill threw for ${s.id}:`, e);
+            }
+          })());
         }
       }
       await Promise.all(tasks);

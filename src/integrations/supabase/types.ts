@@ -219,6 +219,8 @@ export type Database = {
           generated_video_prompt: string | null
           id: string
           is_public: boolean | null
+          output_clip_paths: string[] | null
+          output_clip_urls: string[] | null
           output_video_path: string | null
           output_video_url: string | null
           phone: string | null
@@ -250,6 +252,8 @@ export type Database = {
           generated_video_prompt?: string | null
           id?: string
           is_public?: boolean | null
+          output_clip_paths?: string[] | null
+          output_clip_urls?: string[] | null
           output_video_path?: string | null
           output_video_url?: string | null
           phone?: string | null
@@ -281,6 +285,8 @@ export type Database = {
           generated_video_prompt?: string | null
           id?: string
           is_public?: boolean | null
+          output_clip_paths?: string[] | null
+          output_clip_urls?: string[] | null
           output_video_path?: string | null
           output_video_url?: string | null
           phone?: string | null

@@ -479,6 +479,12 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             // first clip was reachable from the UI even though all of
             // them were already uploaded to storage by the edge function.
             output_clip_paths: finalClipPaths.length ? finalClipPaths : null,
+            // Persist the original Replicate clip URLs too — they expire
+            // ~24h after generation, but during that window the backfill
+            // edge function can re-download any clip whose storage upload
+            // failed at generation time. Without this, a transient storage
+            // hiccup leaves a bundle with no permanent source.
+            output_clip_urls: allClips.length ? allClips : null,
           })
           .select("id")
           .maybeSingle();
