@@ -251,17 +251,11 @@ const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: str
     motionHint: "slow camera orbit right around",
     pacing: "slow",
   },
-  // drone_orbit: phrased so Seedance renders the elevated camera MOVE
-  // without putting an actual drone object in the sky. The previous
-  // "aerial drone orbit" wording was interpreted literally — users got
-  // residential listings with a flying drone visible in shot. "elevated
-  // camera orbit from above" describes the same move (high vantage, arc
-  // around subject) without invoking the drone object.
-  drone_orbit: {
-    model: "seedance",
-    motionHint: "slow elevated camera orbit from above around",
-    pacing: "slow",
-  },
+  // drone_orbit was REMOVED on May 12, 2026 — Seedance read "drone"
+  // literally and rendered a flying drone object in residential listings.
+  // The key has been deleted from both this config and the frontend
+  // shot-types union, so any client request with shot_type="drone_orbit"
+  // will now fall through to the "Unknown shot type" error.
   // user-verified working: "slow camera roll of still house"
   camera_roll: {
     model: "seedance",

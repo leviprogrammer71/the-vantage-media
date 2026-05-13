@@ -24,20 +24,44 @@ interface ShotTypePickerProps {
  * muted + looping so they can see the move before committing credits.
  * The poster shows when neither is hovering nor playing.
  */
-// Auto-resolve a preview video path by convention:
-//   /public/videos/shots/{shot_id}.mp4
-// The user drops a file at that path and the preview appears. No code change
-// needed per shot. If the file doesn't exist, the <video> tag silently
-// renders nothing (the poster image carries the visual instead).
+// Auto-resolve a preview video path by convention. Looks in the user's
+// drop folder first, then a fallback location:
 //
-// Posters follow the same convention: /public/videos/shots/{shot_id}.jpg
+//   PRIMARY:  /public/vantage/animate-single/{shot_id}.mp4
+//             (where the user dropped their shot-demo videos)
+//
+//   FALLBACK: /public/videos/shots/{shot_id}.mp4
+//             (legacy convention from the earlier wiring)
+//
+// If you dropped files using a slightly different name (e.g. "push-in.mp4"
+// instead of "push_in.mp4"), the picker tries kebab-case as a third option.
+//
+// Missing files silently fail (the <video> tag's onError hides the element
+// — the card still shows the title, tagline, and description).
 function resolvePreviewVideo(shot: ShotTypeConfig): string | undefined {
   if (shot.previewVideo) return shot.previewVideo;
-  return `/videos/shots/${shot.id}.mp4`;
+  return `/vantage/animate-single/${shot.id}.mp4`;
+}
+// Alternate paths the <video> tag will try via fallback <source> entries.
+// Filename conventions vary — try snake_case, kebab-case, and the label
+// slug so any reasonable drop works without code changes.
+function alternatePreviewVideos(shot: ShotTypeConfig): string[] {
+  const kebab = shot.id.replace(/_/g, "-");
+  const labelSlug = shot.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return [
+    // shot id with snake_case in legacy folder
+    `/videos/shots/${shot.id}.mp4`,
+    // shot id in kebab-case in the user's animate-single folder
+    `/vantage/animate-single/${kebab}.mp4`,
+    // label slug variant (e.g. "push-in.mp4" from label "Push In")
+    `/vantage/animate-single/${labelSlug}.mp4`,
+    `/videos/shots/${kebab}.mp4`,
+    `/videos/shots/${labelSlug}.mp4`,
+  ].filter((p, i, arr) => arr.indexOf(p) === i); // dedupe
 }
 function resolvePosterImage(shot: ShotTypeConfig): string | undefined {
   if (shot.posterImage) return shot.posterImage;
-  return `/videos/shots/${shot.id}.jpg`;
+  return `/vantage/animate-single/${shot.id}.jpg`;
 }
 
 function ShotCard({
@@ -51,6 +75,7 @@ function ShotCard({
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const previewSrc = resolvePreviewVideo(shot);
+  const altSources = alternatePreviewVideos(shot);
   const posterSrc = resolvePosterImage(shot);
 
   const handleHoverStart = () => {
@@ -113,19 +138,26 @@ function ShotCard({
       >
         <video
           ref={videoRef}
-          src={previewSrc}
           poster={posterSrc}
           muted
           loop
           playsInline
           preload="metadata"
-          // Hide the element entirely if it errors (no file at that path) so
-          // the panel just shows ink — cleaner than a broken <video> icon.
+          // Hide the element entirely if EVERY source 404s so the panel
+          // just shows ink — cleaner than a broken <video> icon.
           onError={(e) => {
             (e.currentTarget as HTMLVideoElement).style.opacity = "0";
           }}
           className="absolute inset-0 w-full h-full object-cover transition-opacity"
-        />
+        >
+          {/* Primary path — the vantage/animate-single folder. */}
+          <source src={previewSrc} type="video/mp4" />
+          {/* Alternate filenames the user might have dropped. The browser
+              tries each in order until one loads. */}
+          {altSources.map((src) => (
+            <source key={src} src={src} type="video/mp4" />
+          ))}
+        </video>
         {/* Play affordance — visible only when a preview is actually loaded */}
         <div
           className="absolute bottom-2 right-2 p-1.5 pointer-events-none"

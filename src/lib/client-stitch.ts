@@ -936,51 +936,79 @@ export async function downloadBlobOrUrl(
   const isAndroid = /Android/i.test(navigator.userAgent)
   const isMobile = isiOS || isAndroid
 
-  // ── FILENAME EXTENSION REFLECTS ACTUAL CONTENT ──
-  // Chrome's MediaRecorder produces WebM regardless of what we ask for —
-  // it can't mux MP4. Safari produces MP4. Previously we hard-coded .mp4
-  // on every download, which gave Chrome users an .mp4 file containing
-  // WebM bytes — iOS Safari refused to play it ("file corrupted").
+  // ── CROSS-ORIGIN FETCH-AS-BLOB ──
+  // For cross-origin URLs (Supabase signed URLs are *.supabase.co, the app
+  // runs on thevantage.media — that's cross-origin), the browser ignores
+  // the `download` attribute and the anchor click just navigates to the
+  // file. Mobile especially suffers: the page navigates to a bare video
+  // URL and the user has no obvious way to save it.
   //
-  // Now: detect the real container from blob.type and set the extension
-  // accordingly. The user sees an honest filename and any player that
-  // opens it sniffs the right codec.
-  let finalFilename = filename
-  if (typeof blobOrUrl !== "string" && blobOrUrl.type) {
-    const t = blobOrUrl.type.toLowerCase()
-    const realExt = t.includes("mp4") ? "mp4"
-                  : t.includes("webm") ? "webm"
-                  : t.includes("quicktime") ? "mov"
-                  : null
-    if (realExt) {
-      // Replace any existing extension with the real one
-      finalFilename = filename.replace(/\.(mp4|webm|mov|m4v)$/i, "") + `.${realExt}`
+  // Fetching the URL into a same-origin blob first lets `download` actually
+  // trigger a save dialog on every platform. The fetch round-trip adds
+  // ~200ms but it's the difference between "download works on phone" and
+  // "phone opens the video in a player and loses it".
+  let workingBlob: Blob
+  if (typeof blobOrUrl === "string") {
+    try {
+      const res = await fetch(blobOrUrl, { credentials: "omit" })
+      if (!res.ok) throw new Error(`fetch ${res.status}`)
+      workingBlob = await res.blob()
+    } catch (err) {
+      // CORS or network failure — try direct anchor as last resort. Will
+      // navigate on mobile but at least desktop right-click-save still works.
+      console.warn("[download] fetch-as-blob failed, falling back to direct URL:", err)
+      const a = document.createElement("a")
+      a.href = blobOrUrl
+      a.download = filename
+      a.rel = "noopener"
+      a.target = "_self"
+      document.body.appendChild(a)
+      a.click()
+      setTimeout(() => { try { document.body.removeChild(a) } catch {} }, 1500)
+      return true
     }
+  } else {
+    workingBlob = blobOrUrl
   }
 
-  // ── MOBILE WEBM HANDLING ──
-  // iOS Safari can't decode WebM at all. On mobile, if the blob is WebM,
-  // try the Web Share sheet first (lets the user pass it to another app
-  // that can re-encode — e.g. Photos won't accept it but most editor
-  // apps will). If share fails, the anchor-click fallback still saves
-  // the bytes; user can transfer to a desktop to use them.
-  if (isMobile && typeof blobOrUrl !== "string" && typeof (navigator as any).canShare === "function") {
+  // ── HONEST FILENAME EXTENSION ──
+  // Detect the real container from blob.type and write the extension to
+  // match. Chrome's MediaRecorder produces WebM regardless of request;
+  // pretending it's MP4 broke iOS Safari ("file corrupted" on open).
+  let finalFilename = filename
+  const blobType = (workingBlob.type || "").toLowerCase()
+  const realExt = blobType.includes("mp4") ? "mp4"
+                : blobType.includes("webm") ? "webm"
+                : blobType.includes("quicktime") || blobType.includes("mov") ? "mov"
+                : null
+  if (realExt) {
+    finalFilename = filename.replace(/\.(mp4|webm|mov|m4v)$/i, "") + `.${realExt}`
+  } else if (!/\.[a-z0-9]{2,4}$/i.test(filename)) {
+    // Blob type unknown AND no extension on the requested name — assume mp4.
+    finalFilename = `${filename}.mp4`
+  }
+
+  // ── MOBILE: PREFER WEB SHARE SHEET ──
+  // On iOS Safari especially, the share sheet is the most reliable path:
+  // it lets the user pick "Save to Files" / "Save Video" / "Save to Camera
+  // Roll" / "AirDrop". This works for MP4 universally and for WebM via
+  // third-party apps. The anchor-click fallback handles older mobile.
+  if (isMobile && typeof (navigator as any).canShare === "function") {
     try {
-      const file = new File([blobOrUrl], finalFilename, { type: blobOrUrl.type || "video/mp4" })
+      const fileType = workingBlob.type || (realExt === "mp4" ? "video/mp4" : "video/webm")
+      const file = new File([workingBlob], finalFilename, { type: fileType })
       const shareData: any = { files: [file], title: finalFilename }
       if ((navigator as any).canShare(shareData)) {
         await (navigator as any).share(shareData)
         return true
       }
-    } catch { /* fall through to anchor click */ }
+    } catch { /* fall through */ }
   }
 
-  // Universal blob anchor click — desktop, Android, AND modern iOS.
-  // target="_self" is critical for iOS so the click triggers a download
-  // instead of a navigation. Do NOT also call window.open afterwards —
-  // that's what made the previous version "open in another tab" instead
-  // of saving.
-  const url = typeof blobOrUrl === "string" ? blobOrUrl : URL.createObjectURL(blobOrUrl)
+  // ── UNIVERSAL BLOB ANCHOR CLICK ──
+  // Works for desktop and Android. iOS that doesn't have share API or
+  // refuses the share data falls through to here too.
+  const url = URL.createObjectURL(workingBlob)
   const a = document.createElement("a")
   a.href = url
   a.download = finalFilename
@@ -990,7 +1018,7 @@ export async function downloadBlobOrUrl(
   a.click()
   setTimeout(() => {
     try { document.body.removeChild(a) } catch { /* gone */ }
-    if (typeof blobOrUrl !== "string") URL.revokeObjectURL(url)
+    URL.revokeObjectURL(url)
   }, 1500)
   return true
 }

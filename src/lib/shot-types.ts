@@ -32,10 +32,12 @@ export type ShotType =
   | "tilt_down"           // ⤵️ Tilt Down — top-down sweep (rotation only)
   | "pedestal_up"         // 🛗 Pedestal Up — vertical camera translation (no tilt)
   | "pedestal_down"       // 🛗 Pedestal Down — vertical descent (no tilt)
-  // Rotational (orbits, ground + drone + roll)
+  // Rotational (orbits, ground + roll)
+  // drone_orbit deleted May 12, 2026 — Seedance interpreted "drone" literally
+  // and rendered a flying drone object in residential listings. Users hated
+  // it. Removed entirely rather than hidden.
   | "orbit_left"          // ↺ Orbit Left — ground-level subject orbit
   | "orbit_right"         // ↻ Orbit Right
-  | "drone_orbit"         // 🛸 Aerial Orbit — drone-style elevated arc
   | "camera_roll"         // 🌀 Camera Roll — rotation around lens axis
   // Architectural (precision slider)
   | "architectural";      // 🏛️ Architectural Slider — perfectly level lateral
@@ -281,18 +283,9 @@ export const SHOT_TYPES: ShotTypeConfig[] = [
     isPremium: false,
     creditCost: 25,
   },
-  {
-    id: "drone_orbit",
-    label: "Aerial Orbit",
-    tagline: "Drone-style arc",
-    description: "Elevated 60° aerial arc around the property — premium drone feel.",
-    category: "rotational",
-    recommendedFor: ["exterior", "landscape", "property"],
-    model: "seedance-2",
-    motionPrompt: "Slow aerial drone orbit around the subject.",
-    isPremium: true,
-    creditCost: 35,
-  },
+  // Aerial Orbit / drone_orbit was removed on May 12, 2026. Seedance read
+  // "drone" literally and rendered a flying drone object over residential
+  // listings. The entry is gone from the picker and the SHOT_CONFIG.
   {
     id: "camera_roll",
     label: "Camera Roll",
