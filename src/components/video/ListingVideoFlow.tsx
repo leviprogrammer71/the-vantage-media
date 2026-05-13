@@ -49,29 +49,38 @@ interface DfyStylePreset {
   shotRotation: ShotType[];
 }
 
+// ── SHOT ROTATIONS (May 12, 2026 — drone_orbit removed) ──
+// drone_orbit got pulled from every DFY rotation. Seedance interprets the
+// word "drone" literally and renders an actual drone in the frame, which
+// users hate on residential listings ("why is there a drone in my sky"
+// reports came in repeatedly). The shot is still available as a per-shot
+// pick in animate_single for users who specifically want aerial footage,
+// but no auto-rotation includes it. Replaced with truck_right (smooth
+// lateral, magazine-grade) which is what users wanted "drone orbit" for
+// anyway — a sense of the property's footprint from outside.
 const DFY_STYLES: DfyStylePreset[] = [
   {
     id: "editorial",
     title: "Editorial",
-    description: "Refined fashion-house typography. Serif price reveal. Slow magazine-grade pacing with 0.5s cross-dissolves.",
-    shotRotation: ["push_in", "architectural", "reveal_rise", "establishing", "parallax_left", "drone_orbit"],
+    description: "Refined fashion-house typography. Serif price reveal. Slow magazine-grade pacing.",
+    shotRotation: ["push_in", "architectural", "reveal_rise", "establishing", "parallax_left", "truck_right"],
   },
   {
     id: "snappy",
     title: "Snappy",
-    description: "Bold caps, high-contrast yellow price, sharp 0.3s wipe-left transitions. Built for TikTok and Reels feed.",
-    shotRotation: ["parallax_right", "drone_orbit", "push_in", "reveal_rise", "slide_left", "architectural"],
+    description: "Bold caps, high-contrast yellow price, sharp wipe-left transitions. Built for TikTok and Reels feed.",
+    shotRotation: ["parallax_right", "truck_right", "push_in", "reveal_rise", "slide_left", "architectural"],
   },
   {
     id: "cinema",
     title: "Cinema",
-    description: "Letterboxed crops, restrained type, 0.6s fade-through-black transitions. Looks like a luxury auto ad.",
-    shotRotation: ["establishing", "drone_orbit", "push_in", "architectural", "reveal_rise", "parallax_left"],
+    description: "Letterboxed crops, restrained type, fade-through-black transitions. Looks like a luxury auto ad.",
+    shotRotation: ["establishing", "truck_right", "push_in", "architectural", "reveal_rise", "parallax_left"],
   },
   {
     id: "minimal",
     title: "Minimal",
-    description: "Slow camera moves only — gentle dolly, architectural slider, pull-back. 0.9s extra-long cubic-eased dissolves between every shot. Nothing snaps. Just price, just elegance.",
+    description: "Slow camera moves only — gentle dolly, architectural slider, pull-back. Cubic-eased dissolves between every shot. Nothing snaps. Just price, just elegance.",
     shotRotation: ["push_in", "architectural", "establishing", "pull_out", "architectural", "establishing"],
   },
 ];

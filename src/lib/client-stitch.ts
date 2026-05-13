@@ -47,7 +47,14 @@ export interface StitchOptions {
 
 const W = 1080
 const H = 1920
-const FPS = 30
+// ── FPS MATCHED TO SOURCE (May 12, 2026) ──
+// Seedance 2.0 generates at 24fps (cinema standard) — we explicitly set
+// fps:24 on every Seedance call. The stitch canvas must encode at the same
+// rate, otherwise captureStream(30) samples a 24fps source at 30Hz, which
+// produces duplicated frames in the output (every 5th frame is identical
+// to the previous). The user sees this as "footage slowing down" in
+// random segments. 24fps end-to-end eliminates the resample artifact.
+const FPS = 24
 
 /** Pick a MediaRecorder mimeType the current browser supports.
  *
@@ -357,10 +364,19 @@ const TRANSITION_PROFILE: Record<
   NonNullable<StitchOptions["style"]>,
   { duration: number; type: "dissolve" | "fadeblack" | "slideleft" | "slow_dissolve" }
 > = {
-  editorial: { duration: 0.5,  type: "dissolve" },
-  cinema:    { duration: 0.6,  type: "fadeblack" },
-  snappy:    { duration: 0.45, type: "slideleft" },
-  minimal:   { duration: 0.9,  type: "slow_dissolve" },
+  // ── TRANSITION DURATIONS (May 12, 2026 — shortened) ──
+  // Long crossfades blend two simultaneously-decoded streams. Any decoder
+  // hiccup during the blend window shows up as a visible movement glitch
+  // (the user reported "movement glitches" especially on the minimal style
+  // which used a 0.9s slow_dissolve). Capping all transitions at ≤0.3s
+  // keeps the blend window short enough that decoder stalls don't have
+  // time to manifest, while still feeling cinematic. Slideleft on snappy
+  // doesn't blend (it's a hard-edge translate), so its previous 0.45s
+  // was already fine — kept short anyway for tempo.
+  editorial: { duration: 0.3,  type: "dissolve" },
+  cinema:    { duration: 0.3,  type: "fadeblack" },
+  snappy:    { duration: 0.3,  type: "slideleft" },
+  minimal:   { duration: 0.3,  type: "slow_dissolve" },
 }
 
 /** Per-style font stacks — researched from luxury real estate brand systems
@@ -610,7 +626,22 @@ export async function stitchClipsClientSide(
   // 4. MediaRecorder on the canvas stream — optionally with an audio
   //    track mixed in via WebAudio so the chosen song is permanently
   //    baked into the output MP4.
-  const videoStream = (canvas as any).captureStream(FPS) as MediaStream
+  //
+  // ── DETERMINISTIC FRAME CAPTURE (May 12, 2026) ──
+  // captureStream(N) is opportunistic — the stream sampler grabs whatever
+  // is on the canvas at its N-Hz tick, regardless of whether the canvas was
+  // redrawn since the last sample. During a rAF hiccup (GC pause, decoder
+  // stall, paint backlog), the sampler grabs the SAME frame twice in a
+  // row, producing a "movement glitch" the user sees as a momentary freeze
+  // or rate stutter in the encoded output.
+  //
+  // captureStream(0) opts out of automatic sampling — the recorder ONLY
+  // sees a new frame when we explicitly call track.requestFrame() after
+  // each canvas draw. That gives us frame-perfect synchronization: every
+  // encoded frame corresponds to exactly one rAF draw, no duplication, no
+  // skipping.
+  const videoStream = (canvas as any).captureStream(0) as MediaStream
+  const videoTrack = videoStream.getVideoTracks()[0] as any // CanvasCaptureMediaStreamTrack
 
   // Audio mixdown (optional). When opts.audioUrl is set, we fetch the file,
   // decode it via WebAudio, route it through a MediaStreamDestination, and
@@ -749,11 +780,19 @@ export async function stitchClipsClientSide(
   })
   const playState = videos.map((_, i) => i === 0)
 
-  // 6. Continuous rAF loop driving the canvas for the full output duration.
+  // 6. rAF loop driving the canvas. We gate the captureStream.requestFrame()
+  //    call to a fixed FPS-locked cadence (24 fps) so MediaRecorder gets
+  //    EXACTLY one frame per encoded slot. Without this throttle the rAF
+  //    loop ran at the display refresh rate (60-120 Hz) and the recorder
+  //    would either drop frames or duplicate them, producing the "footage
+  //    slows down then jumps" glitch the user saw.
   const startMs = performance.now()
+  const frameIntervalMs = 1000 / FPS
+  let lastCaptureMs = startMs - frameIntervalMs // emit first frame immediately
   await new Promise<void>((resolve) => {
     const tick = () => {
-      const t = (performance.now() - startMs) / 1000
+      const nowMs = performance.now()
+      const t = (nowMs - startMs) / 1000
       if (t >= totalDuration) {
         resolve()
         return
@@ -838,6 +877,21 @@ export async function stitchClipsClientSide(
         : 1
       drawOverlays(ctx, listing, watermark, style, clipProgress)
 
+      // Emit a captured frame to MediaRecorder only when we've crossed
+      // the next frame-interval boundary. This gates the encoder to exactly
+      // FPS frames per second regardless of how often rAF fires.
+      if (nowMs - lastCaptureMs >= frameIntervalMs) {
+        if (typeof videoTrack?.requestFrame === "function") {
+          videoTrack.requestFrame()
+        }
+        // Snap the next emit time to the grid so accumulated drift doesn't
+        // shift the encoded timing.
+        lastCaptureMs += frameIntervalMs
+        // If we fell badly behind (tab backgrounded, GC pause), don't try
+        // to catch up by spamming frames — just resume from now.
+        if (nowMs - lastCaptureMs > frameIntervalMs * 4) lastCaptureMs = nowMs
+      }
+
       // Progress reporting (20% load + 80% render)
       onProgress?.(0.2 + 0.8 * Math.min(1, t / totalDuration))
 
@@ -879,17 +933,46 @@ export async function downloadBlobOrUrl(
   filename: string
 ): Promise<boolean> {
   const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+  const isAndroid = /Android/i.test(navigator.userAgent)
+  const isMobile = isiOS || isAndroid
 
-  // iOS Safari: try the native Web Share sheet first (Save to Files / Photos).
-  if (isiOS && typeof blobOrUrl !== "string" && typeof (navigator as any).canShare === "function") {
+  // ── FILENAME EXTENSION REFLECTS ACTUAL CONTENT ──
+  // Chrome's MediaRecorder produces WebM regardless of what we ask for —
+  // it can't mux MP4. Safari produces MP4. Previously we hard-coded .mp4
+  // on every download, which gave Chrome users an .mp4 file containing
+  // WebM bytes — iOS Safari refused to play it ("file corrupted").
+  //
+  // Now: detect the real container from blob.type and set the extension
+  // accordingly. The user sees an honest filename and any player that
+  // opens it sniffs the right codec.
+  let finalFilename = filename
+  if (typeof blobOrUrl !== "string" && blobOrUrl.type) {
+    const t = blobOrUrl.type.toLowerCase()
+    const realExt = t.includes("mp4") ? "mp4"
+                  : t.includes("webm") ? "webm"
+                  : t.includes("quicktime") ? "mov"
+                  : null
+    if (realExt) {
+      // Replace any existing extension with the real one
+      finalFilename = filename.replace(/\.(mp4|webm|mov|m4v)$/i, "") + `.${realExt}`
+    }
+  }
+
+  // ── MOBILE WEBM HANDLING ──
+  // iOS Safari can't decode WebM at all. On mobile, if the blob is WebM,
+  // try the Web Share sheet first (lets the user pass it to another app
+  // that can re-encode — e.g. Photos won't accept it but most editor
+  // apps will). If share fails, the anchor-click fallback still saves
+  // the bytes; user can transfer to a desktop to use them.
+  if (isMobile && typeof blobOrUrl !== "string" && typeof (navigator as any).canShare === "function") {
     try {
-      const file = new File([blobOrUrl], filename, { type: blobOrUrl.type || "video/mp4" })
-      const shareData: any = { files: [file], title: filename }
+      const file = new File([blobOrUrl], finalFilename, { type: blobOrUrl.type || "video/mp4" })
+      const shareData: any = { files: [file], title: finalFilename }
       if ((navigator as any).canShare(shareData)) {
         await (navigator as any).share(shareData)
         return true
       }
-    } catch { /* fall through */ }
+    } catch { /* fall through to anchor click */ }
   }
 
   // Universal blob anchor click — desktop, Android, AND modern iOS.
@@ -900,7 +983,7 @@ export async function downloadBlobOrUrl(
   const url = typeof blobOrUrl === "string" ? blobOrUrl : URL.createObjectURL(blobOrUrl)
   const a = document.createElement("a")
   a.href = url
-  a.download = filename
+  a.download = finalFilename
   a.rel = "noopener"
   a.target = "_self"
   document.body.appendChild(a)

@@ -31,6 +31,11 @@ const KLING_NEGATIVE_PROMPT =
   "motion blur, compression artifacts, pixelation, jittery movement, " +
   "low quality, watermark, text overlay, morphing faces, smooth plastic skin, " +
   "sliding feet, text morphing, 3D render, cartoonish, " +
+  // Drone hallucinations — Seedance + Kling both interpret "aerial" /
+  // "drone" motion hints by adding an actual drone object in the sky.
+  // Real-estate users hate this. Explicit negatives keep the camera HIGH
+  // without putting a flying object in the frame.
+  "drone visible in frame, flying drone, quadcopter, hovering drone, aircraft, helicopter, airplane, " +
   // Anti-plastic stack (Civitai / Stable-Diffusion community-validated terms
   // — collected from architectural + interior prompt corpora)
   "airbrushed blur, over-smoothing, AI smoothing, doll-like finish, " +
@@ -246,9 +251,15 @@ const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: str
     motionHint: "slow camera orbit right around",
     pacing: "slow",
   },
+  // drone_orbit: phrased so Seedance renders the elevated camera MOVE
+  // without putting an actual drone object in the sky. The previous
+  // "aerial drone orbit" wording was interpreted literally — users got
+  // residential listings with a flying drone visible in shot. "elevated
+  // camera orbit from above" describes the same move (high vantage, arc
+  // around subject) without invoking the drone object.
   drone_orbit: {
     model: "seedance",
-    motionHint: "slow aerial drone orbit around",
+    motionHint: "slow elevated camera orbit from above around",
     pacing: "slow",
   },
   // user-verified working: "slow camera roll of still house"
