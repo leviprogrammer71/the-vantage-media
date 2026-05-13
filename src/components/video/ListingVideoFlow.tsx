@@ -392,6 +392,16 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
       // ── Async path: edge function returned prediction_id(s), poll until ready ──
       let finalVideoUrl: string | null = response.data?.video_url || null;
       let finalClipUrls: string[] = response.data?.clip_urls || [];
+      // CRITICAL: capture the permanent storage paths returned by the edge
+      // function. Pre-fix, the poll branch only captured video_url + clip_urls
+      // and silently dropped output_video_path / output_clip_paths, leaving
+      // bundles with only the ephemeral Replicate URLs in the DB. Every
+      // bundle generation older than 24h showed as a dead link in the gallery
+      // because of this single missing line.
+      let finalVideoPath: string | null = response.data?.output_video_path || null;
+      let finalClipPathsFromServer: string[] = Array.isArray(response.data?.output_clip_paths)
+        ? response.data.output_clip_paths
+        : [];
       const isBundleAsync =
         response.data?.status === "processing" &&
         Array.isArray(response.data?.prediction_ids);
@@ -427,6 +437,13 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             finalVideoUrl = pollRes.data.video_url;
             if (Array.isArray(pollRes.data?.clip_urls) && pollRes.data.clip_urls.length > 0) {
               finalClipUrls = pollRes.data.clip_urls;
+            }
+            // CRITICAL: grab the persistence paths from the poll response.
+            if (pollRes.data?.output_video_path) {
+              finalVideoPath = pollRes.data.output_video_path;
+            }
+            if (Array.isArray(pollRes.data?.output_clip_paths) && pollRes.data.output_clip_paths.length > 0) {
+              finalClipPathsFromServer = pollRes.data.output_clip_paths;
             }
             break;
           }
@@ -464,7 +481,22 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
       // though the videos generated successfully.
       let createdSubmissionId: string | null = null;
       try {
-        const finalClipPaths: string[] = response.data?.output_clip_paths || (response.data?.output_video_path ? [response.data.output_video_path] : []);
+        // Use the paths captured from EITHER the initial response (sync path)
+        // OR the final poll response (async path). Previously this line only
+        // looked at the initial response.data — which on async generations is
+        // the "processing" payload with no paths set. That's why bundles
+        // were saving only the Replicate URL and dying after 24h.
+        const finalClipPaths: string[] = finalClipPathsFromServer.length > 0
+          ? finalClipPathsFromServer
+          : (finalVideoPath ? [finalVideoPath] : []);
+        console.log("[ListingVideoFlow] persistence summary:", {
+          finalVideoPath,
+          clipPathCount: finalClipPaths.length,
+          clipUrlCount: allClips.length,
+          missingPaths: finalClipPaths.length === 0
+            ? "⚠️ NO STORAGE PATHS — gallery will use expiring Replicate URL"
+            : "✅ storage paths captured",
+        });
         const { data: insertData, error: insertErr } = await supabase
           .from("submissions")
           .insert({
