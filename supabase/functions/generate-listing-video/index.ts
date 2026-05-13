@@ -999,6 +999,16 @@ async function startVideoGeneration(
   // Kling accepts start_image/end_image + negative_prompt API field.
   // Seedance Pro accepts `image` only — Seedance IGNORES negative_prompt
   // per ByteDance docs, so we never send one.
+  //
+  // ── QUALITY MAX-OUT (May 12, 2026) ──
+  // Seedance: 1080p is the model's ceiling. fps:24 is the cinema standard
+  //   that gives the output a "shot on film" cadence (vs the soap-opera
+  //   30fps look). camera_fixed:false because we ARE moving the camera —
+  //   leaving it default false ensures the model doesn't lock the camera.
+  // Kling: cfg_scale:0.7 (above the 0.5 default) tightens prompt adherence,
+  //   which for real estate translates to fewer hallucinated objects, more
+  //   architectural fidelity. negative_prompt remains the primary defect
+  //   gate.
   const modelInput: Record<string, unknown> = useSeedance
     ? {
         prompt,
@@ -1006,6 +1016,8 @@ async function startVideoGeneration(
         duration,
         aspect_ratio: "9:16",
         resolution: "1080p",
+        fps: 24,
+        camera_fixed: false,
       }
     : {
         prompt,
@@ -1013,6 +1025,7 @@ async function startVideoGeneration(
         duration,
         aspect_ratio: "9:16",
         negative_prompt: KLING_NEGATIVE_PROMPT,
+        cfg_scale: 0.7,
       }
 
   console.log(`[generateVideo] model=${useSeedance ? "seedance-2" : "kling"} endpoint=${endpoint} duration=${duration}s`)
@@ -1855,6 +1868,8 @@ async function startSeedanceFromImage(
           duration,
           aspect_ratio: "9:16",
           resolution: "1080p",
+          fps: 24,
+          camera_fixed: false,
         },
       }),
     }

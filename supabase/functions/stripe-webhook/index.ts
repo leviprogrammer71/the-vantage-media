@@ -33,13 +33,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2"
 //   the whole point of the annual discount).
 const PRICE_TYPE_TO_CREDITS: Record<string, number> = {
   // Credit packs — monthly billing
-  starter: 200,         // STARTER: 200 cr / $19 mo
+  starter: 300,         // STARTER: 300 cr / $30 mo (bumped from $19/200cr May 12, 2026)
   standard: 500,        // BUILDER: 500 cr / $39 mo
   value: 1200,          // PRO:    1200 cr / $79 mo (best value)
   pro_pack: 3000,       // STUDIO: 3000 cr / $149 mo
 
   // Credit packs — annual billing (12 months of credits + 2-month bonus on day 1)
-  starter_annual: 2800,    // 200*12 + 400 bonus = 2800 cr / $160 yr
+  starter_annual: 4200,    // 300*12 + 600 bonus = 4200 cr / $252 yr
   standard_annual: 7000,   // 500*12 + 1000 bonus = 7000 cr / $328 yr
   value_annual: 16800,     // 1200*12 + 2400 bonus = 16800 cr / $664 yr
   pro_pack_annual: 42000,  // 3000*12 + 6000 bonus = 42000 cr / $1252 yr

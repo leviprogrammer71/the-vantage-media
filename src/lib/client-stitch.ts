@@ -664,9 +664,22 @@ export async function stitchClipsClientSide(
   // to scale with pixel count, not fall back to landscape defaults.
   // For VP8 fallback (some Firefox builds), 24 Mbps is necessary just to
   // match VP9 at 14-16 Mbps.
+  // Both videoBitsPerSecond AND bitsPerSecond are set — some browsers honor
+  // only the combined `bitsPerSecond`, others only the per-track hints. With
+  // both set we get max bitrate compliance everywhere. 24,256,000 = 24M video
+  // + 256K audio sum.
   const recorderOpts: MediaRecorderOptions = mimeType
-    ? { mimeType, videoBitsPerSecond: 24_000_000, audioBitsPerSecond: 256_000 }
-    : { videoBitsPerSecond: 24_000_000, audioBitsPerSecond: 256_000 }
+    ? {
+        mimeType,
+        videoBitsPerSecond: 24_000_000,
+        audioBitsPerSecond: 256_000,
+        bitsPerSecond: 24_256_000,
+      }
+    : {
+        videoBitsPerSecond: 24_000_000,
+        audioBitsPerSecond: 256_000,
+        bitsPerSecond: 24_256_000,
+      }
 
   // Defensive recorder construction. If MediaRecorder still rejects the
   // mimeType we picked (some browsers report isTypeSupported as true but
@@ -690,8 +703,15 @@ export async function stitchClipsClientSide(
     recorder = new MediaRecorder(
       videoStream,
       fallback.mimeType
-        ? { mimeType: fallback.mimeType, videoBitsPerSecond: 24_000_000 }
-        : { videoBitsPerSecond: 24_000_000 },
+        ? {
+            mimeType: fallback.mimeType,
+            videoBitsPerSecond: 24_000_000,
+            bitsPerSecond: 24_000_000,
+          }
+        : {
+            videoBitsPerSecond: 24_000_000,
+            bitsPerSecond: 24_000_000,
+          },
     )
   }
   const chunks: Blob[] = []

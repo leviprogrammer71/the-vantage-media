@@ -3,7 +3,7 @@
  *
  * Watermark gating (current policy):
  *   - Free (no purchase):     watermark BAKED IN, no toggle
- *   - STARTER ($19 pack):     watermark BAKED IN, no toggle
+ *   - STARTER ($30 pack):     watermark BAKED IN, no toggle
  *   - BUILDER ($39 pack) +:   watermark OFF by default, user can opt back in
  *   - PRO / STUDIO + annuals: same as BUILDER (off by default)
  *

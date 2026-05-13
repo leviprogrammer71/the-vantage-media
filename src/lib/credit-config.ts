@@ -53,21 +53,26 @@ export const CREDIT_PACKS = [
   {
     id: "starter",
     name: "STARTER",
-    credits: 200,
-    price: 19, // legacy field — kept for any callers still reading .price
-    price_monthly: 19,
-    price_annual: 160,        // $13.33/mo equivalent — 30% off + 2-month bonus
-    annual_credits_bonus: 400, // 2 extra months of credits at sign-up
-    perCredit: "$0.095",
+    credits: 300,
+    // ── PRICING UPDATE — May 12, 2026 ──
+    // Bumped from $19/200cr ($0.095/cr) to $30/300cr ($0.10/cr) to lift the
+    // entry price out of the impulse-purchase zone and improve unit economics
+    // on the lowest tier (the cohort that previously generated 2–3 reels and
+    // churned). $30 also creates a cleaner ladder: $30 → $39 → $79 → $149.
+    price: 30, // legacy field — kept for any callers still reading .price
+    price_monthly: 30,
+    price_annual: 252,        // $21/mo equivalent — 30% off + 2-month bonus
+    annual_credits_bonus: 600, // 2 extra months of credits at sign-up
+    perCredit: "$0.10",
     savings: null,
     popular: false,
     bestValue: false,
     priceType: "starter",
     priceTypeAnnual: "starter_annual",
-    valueCallout: "~5 TRANSFORMATION VIDEOS",
+    valueCallout: "~7 TRANSFORMATION VIDEOS",
     features: [
-      "5 transformation videos",
-      "or 10 listing videos",
+      "7 transformation videos",
+      "or 15 listing videos",
       "or mix and match freely",
       "Subtle watermark on every export · removed on BUILDER + above",
       "Credits valid 12 months from purchase",

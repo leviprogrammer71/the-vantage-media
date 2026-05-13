@@ -440,7 +440,7 @@ const Pricing = () => {
 
                       {/* CRO P0 #5 — Value anchor on PRO (best-value tier).
                           The single biggest lever for AOV: visitors gravitate
-                          to STARTER ($19) without context. Showing the per-reel
+                          to STARTER ($30) without context. Showing the per-reel
                           cost next to the cheapest competitor reframes PRO as
                           the obvious deal — "$2.60 per reel vs $300 from a
                           videographer." Only renders on the bestValue tier so
