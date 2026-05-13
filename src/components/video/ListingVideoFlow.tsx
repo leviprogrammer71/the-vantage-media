@@ -571,17 +571,18 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
           .select("id")
           .maybeSingle();
         if (insertErr) {
-          // Silent — the video itself is in storage and downloadable. Failing
-          // to also write the gallery row is a backend nuisance, not a user
-          // problem. Log loudly so we see it in monitoring; don't bother the
-          // user with a half-success toast that just confuses them.
+          // Log loudly AND surface to user. Silencing this hid a migration
+          // mismatch (missing output_clip_urls column) for days — users
+          // were generating but nothing appeared in the gallery. Now we
+          // tell them so we catch schema drift early.
           console.error("[ListingVideoFlow] gallery insert failed:", insertErr);
+          toast.error(`Gallery save failed: ${insertErr.message ?? "schema mismatch"}`);
         } else {
           createdSubmissionId = insertData?.id ?? null;
         }
       } catch (persistErr) {
-        // Same — silent recovery. The user has their video.
         console.error("[ListingVideoFlow] gallery persist exception:", persistErr);
+        toast.error("Couldn't save to gallery — your video is still downloadable from this page.");
       }
 
       // Pass description + submissionId so the deduct hits the new
@@ -642,14 +643,17 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     setStitchProgress(0);
 
     try {
-      // Resolve audio: explicit user pick by label, else auto-suggest from
-      // the chosen style preset, else silent.
-      const userPick = SUNO_PRESETS.find((p) => p.label === musicVibe);
-      const autoPick = userPick ? null : defaultSongForStyle(stitchStyle);
-      const audioPreset = userPick ?? autoPick;
-      const audioUrl =
-        musicVibe && musicVibe.startsWith("No music") ? undefined :
-        audioPreset?.audio;
+      // ── MUSIC REMOVED FROM STITCH (May 13, 2026) ──
+      // Per user feedback: audio mixdown was reducing video quality (the
+      // combined audio+video mimeType constraints in MediaRecorder forced
+      // codec choices that hurt the image), AND producing "black screen
+      // with music" failures (audio context starting before video decoded,
+      // racing condition). User priority is video quality over music.
+      //
+      // The /music page still hosts the Suno library for users who want to
+      // add their own track in CapCut / their editor of choice. Their reel
+      // ships clean (silent), they overlay music themselves.
+      const audioUrl: string | undefined = undefined;
 
       const result = await stitchClipsClientSide({
         clips: clipUrls,
