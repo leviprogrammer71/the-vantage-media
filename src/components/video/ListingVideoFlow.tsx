@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/hooks/useCredits";
 import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
@@ -235,7 +235,9 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   const [stagingStyle, setStagingStyle] = useState<StagingStyle>("modern");
   const [sketchIntent, setSketchIntent] = useState<"interior" | "exterior">("interior");
 
-  // Form state (Step 3)
+  // Form state (Step 3) — every field is OPTIONAL. Users have profiles, so
+  // we pre-fill from there. The "Generate" CTA works even with all fields
+  // blank — the video itself doesn't need a name or address to render.
   const [realtorName, setRealtorName] = useState("");
   const [location, setLocation] = useState("");
   const [showPrice, setShowPrice] = useState(true);
@@ -243,6 +245,29 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   const [brokerage, setBrokerage] = useState("");
   const [caption, setCaption] = useState("");
   const [musicVibe, setMusicVibe] = useState("Cinematic Slow Build");
+
+  // Pre-populate the realtor name from the user's profile. Run once on
+  // mount; never overwrite a value the user has already typed. Saves the
+  // realtor the tedium of retyping their own name on every reel.
+  // (Profile only stores full_name — brokerage is per-listing and can be
+  // pulled from the user's most-recent submission if we want to deepen
+  // pre-fill later.)
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled || error || !data) return;
+      const profileFullName = (data as any).full_name as string | null;
+      if (profileFullName && !realtorName) setRealtorName(profileFullName);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -313,8 +338,15 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   };
 
   const handleGenerate = async () => {
-    if (!category || !photos.length) {
-      toast.error("Missing required information");
+    // Only two genuine requirements: a category picked and at least one
+    // photo uploaded. Listing metadata (name, location, price, brokerage,
+    // caption) is OPTIONAL — the user can generate with bare photos.
+    if (!category) {
+      toast.error("Pick a film type first");
+      return;
+    }
+    if (!photos.length) {
+      toast.error("Upload at least one photo");
       return;
     }
 
@@ -1195,20 +1227,85 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
 
           {photos.length > 0 && (
             <div className="mt-10">
-              <p className="lux-eyebrow mb-6" style={{ color: "var(--lux-brass)" }}>
-                {photos.length} PHOTO{photos.length !== 1 ? "S" : ""} SELECTED
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              <div className="flex items-center justify-between mb-6">
+                <p className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>
+                  {photos.length} PHOTO{photos.length !== 1 ? "S" : ""} SELECTED
+                  {(category === "listing_bundle" || category === "done_for_you_reel") && " · ORDER MATTERS"}
+                </p>
+                {photos.length > 1 && (
+                  <button
+                    onClick={() => setPhotos([])}
+                    className="lux-eyebrow"
+                    style={{
+                      color: "var(--lux-rust)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "0.7rem",
+                    }}
+                  >
+                    CLEAR ALL ×
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {photos.map((photo, i) => (
-                  <div key={i} className="relative group">
-                    <img src={photo.preview} alt={`Photo ${i + 1}`} className="w-full h-40 object-cover" style={{ border: "1px solid var(--lux-hairline)" }} />
+                  <div key={i} className="relative" style={{ aspectRatio: "1 / 1" }}>
+                    <img
+                      src={photo.preview}
+                      alt={`Photo ${i + 1}`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      style={{ border: "1px solid var(--lux-hairline)" }}
+                    />
+                    {/* Always-visible playback-order number — users need to
+                        SEE the order their photos will play in. Previously
+                        hidden, which made photographers re-upload in the
+                        wrong order. */}
+                    {(category === "listing_bundle" || category === "done_for_you_reel") && (
+                      <div
+                        className="absolute top-2 left-2 lux-display flex items-center justify-center"
+                        style={{
+                          width: 28,
+                          height: 28,
+                          background: "var(--lux-ink)",
+                          color: "var(--lux-bone)",
+                          fontSize: "0.9rem",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {i + 1}
+                      </div>
+                    )}
+                    {/* Always-visible delete X. The previous version hid
+                        the X until hover, which made mobile users (no
+                        hover state) unable to remove photos. */}
                     <button
                       onClick={() => setPhotos(photos.filter((_, j) => j !== i))}
-                      className="absolute top-2 right-2 p-1 bg-lux-ink rounded opacity-0 group-hover:opacity-100 transition"
-                      style={{ background: "var(--lux-ink)" }}
+                      aria-label={`Remove photo ${i + 1}`}
+                      className="absolute top-2 right-2 flex items-center justify-center transition-transform hover:scale-110"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        background: "var(--lux-ink)",
+                        color: "var(--lux-bone)",
+                        border: "1px solid var(--lux-bone)",
+                        cursor: "pointer",
+                      }}
                     >
-                      <X className="w-4 h-4" style={{ color: "var(--lux-bone)" }} />
+                      <X className="w-3.5 h-3.5" />
                     </button>
+                    {/* Filename caption — at-a-glance which file is which */}
+                    <div
+                      className="absolute bottom-0 left-0 right-0 px-2 py-1.5 lux-prose truncate"
+                      style={{
+                        background: "rgba(14,14,12,0.65)",
+                        color: "var(--lux-bone)",
+                        fontSize: "0.7rem",
+                      }}
+                      title={photo.file?.name || `photo-${i + 1}`}
+                    >
+                      {photo.file?.name || `photo-${i + 1}`}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1247,22 +1344,79 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             ← Back
           </button>
 
-          <div className="mb-12">
+          <div className="mb-8">
             <h2 className="lux-display mb-2" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
               Property details
+              <span
+                className="lux-eyebrow ml-3 align-middle"
+                style={{
+                  color: "var(--lux-brass)",
+                  fontSize: "0.7rem",
+                  letterSpacing: "0.2em",
+                }}
+              >
+                ALL OPTIONAL
+              </span>
             </h2>
             <p className="lux-prose" style={{ color: "var(--lux-ash)" }}>
-              {category === "virtual_staging" ? "These details help style the scene." : "These details appear in your video and social caption."}
+              {category === "virtual_staging"
+                ? "These details help style the scene — but you can skip them all and just generate."
+                : "These details appear in your video and social caption. Every field is optional — your profile name pre-fills automatically, and you can generate right now without filling anything in."}
             </p>
           </div>
+
+          {/* ── SKIP-AND-GENERATE ──
+              Users have profiles. They shouldn't be forced to retype their
+              name + brokerage + address on every reel. This CTA lets them
+              jump straight to generation, useful for fast iteration during
+              testing or when the listing is still in pre-launch and they
+              just want to see what the camera move looks like. */}
+          {showListingMetadata && (
+            <div
+              className="mb-10 p-5 flex items-center justify-between gap-4"
+              style={{
+                background: "var(--lux-cream)",
+                border: "1px solid var(--lux-hairline-strong)",
+              }}
+            >
+              <div>
+                <p
+                  className="lux-eyebrow mb-1"
+                  style={{ color: "var(--lux-brass)", fontSize: "0.65rem" }}
+                >
+                  IN A HURRY?
+                </p>
+                <p className="lux-prose" style={{ color: "var(--lux-ink)", fontSize: "0.9rem" }}>
+                  Skip the details — generate the video with no overlay text.
+                </p>
+              </div>
+              <button
+                onClick={handleGenerate}
+                disabled={!hasEnoughCredits || isGenerating}
+                className="lux-eyebrow whitespace-nowrap"
+                style={{
+                  background: "var(--lux-ink)",
+                  color: "var(--lux-bone)",
+                  padding: "12px 18px",
+                  border: "1px solid var(--lux-ink)",
+                  fontSize: "0.7rem",
+                  letterSpacing: "0.18em",
+                  cursor: !hasEnoughCredits || isGenerating ? "not-allowed" : "pointer",
+                  opacity: !hasEnoughCredits || isGenerating ? 0.5 : 1,
+                }}
+              >
+                SKIP & GENERATE →
+              </button>
+            </div>
+          )}
 
           <div className="space-y-8">
             {showListingMetadata && (
               <>
-                {/* Realtor Name */}
+                {/* Realtor Name — pre-filled from profile.full_name */}
                 <div>
                   <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-brass)" }}>
-                    REALTOR / AGENT NAME
+                    REALTOR / AGENT NAME <span style={{ opacity: 0.55 }}>· OPTIONAL · FROM YOUR PROFILE</span>
                   </label>
                   <input
                     type="text"
@@ -1277,7 +1431,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                 {/* Location */}
                 <div>
                   <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-brass)" }}>
-                    LOCATION
+                    LOCATION <span style={{ opacity: 0.55 }}>· OPTIONAL</span>
                   </label>
                   <input
                     type="text"
@@ -1307,7 +1461,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                 {showPrice && (
                   <div>
                     <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-brass)" }}>
-                      LISTING PRICE
+                      LISTING PRICE <span style={{ opacity: 0.55 }}>· OPTIONAL</span>
                     </label>
                     <div className="flex items-center gap-2">
                       <span style={{ color: "var(--lux-ink)" }} className="lux-prose font-semibold">
@@ -1328,7 +1482,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                 {/* Brokerage */}
                 <div>
                   <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-brass)" }}>
-                    BROKERAGE (OPTIONAL)
+                    BROKERAGE <span style={{ opacity: 0.55 }}>· OPTIONAL</span>
                   </label>
                   <input
                     type="text"
@@ -1342,8 +1496,8 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
 
                 {/* Caption */}
                 <div>
-                  <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-ink)", fontWeight: 700 }}>
-                    CAPTION (OPTIONAL)
+                  <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-brass)" }}>
+                    CAPTION <span style={{ opacity: 0.55 }}>· OPTIONAL</span>
                   </label>
                   <textarea
                     value={caption || generatedCaption}
