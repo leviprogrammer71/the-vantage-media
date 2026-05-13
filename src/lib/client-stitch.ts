@@ -443,13 +443,15 @@ function ensureUnsharpFilter() {
   document.body.appendChild(wrap)
 }
 
-/** Whether to apply the unsharp pass. Off for snappy (already punchy) so
- *  the output doesn't look brittle on social feeds. */
+/** Sharpen pass applied to every style. Snappy was the only style without
+ *  sharpening — but snappy is the most-watched on social feeds where the
+ *  re-encode compresses heavily, so it benefits from MORE sharpening at the
+ *  source, not less, to survive Reels/TikTok's recompression pipeline. */
 const UNSHARP_BY_STYLE: Record<NonNullable<StitchOptions["style"]>, boolean> = {
   editorial: true,
   cinema:    true,
   minimal:   true,
-  snappy:    false,
+  snappy:    true, // ← enabled May 12, 2026 — social re-encode benefits from extra sharpness at source
 }
 
 /** Cover-fit a video frame into the 1080×1920 canvas at a given alpha.
@@ -472,6 +474,15 @@ function drawVideoCover(
   const dy = (H - dh) / 2
   ctx.save()
   ctx.globalAlpha = alpha
+  // ── QUALITY: pixel-perfect draws skip the bicubic resample ──
+  // When source video matches the canvas dimensions exactly (Seedance 9:16
+  // 1080p → 1080×1920 canvas with scale=1.0), bicubic resampling adds a
+  // visible softening pass even at imageSmoothingQuality="high". Disabling
+  // smoothing for 1:1 maps preserves source sharpness. Sources at different
+  // aspect ratios keep "high" smoothing because they actually need scaling.
+  const needsScale = Math.abs(scale - 1.0) > 0.001
+  ctx.imageSmoothingEnabled = needsScale
+  if (needsScale) ctx.imageSmoothingQuality = "high"
   // Per-style colour grade — equivalent to FFmpeg `eq=saturation=…:contrast=…`
   // applied to the source clip before the overlay layer. Each preset is
   // visibly distinct so the user can tell editorial/cinema/snappy/minimal

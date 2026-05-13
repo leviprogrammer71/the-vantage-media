@@ -973,12 +973,28 @@ async function startVideoGeneration(
   duration: number,
   token: string,
   context?: ClipContext,
+  forceModel?: "kling" | "seedance",
 ): Promise<{ videoUrl?: string; predictionId?: string }> {
   const config = SHOT_CONFIG[shotType]
   if (!config) throw new Error(`Unknown shot type: ${shotType}`)
 
-  // Auto-promote long-form clips to Seedance 2.0 even when the shot type defaults to Kling
-  const useSeedance = config.model === "seedance" || duration >= LONG_FORM_THRESHOLD_SECONDS
+  // Model selection:
+  //   • forceModel="kling" overrides per-shot config — used by animate_single
+  //     where source-image fidelity matters more than speed (Kling 2.5 Turbo
+  //     Pro is documented as more faithful to start_image, which kills the
+  //     hallucinated-furniture / leaves-the-room failure mode we saw on
+  //     Seedance for single-photo animations).
+  //   • Long-form clips auto-promote to Seedance regardless because Kling
+  //     caps out at 10s and can't handle the bundle 5s clip pace at scale.
+  //   • Default falls back to the per-shot config.model value.
+  let useSeedance: boolean
+  if (forceModel === "kling") {
+    useSeedance = false
+  } else if (forceModel === "seedance") {
+    useSeedance = true
+  } else {
+    useSeedance = config.model === "seedance" || duration >= LONG_FORM_THRESHOLD_SECONDS
+  }
 
   // Per-model prompt grammar:
   //   Seedance gets compressed (~60 words) per ByteDance docs.
@@ -1349,12 +1365,24 @@ serve(async (req) => {
       const animateContext = text_overlay?.text
         ? { textOverlay: text_overlay as { text: string; fontStyle?: string; timing?: "intro" | "middle" | "outro" } }
         : undefined
+      // ── HALLUCINATION FIX (May 12, 2026) ──
+      // animate_single forces Kling instead of Seedance. Reason:
+      //   • Seedance treats the source image as a "seed" and willingly
+      //     extends scenes — adding furniture, rooms, doorways that don't
+      //     exist in the user's photo.
+      //   • Kling 2.5 Turbo Pro treats start_image as an anchor it must
+      //     return to — far better fidelity to the photo the user uploaded.
+      //   • Trade-off: Kling is ~15% slower. Worth it for single-photo
+      //     animations where fidelity matters more than throughput.
+      // Bundles and other categories keep their Seedance routing because
+      // throughput dominates there.
       const result = await startVideoGeneration(
         sourceImageUrl,
         shot_type,
         duration || 5,
         REPLICATE_TOKEN,
         animateContext,
+        "kling", // forceModel — animate_single needs source-image fidelity
       )
 
       // Synchronous success
@@ -1413,10 +1441,22 @@ serve(async (req) => {
       // continuous positive motion across the frame.
       // Minimal Seedance prompt — user-empirically-verified that short
       // prompts produce dramatically cleaner output than rich ones.
-      // Enhanced: "golden" anchors the grade ByteDance expands toward (warm
-      // light), "smoothly" reinforces continuity. Kept at 14 words.
+      // ── FULL DAY-CYCLE PROMPT (May 12, 2026) ──
+      // Previous prompt stopped midway because Seedance treats "from sunrise
+      // to dusk" as a vibe descriptor rather than a forced timeline. The
+      // model wandered through some lighting variation and stopped before
+      // the full arc completed.
+      //
+      // New prompt forces:
+      //   1. Explicit duration anchor ("10 seconds")
+      //   2. Explicit START state ("begin at sunrise")
+      //   3. Explicit END state ("end at sunset")
+      //   4. Explicit motion completion ("sun completes a full arc")
+      //   5. Anti-truncation cue ("the cycle finishes within the clip")
+      // Empirically tested winners on Seedance favor short prompts BUT
+      // benefit from a clear end-state when the desired motion is large.
       const dayCyclePrompt =
-        "smooth time-lapse from golden sunrise to amber dusk on still house, locked camera, sun arcs gracefully across the sky"
+        "10-second time-lapse on still house: begin at sunrise, sun completes a full arc across the sky, end at amber sunset; locked camera, lighting evolves smoothly through golden hour, the full day cycle finishes within the clip"
 
       console.log("[sun_to_sun] kicking off single Seedance 2.0 day-cycle prediction (10s)")
       const result = await startSeedanceFromImage(

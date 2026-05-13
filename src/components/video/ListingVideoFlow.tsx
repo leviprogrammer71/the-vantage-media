@@ -530,14 +530,17 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
           .select("id")
           .maybeSingle();
         if (insertErr) {
+          // Silent — the video itself is in storage and downloadable. Failing
+          // to also write the gallery row is a backend nuisance, not a user
+          // problem. Log loudly so we see it in monitoring; don't bother the
+          // user with a half-success toast that just confuses them.
           console.error("[ListingVideoFlow] gallery insert failed:", insertErr);
-          toast.error("Saved your video but couldn't add it to your gallery — please screenshot the download link.");
         } else {
           createdSubmissionId = insertData?.id ?? null;
         }
       } catch (persistErr) {
+        // Same — silent recovery. The user has their video.
         console.error("[ListingVideoFlow] gallery persist exception:", persistErr);
-        toast.error("Saved your video but gallery sync failed. Try refreshing the gallery in a minute.");
       }
 
       // Pass description + submissionId so the deduct hits the new
@@ -557,10 +560,13 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
       if (category === "done_for_you_reel" && allClips.length > 1) {
         // Don't await — let the user see the per-clip player while stitching runs
         // in the background. The result screen swaps to the stitched MP4 when ready.
+        // No toast on failure — the per-clip player still works as a fallback,
+        // and the "Stitch into Single MP4" button is right there if they want
+        // to retry. A bare error toast just confuses users who don't know what
+        // stitching is.
         setTimeout(() => {
           handleStitchReel().catch((e) => {
             console.error("[done_for_you_reel] auto-stitch failed:", e);
-            toast.error("Auto-stitch failed — tap 'Stitch into Single MP4' to retry");
           });
         }, 500);
       }
@@ -627,10 +633,11 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
       toast.success("Final cut ready. Tap download to save.");
       return;
     } catch (err) {
-      const msg = (err as Error).message;
+      // Silent on failure — the user still has every individual clip and can
+      // download them per-photo. Surfacing a raw stitcher error toast was
+      // confusing users who didn't know what stitching was. Log loudly so
+      // monitoring catches the case; let the UI fall back to per-clip mode.
       console.error("[ListingVideoFlow] stitching error:", err);
-      setError(msg);
-      toast.error(msg);
     } finally {
       setIsStitching(false);
     }

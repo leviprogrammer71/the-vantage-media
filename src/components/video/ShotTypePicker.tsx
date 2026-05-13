@@ -1,16 +1,199 @@
 import { cn } from "@/lib/utils";
+import { useRef } from "react";
 import {
   SHOT_TYPES,
   SHOT_CATEGORY_LABELS,
   shotsByCategory,
   type ShotType,
   type ShotCategory,
+  type ShotTypeConfig,
 } from "@/lib/shot-types";
-import { Coins } from "lucide-react";
+import { Coins, PlayCircle } from "lucide-react";
 
 interface ShotTypePickerProps {
   value: ShotType;
   onChange: (shotType: ShotType) => void;
+}
+
+/**
+ * Single shot card with a preview video that plays on hover/focus.
+ *
+ * Each ShotTypeConfig may define `previewVideo` (a 5-second loop showing the
+ * camera move on a real listing) and `posterImage` (frame-zero still shown
+ * before the video plays). When the user hovers the card, the video plays
+ * muted + looping so they can see the move before committing credits.
+ * The poster shows when neither is hovering nor playing.
+ */
+// Auto-resolve a preview video path by convention:
+//   /public/videos/shots/{shot_id}.mp4
+// The user drops a file at that path and the preview appears. No code change
+// needed per shot. If the file doesn't exist, the <video> tag silently
+// renders nothing (the poster image carries the visual instead).
+//
+// Posters follow the same convention: /public/videos/shots/{shot_id}.jpg
+function resolvePreviewVideo(shot: ShotTypeConfig): string | undefined {
+  if (shot.previewVideo) return shot.previewVideo;
+  return `/videos/shots/${shot.id}.mp4`;
+}
+function resolvePosterImage(shot: ShotTypeConfig): string | undefined {
+  if (shot.posterImage) return shot.posterImage;
+  return `/videos/shots/${shot.id}.jpg`;
+}
+
+function ShotCard({
+  shot,
+  isSelected,
+  onClick,
+}: {
+  shot: ShotTypeConfig;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const previewSrc = resolvePreviewVideo(shot);
+  const posterSrc = resolvePosterImage(shot);
+
+  const handleHoverStart = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.currentTime = 0;
+    v.play().catch(() => {
+      /* Autoplay can be blocked — silent fallback to poster */
+    });
+  };
+  const handleHoverEnd = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.pause();
+    v.currentTime = 0;
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={handleHoverStart}
+      onMouseLeave={handleHoverEnd}
+      onFocus={handleHoverStart}
+      onBlur={handleHoverEnd}
+      className={cn(
+        "text-left rounded-none border transition-all flex flex-col overflow-hidden",
+        isSelected
+          ? "bg-ink border-ink text-bone"
+          : "bg-bone border-hairline hover:border-ink"
+      )}
+      style={
+        isSelected
+          ? {
+              backgroundColor: "#0E0E0C",
+              borderColor: "#0E0E0C",
+              color: "#F4EFE6",
+            }
+          : {
+              backgroundColor: "#F4EFE6",
+              borderColor: "var(--lux-hairline)",
+              color: "#0E0E0C",
+            }
+      }
+    >
+      {/* Preview media — always rendered. Tries the convention-derived video
+          path first, falls back to the poster image, and if neither exists,
+          the browser shows an empty ink panel that still respects the layout.
+          User uploads videos to /public/videos/shots/{shot_id}.mp4 and they
+          appear automatically — no code changes per shot. */}
+      <div
+        className="relative w-full overflow-hidden"
+        style={{
+          aspectRatio: "9 / 16",
+          maxHeight: 180,
+          background: "#0E0E0C",
+          borderBottom: isSelected
+            ? "1px solid rgba(244,239,230,0.18)"
+            : "1px solid var(--lux-hairline)",
+        }}
+      >
+        <video
+          ref={videoRef}
+          src={previewSrc}
+          poster={posterSrc}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          // Hide the element entirely if it errors (no file at that path) so
+          // the panel just shows ink — cleaner than a broken <video> icon.
+          onError={(e) => {
+            (e.currentTarget as HTMLVideoElement).style.opacity = "0";
+          }}
+          className="absolute inset-0 w-full h-full object-cover transition-opacity"
+        />
+        {/* Play affordance — visible only when a preview is actually loaded */}
+        <div
+          className="absolute bottom-2 right-2 p-1.5 pointer-events-none"
+          style={{
+            background: "rgba(14,14,12,0.55)",
+            color: "#F4EFE6",
+          }}
+        >
+          <PlayCircle className="h-3.5 w-3.5" />
+        </div>
+      </div>
+
+      <div className="p-5 flex flex-col flex-1">
+        {/* Shot label in serif */}
+        <h3 className="lux-display text-lg mb-1 leading-tight">{shot.label}</h3>
+
+        {/* Tagline */}
+        <div
+          className="lux-eyebrow mb-3"
+          style={{
+            color: isSelected ? "#C9A96E" : "#8C7A52",
+            fontSize: 10,
+            letterSpacing: "0.16em",
+          }}
+        >
+          {shot.tagline}
+        </div>
+
+        {/* Description */}
+        <p
+          className="lux-prose text-sm mb-4 flex-1"
+          style={{
+            color: isSelected ? "#A39E94" : "#6B6760",
+            lineHeight: 1.45,
+          }}
+        >
+          {shot.description}
+        </p>
+
+        {/* Credits + premium badge */}
+        <div
+          className="flex items-center justify-between pt-3 border-t"
+          style={{
+            borderColor: isSelected
+              ? "rgba(201, 169, 110, 0.2)"
+              : "var(--lux-hairline)",
+          }}
+        >
+          <div className="flex items-center gap-1.5">
+            <Coins className="h-3.5 w-3.5" />
+            <span className="text-xs font-medium">{shot.creditCost}</span>
+          </div>
+          {shot.isPremium && (
+            <span
+              className="lux-eyebrow"
+              style={{
+                color: isSelected ? "#C9A96E" : "#8C7A52",
+                fontSize: 9,
+                letterSpacing: "0.18em",
+              }}
+            >
+              PREMIUM
+            </span>
+          )}
+        </div>
+      </div>
+    </button>
+  );
 }
 
 // Show categories in this order. Research finding: "Forward & Back" is the
@@ -56,84 +239,12 @@ export function ShotTypePicker({ value, onChange }: ShotTypePickerProps) {
               {shotsInGroup.map((shot) => {
                 const isSelected = value === shot.id;
                 return (
-                  <button
+                  <ShotCard
                     key={shot.id}
+                    shot={shot}
+                    isSelected={isSelected}
                     onClick={() => onChange(shot.id)}
-                    className={cn(
-                      "text-left p-5 rounded-none border transition-all flex flex-col",
-                      isSelected
-                        ? "bg-ink border-ink text-bone"
-                        : "bg-bone border-hairline hover:border-ink"
-                    )}
-                    style={
-                      isSelected
-                        ? {
-                            backgroundColor: "#0E0E0C",
-                            borderColor: "#0E0E0C",
-                            color: "#F4EFE6",
-                          }
-                        : {
-                            backgroundColor: "#F4EFE6",
-                            borderColor: "var(--lux-hairline)",
-                            color: "#0E0E0C",
-                          }
-                    }
-                  >
-                    {/* Shot label in serif */}
-                    <h3 className="lux-display text-lg mb-1 leading-tight">
-                      {shot.label}
-                    </h3>
-
-                    {/* Tagline */}
-                    <div
-                      className="lux-eyebrow mb-3"
-                      style={{
-                        color: isSelected ? "#C9A96E" : "#8C7A52",
-                        fontSize: 10,
-                        letterSpacing: "0.16em",
-                      }}
-                    >
-                      {shot.tagline}
-                    </div>
-
-                    {/* Description */}
-                    <p
-                      className="lux-prose text-sm mb-4 flex-1"
-                      style={{
-                        color: isSelected ? "#A39E94" : "#6B6760",
-                        lineHeight: 1.45,
-                      }}
-                    >
-                      {shot.description}
-                    </p>
-
-                    {/* Credits + premium badge */}
-                    <div
-                      className="flex items-center justify-between pt-3 border-t"
-                      style={{
-                        borderColor: isSelected
-                          ? "rgba(201, 169, 110, 0.2)"
-                          : "var(--lux-hairline)",
-                      }}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <Coins className="h-3.5 w-3.5" />
-                        <span className="text-xs font-medium">{shot.creditCost}</span>
-                      </div>
-                      {shot.isPremium && (
-                        <span
-                          className="lux-eyebrow"
-                          style={{
-                            color: isSelected ? "#C9A96E" : "#8C7A52",
-                            fontSize: 9,
-                            letterSpacing: "0.18em",
-                          }}
-                        >
-                          PREMIUM
-                        </span>
-                      )}
-                    </div>
-                  </button>
+                  />
                 );
               })}
             </div>
