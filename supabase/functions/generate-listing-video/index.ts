@@ -121,144 +121,146 @@ function materialPalette(context: "interior" | "exterior" | "kitchen" | "bath" |
 // motionHint for Kling stays richer — Kling does benefit from longer prompts
 // (fal/Higgsfield-validated up to 2,500 chars) and pairs with a separate
 // negative_prompt API field.
-// ── SEEDANCE MOTION HINTS — empirically-tuned ──
-// Pattern: "slow smooth [movement_verb] [preposition]"
-//   - "slow" = pacing anchor (Seedance respects pacing modifiers)
-//   - "smooth" = reinforces temporal continuity, fights random-pause glitches
-//   - cinematography verbs (dolly, truck, pan, pedestal, orbit, roll) — the
-//     model knows these terms and produces cleaner output than generic
-//     descriptions like "move forward" / "rotate"
-//   - preposition tail flows directly into the subject noun appended by
-//     buildSeedanceClipPrompt — no double-prepositions
+// ── SEEDANCE 2.0 MOTION HINTS — USER A/B-TESTED EXACT STRINGS ──
+//
+// DO NOT ADD WORDS. The user empirically tested these prompts on Seedance 2.0
+// (bytedance/seedance-1-pro) and they produced clean, non-glitchy output
+// every time. Earlier versions added "smooth", "gracefully", "cinematic"
+// modifiers — every modifier ADDED was a regression in output quality and
+// re-introduced the hallucination/extension failure mode.
+//
+// Tested winning patterns (verbatim from user testing screenshots):
+//   "slow camera roll of still house"
+//   "slow camera dolly as if cameraman stepping towards still house"
+//   "slow camera pedestal on still house"
+//   "slow camera truck on still house"
+//
+// Pattern: "${motionHint} ${subject}" where subject = "still house" (or a
+// minimally-modified equivalent for non-exterior contexts). Total prompt
+// length: 6-10 words. No padding. No filler. No quality adjectives.
 const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: string; pacing: "slow" | "medium" }> = {
   // ── LINEAR (forward / reverse / wide reveal) ──
   push_in: {
     model: "seedance",
-    motionHint: "slow smooth camera dolly stepping gracefully towards",
+    motionHint: "slow camera dolly as if cameraman stepping towards",
     pacing: "slow",
   },
   // Legacy alias
   slow_push: {
     model: "seedance",
-    motionHint: "slow smooth camera dolly stepping gracefully towards",
+    motionHint: "slow camera dolly as if cameraman stepping towards",
     pacing: "slow",
   },
   pull_out: {
     model: "seedance",
-    motionHint: "slow smooth camera dolly retreating gracefully from",
+    motionHint: "slow camera dolly as if cameraman stepping back from",
     pacing: "slow",
   },
   establishing: {
     model: "seedance",
-    motionHint: "slow smooth camera dolly pulling back wide from",
+    motionHint: "slow camera dolly pulling back wide from",
     pacing: "slow",
   },
   // ── LATERAL (truck slides + parallax, both directions) ──
-  // "truck" is the cinematography term Seedance responds to best (user A/B
-  // tested "slow camera truck" → clean output). Kept slide_* as aliases for
-  // backward compat with existing rotations.
   truck_left: {
     model: "seedance",
-    motionHint: "slow smooth camera truck right to left across",
+    motionHint: "slow camera truck right to left across",
     pacing: "slow",
   },
   truck_right: {
     model: "seedance",
-    motionHint: "slow smooth camera truck left to right across",
+    motionHint: "slow camera truck left to right across",
     pacing: "slow",
   },
   slide_left: {
     model: "seedance",
-    motionHint: "slow smooth camera truck right to left across",
+    motionHint: "slow camera truck right to left across",
     pacing: "slow",
   },
   slide_right: {
     model: "seedance",
-    motionHint: "slow smooth camera truck left to right across",
+    motionHint: "slow camera truck left to right across",
     pacing: "slow",
   },
-  // ── PAN (rotation while stationary) ──
-  // From the camera-moves diagram: PAN is rotational, not translational.
-  // The camera body stays put; only the lens swings horizontally.
   pan_left: {
     model: "seedance",
-    motionHint: "slow smooth camera pan right to left across",
+    motionHint: "slow camera pan right to left across",
     pacing: "slow",
   },
   pan_right: {
     model: "seedance",
-    motionHint: "slow smooth camera pan left to right across",
+    motionHint: "slow camera pan left to right across",
     pacing: "slow",
   },
   parallax_left: {
     model: "seedance",
-    motionHint: "slow smooth parallax pan right to left across",
+    motionHint: "slow parallax pan right to left across",
     pacing: "medium",
   },
   parallax_right: {
     model: "seedance",
-    motionHint: "slow smooth parallax pan left to right across",
+    motionHint: "slow parallax pan left to right across",
     pacing: "medium",
   },
   // Legacy alias
   parallax_pan: {
     model: "seedance",
-    motionHint: "slow smooth parallax pan left to right across",
+    motionHint: "slow parallax pan left to right across",
     pacing: "medium",
   },
   // ── VERTICAL (jib rise + tilts + pedestal moves) ──
   reveal_rise: {
     model: "seedance",
-    motionHint: "slow smooth camera crane rising gracefully over",
+    motionHint: "slow camera crane rising up over",
     pacing: "medium",
   },
   tilt_up: {
     model: "seedance",
-    motionHint: "slow smooth camera tilt up on",
+    motionHint: "slow camera tilt up on",
     pacing: "slow",
   },
   tilt_down: {
     model: "seedance",
-    motionHint: "slow smooth camera tilt down on",
+    motionHint: "slow camera tilt down on",
     pacing: "slow",
   },
   // user-verified working: "slow camera pedestal on still house"
   pedestal_up: {
     model: "seedance",
-    motionHint: "slow smooth camera pedestal up on",
+    motionHint: "slow camera pedestal on",
     pacing: "slow",
   },
   pedestal_down: {
     model: "seedance",
-    motionHint: "slow smooth camera pedestal down on",
+    motionHint: "slow camera pedestal down on",
     pacing: "slow",
   },
   // ── ROTATIONAL (orbits + roll) ──
   orbit_left: {
     model: "seedance",
-    motionHint: "slow smooth camera orbit gracefully left around",
+    motionHint: "slow camera orbit left around",
     pacing: "slow",
   },
   orbit_right: {
     model: "seedance",
-    motionHint: "slow smooth camera orbit gracefully right around",
+    motionHint: "slow camera orbit right around",
     pacing: "slow",
   },
   drone_orbit: {
     model: "seedance",
-    motionHint: "slow smooth aerial drone orbit gracefully around",
+    motionHint: "slow aerial drone orbit around",
     pacing: "slow",
   },
   // user-verified working: "slow camera roll of still house"
   camera_roll: {
     model: "seedance",
-    motionHint: "slow smooth cinematic camera roll of",
+    motionHint: "slow camera roll of",
     pacing: "slow",
   },
   // ── ARCHITECTURAL ──
   architectural: {
     model: "seedance",
-    motionHint: "slow smooth architectural slider across",
+    motionHint: "slow architectural slider across",
     pacing: "slow",
   },
 }
@@ -378,47 +380,17 @@ function buildSeedanceClipPrompt(
   // The arguments duration/vibeLine/pacing/context are kept on the
   // signature for caller compatibility but most are unused on Seedance.
   void duration; void vibeLine; void pacing
-  // motionHints in SHOT_CONFIG ALREADY end with their appropriate preposition
-  // ("of", "towards", "across", "around", "on") so we append the subject
-  // directly. Adding another "of" here yields ungrammatical double-prepositions
-  // like "slow camera roll of of still house" which Seedance handles worse
-  // than clean phrasing.
+  // motionHints in SHOT_CONFIG already end with their preposition ("of",
+  // "towards", "across", "around", "on") so we append the subject directly.
   //
-  // Beat-driven subject — concrete, image-verifiable nouns only. The user's
-  // empirically winning test was "still house" (concrete, verifiable). We
-  // pick by beat so amenity shots reference the exterior and interior beats
-  // reference the room, without adding unverifiable adjectives that triggered
-  // the rich-prompt glitching ("magazine-grade", "luxury", "cinematic").
-  const beat = context?.beat?.toLowerCase()
-  let subject: string
-  switch (beat) {
-    case "establishing":
-    case "opener":
-      subject = "the still house"
-      break
-    case "amenity":
-      subject = "the still exterior"
-      break
-    case "hero":
-    case "feature":
-      subject = "the still interior"
-      break
-    case "detail":
-    case "texture":
-      subject = "the still interior detail"
-      break
-    case "closing":
-    case "resolution":
-    case "closer":
-      subject = "the still interior"
-      break
-    case "transition":
-    case "bridge":
-      subject = "the still room"
-      break
-    default:
-      subject = "the still subject"
-  }
+  // ── USER-EMPIRICAL SUBJECT ANCHOR ──
+  // Every winning prompt the user tested used the EXACT phrase "still house"
+  // as the subject — even for interior, amenity, hero, and detail shots.
+  // The model handles the contextual interpretation itself; adding beat-
+  // specific qualifiers ("the still interior detail", etc.) was a regression
+  // that re-introduced extension/hallucination. Trust the image as context.
+  // context is still used below for textOverlay, just not for subject anchoring
+  const subject = "still house"
   let prompt = `${motionHint} ${subject}`
 
   // ── BURN-IN TITLE OVERLAY ──
@@ -1365,24 +1337,23 @@ serve(async (req) => {
       const animateContext = text_overlay?.text
         ? { textOverlay: text_overlay as { text: string; fontStyle?: string; timing?: "intro" | "middle" | "outro" } }
         : undefined
-      // ── HALLUCINATION FIX (May 12, 2026) ──
-      // animate_single forces Kling instead of Seedance. Reason:
-      //   • Seedance treats the source image as a "seed" and willingly
-      //     extends scenes — adding furniture, rooms, doorways that don't
-      //     exist in the user's photo.
-      //   • Kling 2.5 Turbo Pro treats start_image as an anchor it must
-      //     return to — far better fidelity to the photo the user uploaded.
-      //   • Trade-off: Kling is ~15% slower. Worth it for single-photo
-      //     animations where fidelity matters more than throughput.
-      // Bundles and other categories keep their Seedance routing because
-      // throughput dominates there.
+      // ── SEEDANCE 2.0 + SIMPLE PROMPTS (May 12, 2026, user-empirical) ──
+      // User A/B tested these EXACT prompts on Seedance 2.0 and they worked
+      // beautifully with no extension / no hallucination:
+      //   "slow camera roll of still house"
+      //   "slow camera dolly as if cameraman stepping towards still house"
+      //   "slow camera pedestal on still house"
+      //   "slow camera truck on still house"
+      // The earlier "Kling solves hallucinations" theory was wrong — Seedance
+      // 2.0 itself is fine when the prompt stays under 10 words and uses the
+      // model's preferred cinematography verbs. Routing back to the per-shot
+      // SHOT_CONFIG.model default (which is "seedance" for every shot now).
       const result = await startVideoGeneration(
         sourceImageUrl,
         shot_type,
         duration || 5,
         REPLICATE_TOKEN,
         animateContext,
-        "kling", // forceModel — animate_single needs source-image fidelity
       )
 
       // Synchronous success
@@ -1441,22 +1412,15 @@ serve(async (req) => {
       // continuous positive motion across the frame.
       // Minimal Seedance prompt — user-empirically-verified that short
       // prompts produce dramatically cleaner output than rich ones.
-      // ── FULL DAY-CYCLE PROMPT (May 12, 2026) ──
-      // Previous prompt stopped midway because Seedance treats "from sunrise
-      // to dusk" as a vibe descriptor rather than a forced timeline. The
-      // model wandered through some lighting variation and stopped before
-      // the full arc completed.
-      //
-      // New prompt forces:
-      //   1. Explicit duration anchor ("10 seconds")
-      //   2. Explicit START state ("begin at sunrise")
-      //   3. Explicit END state ("end at sunset")
-      //   4. Explicit motion completion ("sun completes a full arc")
-      //   5. Anti-truncation cue ("the cycle finishes within the clip")
-      // Empirically tested winners on Seedance favor short prompts BUT
-      // benefit from a clear end-state when the desired motion is large.
+      // ── SUN-TO-SUN — SIMPLE PROMPT, FORCED END STATE ──
+      // User principle: do not over-complicate. We keep the prompt as short
+      // as Seedance allows while still forcing the FULL arc (the previous
+      // 5-word version stopped midway because it had no end-state anchor).
+      // The single trick: tell the model where to END. The duration anchor
+      // ("10 seconds") gives Seedance the time budget; "ends at sunset"
+      // gives it the target. Everything else the model fills in.
       const dayCyclePrompt =
-        "10-second time-lapse on still house: begin at sunrise, sun completes a full arc across the sky, end at amber sunset; locked camera, lighting evolves smoothly through golden hour, the full day cycle finishes within the clip"
+        "time-lapse of still house, sunrise to sunset, locked camera, sun moves across the sky and ends at sunset"
 
       console.log("[sun_to_sun] kicking off single Seedance 2.0 day-cycle prediction (10s)")
       const result = await startSeedanceFromImage(
@@ -1669,10 +1633,9 @@ serve(async (req) => {
       // without any pause.
       // Minimal Seedance prompt — empirically-verified short prompts
       // produce cleaner output than rich 150-word grammar.
-      // Enhanced: "gracefully" anchors smooth furniture animation, "smooth
-      // dolly" reinforces continuity in the walkthrough back-half.
+      // Simple prompt — user principle: do not over-complicate.
       const fullTransformPrompt =
-        `empty room gracefully dresses itself with ${stylePrompt}, then slow smooth camera dolly forward through the finished space`
+        `empty room dresses itself with ${stylePrompt}, then slow camera dolly forward through the finished space`
 
       console.log("[virtual_staging] kicking off SINGLE 10s Seedance dressing+walkthrough")
       const result = await startSeedanceFromImage(
@@ -1761,11 +1724,10 @@ serve(async (req) => {
       // marking the morph as complete at a specific beat, the model commits
       // to the transformation and gives us a clean reveal in the back half.
       // Minimal Seedance prompt — empirically-verified short prompts win.
-      // Enhanced: "gracefully transforms" anchors the morph, "smooth" on the
-      // camera move keeps the back-half clean. Verbs sharpened, length flat.
+      // Simple prompt — user principle: do not over-complicate.
       const fullSketchPrompt = sketch_intent === "interior"
-        ? "pencil sketch on paper gracefully transforms into a photoreal interior, then slow smooth camera dolly forward through the room"
-        : "pencil sketch on paper gracefully transforms into a photoreal house exterior, then slow smooth parallax pan across the building"
+        ? "pencil sketch on paper transforms into a photoreal interior, then slow camera dolly forward through the room"
+        : "pencil sketch on paper transforms into a photoreal house exterior, then slow parallax pan across the building"
 
       console.log("[sketch_to_real] kicking off SINGLE 10s Seedance morph+reveal")
       const result = await startSeedanceFromImage(
@@ -1819,10 +1781,9 @@ serve(async (req) => {
       // User A/B tested: "slow camera roll of still house" produced clean output
       // while 150-word rich prompts caused glitching and frame pauses.
       void vibeLine // intentionally unused — rich style language confuses Seedance
-      // Enhanced: "architectural" qualifies the plan source (matches what
-      // the model sees), "gracefully transforms" sharpens the morph verb.
-      const cameraMove = SHOT_CONFIG[selectedShotType]?.motionHint || "slow smooth camera dolly forward through"
-      const fullFloorPlanPrompt = `2D architectural floor plan gracefully transforms into a photoreal interior, then ${cameraMove} the room`
+      // Simple prompt — user principle: do not over-complicate.
+      const cameraMove = SHOT_CONFIG[selectedShotType]?.motionHint || "slow camera dolly forward through"
+      const fullFloorPlanPrompt = `2D floor plan transforms into a photoreal interior, then ${cameraMove} the room`
 
       console.log("[floor_plan_pan] kicking off SINGLE 10s Seedance morph+walkthrough")
       const result = await startSeedanceFromImage(
