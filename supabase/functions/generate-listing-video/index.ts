@@ -678,7 +678,10 @@ async function generateSketchWithNanoBanana(
         input: {
           prompt,
           image_input: [referenceImageUrl],
-          output_format: "jpg",
+          // Use canonical "jpeg" — Replicate is standardizing across models.
+          // gpt-image-2 already broke on "jpg" (May 13, 2026); nano-banana
+          // may follow. "jpeg" is accepted everywhere.
+          output_format: "jpeg",
         },
       }),
     }
@@ -741,7 +744,8 @@ async function renderSketchToPhotoreal(
             prompt,
             input_image: sourceImageUrl,
             aspect_ratio: "match_input_image",
-            output_format: "jpg",
+            // Canonical "jpeg" per Replicate's schema standardization.
+            output_format: "jpeg",
             safety_tolerance: 2,
             prompt_upsampling: false,
           },
@@ -808,7 +812,11 @@ async function generateWithNanoBanana(
             prompt: effectPrompt,
             input_images: [imageUrl],
             aspect_ratio: "2:3",
-            output_format: "jpg", // Kling/Seedance reject webp downstream
+            // ── API SCHEMA FIX (May 13, 2026) ──
+            // openai/gpt-image-2 now requires "png" | "jpeg" | "webp" — it
+            // rejects "jpg" with HTTP 422. This was a breaking change on
+            // Replicate's side. Use canonical "jpeg".
+            output_format: "jpeg",
           },
         }),
       }
@@ -858,7 +866,8 @@ async function generateWithNanoBanana(
           Prefer: "wait=60",
         },
         body: JSON.stringify({
-          input: { prompt: effectPrompt, image_input: [imageUrl], output_format: "jpg" },
+          // Canonical "jpeg" per Replicate's schema standardization.
+          input: { prompt: effectPrompt, image_input: [imageUrl], output_format: "jpeg" },
         }),
       }
     )

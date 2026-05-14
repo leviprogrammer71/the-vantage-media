@@ -116,11 +116,17 @@ async function runGptImage2(
 
   // Force JPEG output — Kling 2.5 and Seedance 2.0 reject webp inputs ("mime type image/webp is not supported").
   // We'd rather pay the small quality hit than break the entire pipeline downstream.
+  //
+  // ── API SCHEMA FIX (May 13, 2026) ──
+  // openai/gpt-image-2 enum changed: it now accepts "png" | "jpeg" | "webp"
+  // and REJECTS "jpg" with HTTP 422. Use the canonical "jpeg" spelling.
+  // Previously the API accepted "jpg" — this is a breaking change on
+  // Replicate's side that broke every generation today.
   const input: Record<string, unknown> = {
     prompt,
     aspect_ratio: validRatio,
     input_images: [inputImageUrl],
-    output_format: "jpg",
+    output_format: "jpeg",
   }
 
   const res = await fetch(`${REPLICATE}/models/openai/gpt-image-2/predictions`, {
