@@ -17,6 +17,7 @@ import { TransformationProcessing } from "./TransformationProcessing";
 import { normalizeImageForUpload } from "@/lib/normalize-image";
 import { withFreshAuth } from "@/lib/auth-refresh";
 import { stitchClipsClientSide, downloadBlobOrUrl } from "@/lib/client-stitch";
+import { stitchMp4Lossless, ffmpegWasmAvailable } from "@/lib/ffmpeg-stitch";
 import { SHOT_TYPES, STAGING_STYLES } from "@/lib/shot-types";
 import { VIBES } from "@/lib/vibes";
 import { SUNO_PRESETS, type SunoPreset, defaultSongForStyle } from "@/lib/suno-presets";
@@ -629,9 +630,20 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     brokerage ? `, ${brokerage}` : ""
   }`;
 
-  // Client-side stitch — runs entirely in the browser via Canvas + MediaRecorder.
-  // No server dependency, no edge timeout, no Replicate FFmpeg. The user gets a
-  // single Blob with text overlays burned in that they can download immediately.
+  // ── STITCH PIPELINE (rebuilt May 13, 2026) ──
+  // Primary path: ffmpeg.wasm concat demuxer with -c copy. Stream-copies the
+  // source MP4 bytes into a single output — zero re-encode, zero quality
+  // loss, bit-perfect preservation of what Seedance delivered. Solves every
+  // quality complaint logged this session ("absurd cuts", "lowering
+  // quality", "movement glitches", "black screen with music") because the
+  // canvas + MediaRecorder pipeline that caused them is no longer in the
+  // critical path.
+  //
+  // Fallback path: the legacy canvas + MediaRecorder stitcher, used only if
+  // ffmpeg.wasm can't load (cross-origin isolation not active, very old
+  // browser, etc). The fallback ships with no music, no transitions, just
+  // the visual to ensure SOME output reaches the user even on degraded
+  // platforms.
   const handleStitchReel = async () => {
     if (!clipUrls || clipUrls.length < 2) {
       toast.error("Stitching requires multiple clips");
@@ -642,19 +654,33 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     setError(null);
     setStitchProgress(0);
 
-    try {
-      // ── MUSIC REMOVED FROM STITCH (May 13, 2026) ──
-      // Per user feedback: audio mixdown was reducing video quality (the
-      // combined audio+video mimeType constraints in MediaRecorder forced
-      // codec choices that hurt the image), AND producing "black screen
-      // with music" failures (audio context starting before video decoded,
-      // racing condition). User priority is video quality over music.
-      //
-      // The /music page still hosts the Suno library for users who want to
-      // add their own track in CapCut / their editor of choice. Their reel
-      // ships clean (silent), they overlay music themselves.
-      const audioUrl: string | undefined = undefined;
+    // ── PRIMARY: ffmpeg.wasm lossless concat ──
+    const support = ffmpegWasmAvailable();
+    if (support.ok) {
+      try {
+        const result = await stitchMp4Lossless({
+          clipUrls,
+          onProgress: (frac) => setStitchProgress(frac),
+        });
+        setStitchedUrl(result.url);
+        setStitchedBlob(result.blob);
+        setStitchedExt(result.ext);
+        toast.success("Final cut ready — lossless MP4. Tap download.");
+        return;
+      } catch (err) {
+        console.error("[ListingVideoFlow] ffmpeg.wasm stitch failed, falling back to canvas:", err);
+        // Don't return — fall through to canvas fallback so the user still gets something.
+      }
+    } else {
+      console.warn("[ListingVideoFlow] ffmpeg.wasm unavailable:", support.reason);
+    }
 
+    // ── FALLBACK: canvas + MediaRecorder (legacy) ──
+    // Used only when ffmpeg.wasm can't load. Produces WebM on Chrome with
+    // visible re-encode quality loss — but it ships SOMETHING rather than
+    // nothing. No music: audio mixdown caused "black screen with music"
+    // and forced codec constraints that hurt video bitrate.
+    try {
       const result = await stitchClipsClientSide({
         clips: clipUrls,
         listing: {
@@ -667,7 +693,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
         },
         watermark: !isPaid || showBranding,
         style: stitchStyle,
-        audioUrl,
+        audioUrl: undefined,
         audioGain: 0.85,
         onProgress: (frac) => setStitchProgress(frac),
       });
@@ -676,13 +702,9 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
       setStitchedBlob(result.blob);
       setStitchedExt(result.ext);
       toast.success("Final cut ready. Tap download to save.");
-      return;
     } catch (err) {
-      // Silent on failure — the user still has every individual clip and can
-      // download them per-photo. Surfacing a raw stitcher error toast was
-      // confusing users who didn't know what stitching was. Log loudly so
-      // monitoring catches the case; let the UI fall back to per-clip mode.
-      console.error("[ListingVideoFlow] stitching error:", err);
+      console.error("[ListingVideoFlow] canvas fallback stitch also failed:", err);
+      toast.error("Couldn't stitch — download the individual clips instead (they're already MP4).");
     } finally {
       setIsStitching(false);
     }
@@ -819,7 +841,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   if (step === 2 && category === "sketch_to_real" && photos.length > 0) {
     return (
       <div className="lux-section lux-bg-bone">
-        <div className="lux-container max-w-2xl">
+        <div className="lux-container max-w-2xl lg:max-w-4xl">
           {/* ── DISCOVERABILITY: surface the other 6 films ──
               Top-level CTAs deep-link straight into Done-For-You Reel, which
               hid the other 6 categories behind a vague "← Back" label. This
@@ -901,63 +923,18 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     );
   }
 
-  // STEP 2b: Floor Plan Pan shot picker (floor_plan_pan only)
-  if (step === 2 && category === "floor_plan_pan" && photos.length > 0) {
-    return (
-      <div className="lux-section lux-bg-bone">
-        <div className="lux-container max-w-3xl">
-          {/* ── DISCOVERABILITY: surface the other 6 films ──
-              Top-level CTAs deep-link straight into Done-For-You Reel, which
-              hid the other 6 categories behind a vague "← Back" label. This
-              banner replaces that with a clear invitation to browse the full
-              menu so users know the breadth of the product. */}
-          <button
-            onClick={() => setStep(1)}
-            className="mb-8 inline-flex items-center gap-2 px-4 py-2.5 border transition-colors"
-            style={{
-              color: "var(--lux-ink)",
-              background: "var(--lux-cream)",
-              borderColor: "var(--lux-hairline-strong)",
-              cursor: "pointer",
-              fontSize: "0.78rem",
-              letterSpacing: "0.16em",
-              textTransform: "uppercase",
-              fontFamily: "var(--lux-display-font, inherit)",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--lux-ink)"; e.currentTarget.style.color = "var(--lux-bone)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--lux-cream)"; e.currentTarget.style.color = "var(--lux-ink)"; }}
-          >
-            ← Browse all 7 films
-          </button>
-
-          <div className="mb-12">
-            <h2 className="lux-display mb-2" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
-              Choose camera movement
-            </h2>
-            <p className="lux-prose mb-6" style={{ color: "var(--lux-ash)" }}>
-              Pick how you'd like the camera to move across your floor plan.
-            </p>
-          </div>
-
-          <ShotTypePicker value={shotType} onChange={setShotType} />
-
-          <button
-            onClick={() => setStep(3)}
-            className="lux-btn mt-12 w-full"
-            style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "18px 24px" }}
-          >
-            Continue to Style →
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // ── Floor Plan Pan shot picker REMOVED (May 13, 2026) ──
+  // Per user direction: the cinematic ShotTypePicker (with preview videos)
+  // should only appear on the Animate Single page — not on floor plans,
+  // staging, sketch, or transformation flows. Floor Plan Pan now uses the
+  // default shotType "push_in" (which it inherits from useState init) so
+  // the camera move is consistent across every floor-plan generation.
 
   // STEP 2c: Virtual Staging style picker (virtual_staging only)
   if (step === 2 && category === "virtual_staging" && photos.length > 0) {
     return (
       <div className="lux-section lux-bg-bone">
-        <div className="lux-container max-w-2xl">
+        <div className="lux-container max-w-2xl lg:max-w-4xl">
           {/* ── DISCOVERABILITY: surface the other 6 films ──
               Top-level CTAs deep-link straight into Done-For-You Reel, which
               hid the other 6 categories behind a vague "← Back" label. This
@@ -1041,7 +1018,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   if (step === 2 && category === "done_for_you_reel" && photos.length >= 3) {
     return (
       <div className="lux-section lux-bg-bone">
-        <div className="lux-container max-w-3xl">
+        <div className="lux-container max-w-3xl lg:max-w-5xl">
           {/* ── DISCOVERABILITY: surface the other 6 films ──
               Top-level CTAs deep-link straight into Done-For-You Reel, which
               hid the other 6 categories behind a vague "← Back" label. This
@@ -1075,6 +1052,66 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             <p className="lux-prose" style={{ color: "var(--lux-ink)", maxWidth: 620 }}>
               We'll auto-stitch your 6 clips into one finished MP4 with this overlay treatment baked in. Pick the look that matches the listing.
             </p>
+          </div>
+
+          {/* ── PHOTO PREVIEW (May 13, 2026) ──
+              Show the user's uploaded photos in their playback order so they
+              can verify the sequence before generation. The same numbered-
+              thumbnail pattern as the listing flow's upload step — order
+              matters because each photo gets a distinct camera move from the
+              chosen style's rotation. Compact 3-row variant since this view
+              is shared with the style picker below. */}
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <p className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>
+                {photos.length} PHOTOS · ORDER MATTERS
+              </p>
+              <button
+                onClick={() => setStep(2)}
+                className="lux-eyebrow"
+                style={{
+                  color: "var(--lux-ash)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "0.7rem",
+                  letterSpacing: "0.16em",
+                }}
+                title="Go back and re-arrange"
+              >
+                EDIT PHOTOS →
+              </button>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+              {photos.map((photo, i) => (
+                <div
+                  key={i}
+                  className="relative"
+                  style={{ aspectRatio: "1 / 1" }}
+                  title={photo.file?.name || `photo-${i + 1}`}
+                >
+                  <img
+                    src={photo.preview}
+                    alt={`Photo ${i + 1}`}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ border: "1px solid var(--lux-hairline)" }}
+                  />
+                  <div
+                    className="absolute top-1 left-1 lux-display flex items-center justify-center"
+                    style={{
+                      width: 22,
+                      height: 22,
+                      background: "var(--lux-ink)",
+                      color: "var(--lux-bone)",
+                      fontSize: "0.75rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {i + 1}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-10">
@@ -1156,7 +1193,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
 
     return (
       <div className="lux-section lux-bg-bone">
-        <div className="lux-container max-w-2xl">
+        <div className="lux-container max-w-2xl lg:max-w-4xl">
           {/* ── DISCOVERABILITY: surface the other 6 films ──
               Top-level CTAs deep-link straight into Done-For-You Reel, which
               hid the other 6 categories behind a vague "← Back" label. This
@@ -1348,7 +1385,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
 
     return (
       <div className="lux-section lux-bg-bone">
-        <div className="lux-container max-w-2xl">
+        <div className="lux-container max-w-2xl lg:max-w-4xl">
           <button
             onClick={() => setStep(2)}
             className="lux-eyebrow mb-8"
@@ -1609,7 +1646,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
 
     return (
       <div className="lux-section lux-bg-bone">
-        <div className="lux-container max-w-4xl">
+        <div className="lux-container max-w-4xl lg:max-w-6xl">
           <h2 className="lux-display mb-12" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
             Review your film
           </h2>
@@ -1773,7 +1810,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   if (step === 7 && videoUrl) {
     return (
       <div className="lux-section lux-bg-bone">
-        <div className="lux-container max-w-3xl">
+        <div className="lux-container max-w-3xl lg:max-w-5xl">
           <h2 className="lux-display mb-8" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
             Your listing film
           </h2>

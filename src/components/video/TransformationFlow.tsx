@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { withFreshAuth } from "@/lib/auth-refresh";
 import { InsufficientCreditsModal } from "./InsufficientCreditsModal";
 import { SettingTooltip } from "./SettingTooltip";
-import { ShotTypePicker } from "./ShotTypePicker";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
@@ -548,7 +547,7 @@ export function TransformationFlow({ transformationCategory }: { transformationC
     const displayBeforeUrl = generatedBeforeUrl || beforeImage;
     return (
       <div className="lux-section lux-bg-bone" style={{ paddingBottom: "80px" }}>
-        <div className="lux-container max-w-2xl space-y-8">
+        <div className="lux-container max-w-2xl lg:max-w-4xl space-y-8">
           <div className="text-center space-y-2">
             <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto" style={{ backgroundColor: "rgba(140, 63, 46, 0.1)" }}>
               <Check className="h-6 w-6" style={{ color: "var(--lux-rust)" }} />
@@ -598,7 +597,7 @@ export function TransformationFlow({ transformationCategory }: { transformationC
   if (error && !isGenerating) {
     return (
       <div className="lux-section lux-bg-bone" style={{ paddingBottom: "80px" }}>
-        <div className="lux-container max-w-2xl">
+        <div className="lux-container max-w-2xl lg:max-w-4xl">
           <div className="p-6 space-y-4" style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline)" }}>
             <div className="flex items-start gap-3">
               <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" style={{ color: "var(--lux-rust)" }} />
@@ -1001,14 +1000,12 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                     </div>
                   </div>
 
-                  {/* Shot Type */}
-                  <div className="space-y-3">
-                    <label className="lux-eyebrow flex items-center" style={{ color: "var(--lux-brass)" }}>
-                      SHOT TYPE
-                      <SettingTooltip text="Choose the cinematic motion style. Each has different quality and credit costs." />
-                    </label>
-                    <ShotTypePicker value={shotType} onChange={setShotType} />
-                  </div>
+                  {/* Shot Type picker REMOVED (May 13, 2026) — the cinematic
+                      ShotTypePicker with preview videos is restricted to the
+                      Animate Single flow. Transformations always render with
+                      the default shotType ("push_in" or the per-flow Kling
+                      camera setup) so users don't have to pick a movement
+                      they'd want for a different category. */}
 
                   {/* Duration & Format */}
                   <div className="grid grid-cols-2 gap-6">
