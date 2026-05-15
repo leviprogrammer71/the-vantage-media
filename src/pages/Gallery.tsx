@@ -268,8 +268,12 @@ function SubmissionCard({
       className="lux-bg-bone overflow-hidden flex flex-col"
       style={{ border: "1px solid var(--lux-hairline)" }}
     >
-      {/* ─── VIDEO / STATE ─── */}
-      <div className="relative w-full overflow-hidden lux-bg-ink" style={{ aspectRatio: "16/9" }}>
+      {/* ─── VIDEO / STATE ───
+          aspectRatio 9:16 to match the actual output (Reels / TikTok
+          vertical). object-contain means the full video shows without
+          cropping — earlier the 16:9 box with object-cover was clipping
+          vertical reels in half. */}
+      <div className="relative w-full overflow-hidden lux-bg-ink" style={{ aspectRatio: "9/16" }}>
         {hasVideo ? (
           <>
             <video
@@ -279,7 +283,7 @@ function SubmissionCard({
               loop
               playsInline
               controls
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-contain"
               onError={() => setVideoErrored(true)}
             />
             <button

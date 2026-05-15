@@ -1,0 +1,453 @@
+import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
+import LuxuryHeader from "@/components/lux/LuxuryHeader";
+import LuxuryFooter from "@/components/lux/LuxuryFooter";
+import EditorialHero from "@/components/lux/EditorialHero";
+import VideoReel from "@/components/lux/VideoReel";
+import Marquee from "@/components/lux/Marquee";
+import SectionHeading from "@/components/lux/SectionHeading";
+import { useSmartCTA } from "@/hooks/useSmartCTA";
+
+/**
+ * MetaLanding — /meta
+ *
+ * Lands Meta (Instagram + Facebook) ad traffic. Voice matches platform:
+ *   - Editorial, polished, aspirational
+ *   - Image-first composition (full-bleed photography)
+ *   - Trust signals: press marquee, customer reels, "as seen in"
+ *   - Magazine-spread layout
+ *   - Stronger byline on every section (Instagram is read like a magazine)
+ *
+ * Conversion levers:
+ *   - 60 free credits headline
+ *   - Press marquee for credibility
+ *   - Real customer reel above the fold
+ *   - Side-by-side phone mockups showing the output across formats
+ *   - Multiple CTA repetition with different wording
+ */
+const MetaLanding = () => {
+  const { destination, destinationFor, isLoggedIn } = useSmartCTA("agent");
+
+  return (
+    <>
+      <Helmet>
+        <title>One photo. A cinematic listing reel. Three minutes. — The Vantage</title>
+        <meta
+          name="description"
+          content="The cinematic listing reel built for Instagram and Facebook Reels. Upload one photo. Get a 1080p vertical film with your price and address baked in. 60 free credits, no card required."
+        />
+        <link rel="canonical" href="https://thevantage.media/meta" />
+      </Helmet>
+
+      <div className="min-h-screen lux-bg-bone" style={{ color: "var(--lux-ink)" }}>
+        <LuxuryHeader variant="bone" />
+
+        <main id="main-content">
+          <EditorialHero
+            eyebrow="A NEW EDITION FOR LISTING AGENTS"
+            edition="The Reels Edition"
+            title={
+              <>
+                One photo.
+                <br />
+                A cinematic
+                <br />
+                <span
+                  className="lux-display-italic"
+                  style={{ color: "var(--lux-rust)" }}
+                >
+                  listing film.
+                </span>
+              </>
+            }
+            subtitle="The vertical 1080p Reel agents are using to win every market. Price and address baked in. Auto-sized for Instagram and Facebook Reels. Sixty credits free — your first reel costs nothing."
+            primaryCta={{
+              label: isLoggedIn ? "OPEN THE STUDIO →" : "BEGIN FREE — 60 CREDITS →",
+              to: destination,
+            }}
+            secondaryCta={{ label: "SEE THE GALLERY", to: "/gallery" }}
+            rightImage="/vantage/ranch-build/input.png"
+            rightVideo="/vantage/done-for-you/result.mp4"
+            byline="A LISTING FILM · 1487 N ECHO, FRESNO"
+          />
+
+          {/* Press marquee — trust signal for Meta audiences */}
+          <Marquee
+            items={[
+              "AS SEEN IN  ·  Inman",
+              "Featured  ·  HousingWire",
+              "Architectural Digest",
+              "REAL Trends",
+              "Shoutout LA",
+              "PetaPixel",
+              "Real Producer",
+              "ASMP Quarterly",
+            ]}
+          />
+
+          {/* ═══════════ THE PROMISE — VISUAL SPREAD ═══════════ */}
+          <section
+            className="lux-section lux-bg-ink lux-grain"
+            style={{ color: "var(--lux-bone)" }}
+          >
+            <div className="lux-container">
+              <div className="grid lg:grid-cols-12 gap-10 lg:gap-16 items-center">
+                <div className="lg:col-span-6">
+                  <SectionHeading
+                    eyebrow="WHAT YOU'LL POST"
+                    title="A film, not"
+                    italic="a flyer."
+                    lede="Every other agent in your market is still posting static carousels. The Vantage delivers a finished, scroll-stopping vertical reel — auto-sized for Reels, your story, the MLS preview, your client email. The reel sells the listing. You take the call."
+                  />
+                  <div className="mt-10">
+                    <Link
+                      to={destination}
+                      className="lux-btn lux-btn-bone"
+                      style={{ padding: "18px 32px", fontSize: "0.8rem" }}
+                    >
+                      {isLoggedIn ? "CREATE A REEL →" : "TRY ONE FREE →"}
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Phone-mockup grid — shows where the reel goes */}
+                <div className="lg:col-span-6">
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: "STORY", poster: "/vantage/listing-bundle/1.webp" },
+                      { label: "REELS", poster: "/vantage/listing-bundle/2.webp" },
+                      { label: "FEED", poster: "/vantage/listing-bundle/3.webp" },
+                      { label: "DMs", poster: "/vantage/listing-bundle/4.webp" },
+                      { label: "FB FEED", poster: "/vantage/listing-bundle/5.webp" },
+                      { label: "MLS", poster: "/vantage/listing-bundle/6.webp" },
+                    ].map((p, i) => (
+                      <div
+                        key={i}
+                        className="relative overflow-hidden"
+                        style={{
+                          aspectRatio: "9/16",
+                          background: "var(--lux-ink)",
+                          border: "1px solid rgba(244,239,230,0.12)",
+                        }}
+                      >
+                        <img
+                          src={p.poster}
+                          alt={`${p.label} placement`}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        <div
+                          className="absolute inset-0 pointer-events-none"
+                          style={{
+                            background:
+                              "linear-gradient(to top, rgba(14,14,12,0.65) 0%, rgba(14,14,12,0) 50%)",
+                          }}
+                        />
+                        <div
+                          className="lux-eyebrow absolute bottom-2 left-2"
+                          style={{
+                            color: "var(--lux-champagne)",
+                            fontSize: "0.55rem",
+                            letterSpacing: "0.2em",
+                          }}
+                        >
+                          {p.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ═══════════ THE STATS — TRUST FOR META BUYERS ═══════════ */}
+          <section className="lux-section lux-bg-bone">
+            <div className="lux-container">
+              <div className="text-center mb-14">
+                <div
+                  className="lux-eyebrow mb-4"
+                  style={{ color: "var(--lux-rust)" }}
+                >
+                  THE MARKET HAS ALREADY MOVED
+                </div>
+                <h2
+                  className="lux-display"
+                  style={{
+                    fontSize: "clamp(2.4rem, 5vw, 4rem)",
+                    lineHeight: 1.05,
+                  }}
+                >
+                  Listings with video close{" "}
+                  <span
+                    className="lux-display-italic"
+                    style={{ color: "var(--lux-rust)" }}
+                  >
+                    9 days sooner.
+                  </span>
+                </h2>
+              </div>
+
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {[
+                  { v: "+62%", l: "SAVE RATE", c: "Reels vs. static carousels" },
+                  { v: "−9 days", l: "FASTER SALE", c: "Homes with film vs. without" },
+                  { v: "3.4×", l: "BUYER LEADS", c: "Cinematic reels to showings" },
+                  { v: "+$18k", l: "PRICE LIFT", c: "Median $850k–$1.2M" },
+                ].map((s) => (
+                  <div
+                    key={s.l}
+                    className="p-8 lux-bg-cream"
+                    style={{ border: "1px solid var(--lux-hairline)" }}
+                  >
+                    <div
+                      className="lux-display"
+                      style={{
+                        fontSize: "clamp(2.4rem, 4vw, 3.4rem)",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {s.v}
+                    </div>
+                    <div
+                      className="lux-eyebrow mt-4"
+                      style={{ color: "var(--lux-rust)" }}
+                    >
+                      {s.l}
+                    </div>
+                    <div
+                      className="mt-3 text-sm"
+                      style={{
+                        color: "var(--lux-ink)",
+                        fontStyle: "italic",
+                      }}
+                    >
+                      {s.c}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* ═══════════ REAL CUSTOMER REEL ═══════════ */}
+          <VideoReel
+            src="/vantage/done-for-you/result.mp4"
+            poster="/vantage/listing-bundle/1.webp"
+            eyebrow="A REAL CUSTOMER'S REEL"
+            title="123 East Atwood."
+            italic="Eight photos. One reel."
+            lede="A working agent uploaded eight listing photos. We generated and stitched them into one 30-second cinematic film with the price and address baked in. Total time from upload to finished MP4: three minutes."
+          />
+
+          {/* ═══════════ THE PRODUCT MENU ═══════════ */}
+          <section
+            className="lux-section"
+            style={{ background: "var(--lux-cream)" }}
+          >
+            <div className="lux-container">
+              <div className="text-center mb-12">
+                <div
+                  className="lux-eyebrow mb-4"
+                  style={{ color: "var(--lux-rust)" }}
+                >
+                  SIX FILMS · ONE UPLOAD EACH
+                </div>
+                <h2
+                  className="lux-display"
+                  style={{
+                    fontSize: "clamp(2.2rem, 5vw, 4rem)",
+                    lineHeight: 1.05,
+                  }}
+                >
+                  Pick the moment
+                  <br />
+                  <span
+                    className="lux-display-italic"
+                    style={{ color: "var(--lux-rust)" }}
+                  >
+                    your listing needs.
+                  </span>
+                </h2>
+              </div>
+
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[
+                  {
+                    id: "done_for_you_reel",
+                    eyebrow: "MOST POPULAR",
+                    title: "Done-For-You Reel",
+                    desc: "Six photos → one auto-stitched 30s reel with price + address baked in.",
+                    credits: "200 credits",
+                  },
+                  {
+                    id: "animate_single",
+                    eyebrow: "ONE SHOT",
+                    title: "Animate Single",
+                    desc: "One photo, one camera move, one cinematic clip. Push, pedestal, dolly, roll.",
+                    credits: "30 credits",
+                  },
+                  {
+                    id: "virtual_staging",
+                    eyebrow: "EMPTY → FURNISHED",
+                    title: "Virtual Staging",
+                    desc: "Empty room dresses itself in your chosen style, then the camera walks through.",
+                    credits: "60 credits",
+                  },
+                  {
+                    id: "sun_to_sun",
+                    eyebrow: "DAY → DUSK",
+                    title: "Sun-Up to Sundown",
+                    desc: "One daytime exterior. Time-lapse through sunrise, golden hour, and dusk.",
+                    credits: "60 credits",
+                  },
+                  {
+                    id: "sketch_to_real",
+                    eyebrow: "SIGNATURE REVEAL",
+                    title: "Sketch to Reality",
+                    desc: "Hand-drawn sketch on a desk transforms into the real photo, then a glide-through.",
+                    credits: "60 credits",
+                  },
+                  {
+                    id: "listing_bundle",
+                    eyebrow: "PER-CLIP DELIVERY",
+                    title: "Listing Bundle",
+                    desc: "Six photos → six individual cinematic clips delivered for your editor.",
+                    credits: "180 credits",
+                  },
+                ].map((p) => (
+                  <Link
+                    key={p.id}
+                    to={destinationFor(p.id as Parameters<typeof destinationFor>[0])}
+                    className="block p-7 lux-bg-bone transition-colors"
+                    style={{
+                      border: "1px solid var(--lux-hairline-strong)",
+                    }}
+                  >
+                    <div
+                      className="lux-eyebrow mb-3"
+                      style={{
+                        color: "var(--lux-rust)",
+                        fontSize: "0.62rem",
+                      }}
+                    >
+                      {p.eyebrow}
+                    </div>
+                    <h3
+                      className="lux-display mb-3"
+                      style={{ fontSize: "1.5rem", lineHeight: 1.1 }}
+                    >
+                      {p.title}
+                    </h3>
+                    <p
+                      className="lux-prose mb-4"
+                      style={{ fontSize: "0.9rem", lineHeight: 1.5 }}
+                    >
+                      {p.desc}
+                    </p>
+                    <div
+                      className="lux-eyebrow"
+                      style={{
+                        color: "var(--lux-brass)",
+                        fontSize: "0.62rem",
+                      }}
+                    >
+                      FROM {p.credits.toUpperCase()}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* ═══════════ FINAL CTA ═══════════ */}
+          <section
+            className="lux-section"
+            style={{ background: "var(--lux-ink)", color: "var(--lux-bone)" }}
+          >
+            <div className="lux-container max-w-4xl text-center py-12">
+              <div
+                className="lux-eyebrow mb-6"
+                style={{ color: "var(--lux-champagne)" }}
+              >
+                THE STUDIO IS OPEN
+              </div>
+              <h2
+                className="lux-display"
+                style={{
+                  fontSize: "clamp(2.6rem, 6vw, 5rem)",
+                  lineHeight: 1,
+                  color: "var(--lux-bone)",
+                }}
+              >
+                Make your next listing
+                <br />
+                <span
+                  className="lux-display-italic"
+                  style={{ color: "var(--lux-champagne)" }}
+                >
+                  impossible to scroll past.
+                </span>
+              </h2>
+              <div className="mt-12 flex flex-wrap items-center justify-center gap-6">
+                <Link
+                  to={destination}
+                  className="lux-btn lux-btn-bone"
+                  style={{ padding: "18px 32px", fontSize: "0.8rem" }}
+                >
+                  {isLoggedIn
+                    ? "OPEN THE STUDIO →"
+                    : "BEGIN FREE — 60 CREDITS →"}
+                </Link>
+                <Link
+                  to="/pricing"
+                  className="lux-eyebrow inline-flex items-center gap-3"
+                  style={{ color: "var(--lux-bone)" }}
+                >
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 24,
+                      height: 1,
+                      background: "var(--lux-bone)",
+                    }}
+                  />
+                  SEE PRICING
+                </Link>
+              </div>
+            </div>
+          </section>
+
+          {/* Sticky Bottom CTA */}
+          <div
+            className="fixed bottom-0 left-0 right-0 z-40 lux-bg-ink"
+            style={{
+              borderTop: "1px solid var(--lux-hairline-strong)",
+              color: "var(--lux-bone)",
+            }}
+          >
+            <div className="lux-container flex items-center justify-between gap-4 py-4">
+              <span
+                className="lux-eyebrow hidden sm:inline"
+                style={{ color: "var(--lux-champagne)" }}
+              >
+                60 free credits · No card required
+              </span>
+              <Link
+                to={destination}
+                className="lux-btn lux-btn-bone"
+                style={{ padding: "12px 22px", fontSize: "0.7rem" }}
+              >
+                {isLoggedIn ? "ENTER STUDIO →" : "BEGIN FREE →"}
+              </Link>
+            </div>
+          </div>
+        </main>
+
+        <LuxuryFooter />
+      </div>
+    </>
+  );
+};
+
+export default MetaLanding;

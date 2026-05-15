@@ -58,7 +58,7 @@ These are the models we shipped to production. Slug, input shape, output shape, 
   "prompt": "A 'JUST LISTED' sign in the lawn, white panel, dark serif text",
   "input_images": ["https://signed-url.../photo.jpg"],
   "aspect_ratio": "2:3",
-  "output_format": "jpg"
+  "output_format": "jpeg"
 }
 ```
 
@@ -74,7 +74,7 @@ These are the models we shipped to production. Slug, input shape, output shape, 
      return "2:3" // default — most listing reels are vertical
    }
    ```
-2. **Default output is webp.** Kling and Seedance both reject webp downstream. Always pass `output_format: "jpg"`. Always.
+2. **Default output is webp.** Kling and Seedance both reject webp downstream. Always pass `output_format: "jpeg"`. Always.
 3. **Runs ~25-35s.** Use `Prefer: wait=60` and you'll usually get the output synchronously.
 
 ---
@@ -88,7 +88,7 @@ These are the models we shipped to production. Slug, input shape, output shape, 
 {
   "prompt": "Generate a version of the reference image as a pencil architectural sketch on a wooden desk, with a person's right hand drawing it.",
   "image_input": ["https://signed-url.../photo.jpg"],
-  "output_format": "jpg"
+  "output_format": "jpeg"
 }
 ```
 
@@ -98,7 +98,7 @@ Note `image_input` (not `input_images`) — different field name from gpt-image-
 
 **Gotchas**:
 1. **Content moderation refuses real-estate signage with text on it.** If you ask nano-banana for a "FOR SALE" sign with readable text, it'll come back with "Failed to generate image." Use gpt-image-2 for any text-on-physical-object work; use nano-banana for stylistic transformations.
-2. **Default output is also webp** — same fix, pass `output_format: "jpg"`.
+2. **Default output is also webp** — same fix, pass `output_format: "jpeg"`.
 3. **Fast** — usually ~8 seconds. Reliably finishes inside the wait=60 window.
 
 ---
@@ -113,7 +113,7 @@ Note `image_input` (not `input_images`) — different field name from gpt-image-
   "prompt": "Render this sketch as a photorealistic interior. Preserve the exact room geometry...",
   "input_image": "https://signed-url.../sketch.jpg",
   "aspect_ratio": "match_input_image",
-  "output_format": "jpg",
+  "output_format": "jpeg",
   "safety_tolerance": 2,
   "prompt_upsampling": false
 }
@@ -315,11 +315,11 @@ Each poll updates entries with their `video_url` once that one finishes. When ev
    if (isWebp) file = await reencodeViaCanvas(file)
    ```
 
-2. **Image generation models**: always pass `output_format: "jpg"`. Don't accept the default.
+2. **Image generation models**: always pass `output_format: "jpeg"`. Don't accept the default.
    ```ts
-   { prompt, input_images: [...], output_format: "jpg" }  // gpt-image-2
-   { prompt, image_input: [...], output_format: "jpg" }   // nano-banana
-   { prompt, input_image: ..., output_format: "jpg" }     // flux-kontext
+   { prompt, input_images: [...], output_format: "jpeg" }  // gpt-image-2
+   { prompt, image_input: [...], output_format: "jpeg" }   // nano-banana
+   { prompt, input_image: ..., output_format: "jpeg" }     // flux-kontext
    ```
 
 3. **Server-side defensive guard**: HEAD-check every URL before passing it to Kling/Seedance. If the content-type is webp, throw a clean error rather than letting Replicate cough back the cryptic mime message.
@@ -604,7 +604,7 @@ A 6-clip listing bundle = 6 × Seedance + 1 × stitch ≈ $2.70. Price your cred
 Before you ship a new edge function, verify:
 
 - [ ] Replicate API token is set in Supabase secrets
-- [ ] All image generation calls pass `output_format: "jpg"`
+- [ ] All image generation calls pass `output_format: "jpeg"`
 - [ ] All gpt-image-2 calls map aspect ratios via `mapToGptImage2Ratio()`
 - [ ] Long-running calls use fire-and-poll, not synchronous `await`
 - [ ] Server-side webp HEAD check on every URL passed to Kling/Seedance

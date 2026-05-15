@@ -30,6 +30,10 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const AgentsLanding = lazy(() => import("./pages/AgentsLanding"));
 const AirbnbLanding = lazy(() => import("./pages/AirbnbLanding"));
 const AgenciesLanding = lazy(() => import("./pages/AgenciesLanding"));
+// Platform-specific paid-ad landings — voice tuned per source.
+const TikTokLanding = lazy(() => import("./pages/TikTokLanding"));
+const MetaLanding = lazy(() => import("./pages/MetaLanding"));
+const RedditLanding = lazy(() => import("./pages/RedditLanding"));
 const WebsiteConsultation = lazy(() => import("./pages/WebsiteConsultation"));
 const Video = lazy(() => import("./pages/Video"));
 const Submit = lazy(() => import("./pages/Submit"));
@@ -87,6 +91,17 @@ const App = () => (
                   <Route path="/for-agents" element={<AgentsLanding />} />
                   <Route path="/for-airbnb" element={<AirbnbLanding />} />
                   <Route path="/for-agencies" element={<AgenciesLanding />} />
+                  {/* Paid-ad landings — match the language and conversion
+                      pattern of each source platform. UTM parameters
+                      preserved by react-router so attribution stays clean. */}
+                  <Route path="/tiktok" element={<TikTokLanding />} />
+                  <Route path="/for-tiktok" element={<TikTokLanding />} />
+                  <Route path="/meta" element={<MetaLanding />} />
+                  <Route path="/for-meta" element={<MetaLanding />} />
+                  <Route path="/instagram" element={<MetaLanding />} />
+                  <Route path="/facebook" element={<MetaLanding />} />
+                  <Route path="/reddit" element={<RedditLanding />} />
+                  <Route path="/for-reddit" element={<RedditLanding />} />
                   <Route path="/real-estate-photographers" element={<RealEstatePhotographers />} />
                   <Route path="/photographers" element={<RealEstatePhotographers />} />
                   <Route path="/for-photographers" element={<RealEstatePhotographers />} />

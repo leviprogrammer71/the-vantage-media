@@ -623,12 +623,24 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     }
   };
 
-  // Auto-generate caption
-  const generatedCaption = `Just listed in ${location}. ${
-    showPrice && price ? `$${price.toLocaleString()}. ` : ""
-  }Tour the property — link in bio. — ${realtorName}${
-    brokerage ? `, ${brokerage}` : ""
-  }`;
+  // Auto-generate caption. Every field is OPTIONAL — when blank, we just
+  // skip that fragment instead of writing "Just listed in . — " with empty
+  // placeholders. The skip-and-generate path needs a usable caption even
+  // when the user hasn't typed anything.
+  const generatedCaption = (() => {
+    const parts: string[] = []
+    if (location.trim()) parts.push(`Just listed in ${location.trim()}.`)
+    else parts.push("Just listed.")
+    if (showPrice && price) parts.push(`$${price.toLocaleString()}.`)
+    parts.push("Tour the property — link in bio.")
+    if (realtorName.trim()) {
+      const byline = brokerage.trim()
+        ? `— ${realtorName.trim()}, ${brokerage.trim()}`
+        : `— ${realtorName.trim()}`
+      parts.push(byline)
+    }
+    return parts.join(" ")
+  })()
 
   // ── STITCH PIPELINE (rebuilt May 13, 2026) ──
   // Primary path: ffmpeg.wasm concat demuxer with -c copy. Stream-copies the
