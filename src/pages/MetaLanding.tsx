@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import LuxuryHeader from "@/components/lux/LuxuryHeader";
 import LuxuryFooter from "@/components/lux/LuxuryFooter";
 import EditorialHero from "@/components/lux/EditorialHero";
-import VideoReel from "@/components/lux/VideoReel";
+import PreviewVideo from "@/components/lux/PreviewVideo";
 import Marquee from "@/components/lux/Marquee";
 import SectionHeading from "@/components/lux/SectionHeading";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
@@ -231,14 +231,40 @@ const MetaLanding = () => {
           </section>
 
           {/* ═══════════ REAL CUSTOMER REEL ═══════════ */}
-          <VideoReel
-            src="/vantage/done-for-you/result.mp4"
-            poster="/vantage/listing-bundle/1.webp"
-            eyebrow="A REAL CUSTOMER'S REEL"
-            title="123 East Atwood."
-            italic="Eight photos. One reel."
-            lede="A working agent uploaded eight listing photos. We generated and stitched them into one 30-second cinematic film with the price and address baked in. Total time from upload to finished MP4: three minutes."
-          />
+          <section className="lux-section lux-bg-bone">
+            <div className="lux-container">
+              <div className="grid lg:grid-cols-12 gap-10 lg:gap-16 items-center">
+                <div className="lg:col-span-6">
+                  <SectionHeading
+                    eyebrow="A REAL CUSTOMER'S REEL"
+                    title="123 East Atwood."
+                    italic="Eight photos. One reel."
+                    lede="A working agent uploaded eight listing photos. We generated and stitched them into one 30-second cinematic film with the price and address baked in. Total time from upload to finished MP4: three minutes."
+                  />
+                </div>
+                <div className="lg:col-span-6">
+                  <div
+                    className="relative w-full overflow-hidden mx-auto"
+                    style={{
+                      aspectRatio: "9 / 16",
+                      maxWidth: 420,
+                      background: "var(--lux-ink)",
+                      border: "1px solid var(--lux-hairline-strong)",
+                      boxShadow: "0 24px 60px rgba(14,14,12,0.18)",
+                    }}
+                  >
+                    <PreviewVideo
+                      src="/vantage/done-for-you/result.mp4"
+                      poster="/vantage/listing-bundle/1.webp"
+                      alt="A real customer's Done-For-You listing reel"
+                      containerClassName="absolute inset-0 w-full h-full"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
 
           {/* ═══════════ THE PRODUCT MENU ═══════════ */}
           <section
