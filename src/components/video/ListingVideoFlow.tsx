@@ -666,25 +666,48 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     setError(null);
     setStitchProgress(0);
 
+    // Visible diagnostic at the start of every stitch — when users report
+    // bad output the first question is "which path did you take". Console
+    // logs make that answerable without redeploying.
+    console.log("[stitch] starting", {
+      clipCount: clipUrls.length,
+      isolated: typeof crossOriginIsolated !== "undefined" ? crossOriginIsolated : "unknown",
+      sharedArrayBuffer: typeof SharedArrayBuffer !== "undefined",
+      ffmpegPath: "primary: ffmpeg.wasm · fallback: canvas+MediaRecorder",
+    });
+
     // ── PRIMARY: ffmpeg.wasm lossless concat ──
     const support = ffmpegWasmAvailable();
     if (support.ok) {
       try {
+        console.log("[stitch] ffmpeg.wasm path — fetching clips + concatenating losslessly");
         const result = await stitchMp4Lossless({
           clipUrls,
           onProgress: (frac) => setStitchProgress(frac),
+          onStatus: (msg) => console.log("[stitch:ffmpeg]", msg),
         });
+        console.log(`[stitch] ✅ done via ${result.method} — ${(result.blob.size / 1_000_000).toFixed(1)}MB MP4`);
         setStitchedUrl(result.url);
         setStitchedBlob(result.blob);
         setStitchedExt(result.ext);
-        toast.success("Final cut ready — lossless MP4. Tap download.");
+        toast.success(
+          result.method === "ts_concat"
+            ? "Final cut ready — lossless MP4."
+            : "Final cut ready — re-encoded MP4.",
+        );
         return;
       } catch (err) {
-        console.error("[ListingVideoFlow] ffmpeg.wasm stitch failed, falling back to canvas:", err);
+        console.error("[stitch] ❌ ffmpeg.wasm failed, falling back to canvas:", err);
+        toast.error(
+          "Lossless stitch failed — trying browser fallback. Output may be webm.",
+        );
         // Don't return — fall through to canvas fallback so the user still gets something.
       }
     } else {
-      console.warn("[ListingVideoFlow] ffmpeg.wasm unavailable:", support.reason);
+      console.warn("[stitch] ⚠️ ffmpeg.wasm unavailable, using canvas fallback:", support.reason);
+      toast.error(
+        "MP4 stitcher needs page refresh. Hard-refresh (Cmd-Shift-R) for lossless output.",
+      );
     }
 
     // ── FALLBACK: canvas + MediaRecorder (legacy) ──
