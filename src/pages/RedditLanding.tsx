@@ -54,7 +54,7 @@ const RedditLanding = () => {
               </div>
 
               <h1
-                className="lux-display mb-8"
+                className="lux-display mb-6"
                 style={{
                   fontSize: "clamp(2.2rem, 5vw, 4.2rem)",
                   lineHeight: 1.05,
@@ -68,6 +68,66 @@ const RedditLanding = () => {
                   "best practice" was completely wrong.
                 </span>
               </h1>
+
+              {/* TL;DR — Reddit's most efficient conversion device.
+                  Skimmers get the bottom line + the CTA in 5 seconds. The
+                  full writeup below is for the readers who want depth. */}
+              <div
+                className="mb-10 p-5 border-l-4"
+                style={{
+                  background: "var(--lux-cream)",
+                  borderLeftColor: "var(--lux-rust)",
+                }}
+              >
+                <div
+                  className="lux-eyebrow mb-2"
+                  style={{ color: "var(--lux-rust)", fontSize: "0.65rem" }}
+                >
+                  TL;DR
+                </div>
+                <p
+                  className="lux-prose mb-4"
+                  style={{
+                    fontSize: "1rem",
+                    lineHeight: 1.65,
+                    color: "var(--lux-ink)",
+                  }}
+                >
+                  I built a tool that turns one real-estate photo into a
+                  cinematic 1080p vertical reel. Stack:{" "}
+                  <code
+                    style={{
+                      fontFamily: "'Space Mono', monospace",
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    bytedance/seedance-1-pro
+                  </code>{" "}
+                  +{" "}
+                  <code
+                    style={{
+                      fontFamily: "'Space Mono', monospace",
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    kling-v2.5-turbo-pro
+                  </code>{" "}
+                  + ffmpeg.wasm. 60 free credits = one full reel, no card.
+                </p>
+                <Link
+                  to={destination}
+                  className="lux-btn"
+                  style={{
+                    background: "var(--lux-ink)",
+                    color: "var(--lux-bone)",
+                    padding: "14px 24px",
+                    fontSize: "0.75rem",
+                    display: "inline-block",
+                  }}
+                >
+                  {isLoggedIn ? "OPEN STUDIO →" : "TRY ONE FREE →"}
+                </Link>
+              </div>
 
               <p
                 className="lux-prose mb-6"

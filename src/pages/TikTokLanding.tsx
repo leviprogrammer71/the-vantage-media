@@ -62,37 +62,82 @@ const TikTokLanding = () => {
                   </div>
 
                   <h1
-                    className="lux-display mb-8"
+                    className="lux-display mb-6"
                     style={{
                       fontSize: "clamp(2.6rem, 8vw, 6rem)",
                       lineHeight: 0.94,
                       letterSpacing: "-0.022em",
                     }}
                   >
-                    The other agents in your market
-                    <br />
+                    Turn one listing photo into a{" "}
                     <span
                       className="lux-display-italic"
                       style={{ color: "var(--lux-rust)" }}
                     >
-                      are already
-                      <br />
-                      posting Reels.
-                    </span>
+                      scroll-stopping
+                    </span>{" "}
+                    cinematic Reel.
                   </h1>
 
                   <p
-                    className="lux-prose mb-10"
+                    className="lux-prose mb-4"
                     style={{
-                      fontSize: "1.1rem",
-                      lineHeight: 1.55,
-                      maxWidth: 540,
+                      fontSize: "1.15rem",
+                      lineHeight: 1.5,
+                      maxWidth: 560,
+                      fontWeight: 500,
                     }}
                   >
-                    Upload one listing photo. Get a cinematic 1080p
-                    vertical TikTok in three minutes. The AI does the
-                    cameraman. You do the closing.
+                    The AI tool top-producing agents are quietly using on
+                    TikTok. 1080p vertical. 3 minutes. No editor.
                   </p>
+
+                  {/* Conversion proof bullets — specificity beats vagueness */}
+                  <ul
+                    className="space-y-2 mb-9"
+                    style={{
+                      fontSize: "0.95rem",
+                      color: "var(--lux-ink)",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <li className="flex items-start gap-2">
+                      <span
+                        style={{
+                          color: "var(--lux-rust)",
+                          fontWeight: 700,
+                          marginTop: -1,
+                        }}
+                      >
+                        ✓
+                      </span>
+                      <span>One photo in, one cinematic clip out — no tripod, no editor</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span
+                        style={{
+                          color: "var(--lux-rust)",
+                          fontWeight: 700,
+                          marginTop: -1,
+                        }}
+                      >
+                        ✓
+                      </span>
+                      <span>Six camera moves — dolly, pedestal, truck, orbit, roll, pan</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span
+                        style={{
+                          color: "var(--lux-rust)",
+                          fontWeight: 700,
+                          marginTop: -1,
+                        }}
+                      >
+                        ✓
+                      </span>
+                      <span>Price + address baked into the frame, ready to post</span>
+                    </li>
+                  </ul>
 
                   <div className="flex flex-wrap gap-4 items-center">
                     <Link
@@ -101,21 +146,23 @@ const TikTokLanding = () => {
                       style={{
                         background: "var(--lux-ink)",
                         color: "var(--lux-bone)",
-                        padding: "20px 32px",
-                        fontSize: "0.85rem",
+                        padding: "22px 36px",
+                        fontSize: "0.9rem",
                       }}
                     >
-                      {isLoggedIn ? "ENTER THE STUDIO →" : "TRY IT FREE · 60 CREDITS →"}
+                      {isLoggedIn
+                        ? "MAKE A REEL NOW →"
+                        : "MAKE MY FIRST REEL FREE →"}
                     </Link>
-                    <span
-                      className="lux-eyebrow"
-                      style={{
-                        color: "var(--lux-ash)",
-                        fontSize: "0.7rem",
-                      }}
-                    >
-                      NO CARD · 3 MIN
-                    </span>
+                  </div>
+                  <div
+                    className="lux-eyebrow mt-4"
+                    style={{
+                      color: "var(--lux-ash)",
+                      fontSize: "0.65rem",
+                    }}
+                  >
+                    60 FREE CREDITS · NO CARD · 3 MIN FIRST REEL
                   </div>
                 </div>
 

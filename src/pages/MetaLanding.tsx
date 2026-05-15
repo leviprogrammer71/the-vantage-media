@@ -266,7 +266,10 @@ const MetaLanding = () => {
             </div>
           </section>
 
-          {/* ═══════════ THE PRODUCT MENU ═══════════ */}
+          {/* ═══════════ FEATURED PATH — ONE PRIMARY CTA, FIVE EXTRAS ═══════════
+              Decision paralysis kills conversion. Show Done-For-You as the
+              one big primary path. Other films listed as a smaller secondary
+              row so users see the breadth without being asked to choose. */}
           <section
             className="lux-section"
             style={{ background: "var(--lux-cream)" }}
@@ -277,7 +280,7 @@ const MetaLanding = () => {
                   className="lux-eyebrow mb-4"
                   style={{ color: "var(--lux-rust)" }}
                 >
-                  SIX FILMS · ONE UPLOAD EACH
+                  THE ONE TO START WITH
                 </div>
                 <h2
                   className="lux-display"
@@ -286,99 +289,181 @@ const MetaLanding = () => {
                     lineHeight: 1.05,
                   }}
                 >
-                  Pick the moment
-                  <br />
+                  Done-For-You{" "}
                   <span
                     className="lux-display-italic"
                     style={{ color: "var(--lux-rust)" }}
                   >
-                    your listing needs.
+                    Reel.
                   </span>
                 </h2>
               </div>
 
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Featured Done-For-You card */}
+              <Link
+                to={destinationFor("done_for_you_reel")}
+                className="block mb-10"
+              >
+                <div
+                  className="p-8 lg:p-12 transition-all"
+                  style={{
+                    background: "var(--lux-ink)",
+                    color: "var(--lux-bone)",
+                    border: "1px solid var(--lux-ink)",
+                    boxShadow: "0 24px 60px rgba(14,14,12,0.22)",
+                  }}
+                >
+                  <div className="grid lg:grid-cols-12 gap-8 items-center">
+                    <div className="lg:col-span-7">
+                      <div
+                        className="lux-eyebrow mb-4 inline-block px-3 py-1"
+                        style={{
+                          background: "var(--lux-rust)",
+                          color: "var(--lux-bone)",
+                          fontSize: "0.62rem",
+                          letterSpacing: "0.18em",
+                        }}
+                      >
+                        ★ MOST POPULAR
+                      </div>
+                      <h3
+                        className="lux-display mb-4"
+                        style={{
+                          fontSize: "clamp(1.8rem, 3.5vw, 2.6rem)",
+                          lineHeight: 1.1,
+                          color: "var(--lux-bone)",
+                        }}
+                      >
+                        Six photos → one 30-second cinematic reel.
+                      </h3>
+                      <p
+                        className="lux-prose mb-6"
+                        style={{
+                          fontSize: "1rem",
+                          lineHeight: 1.6,
+                          color: "rgba(244,239,230,0.88)",
+                        }}
+                      >
+                        Auto-stitched. Price and address baked into the frame.
+                        Editorial, Snappy, Cinema, or Minimal style. The
+                        order you upload is the order they play. Total time
+                        from upload to finished MP4 — three minutes.
+                      </p>
+                      <span
+                        className="lux-btn lux-btn-bone inline-block"
+                        style={{ padding: "16px 28px", fontSize: "0.8rem" }}
+                      >
+                        {isLoggedIn
+                          ? "MAKE A REEL NOW →"
+                          : "MAKE MY FIRST REEL FREE →"}
+                      </span>
+                    </div>
+                    <div className="lg:col-span-5">
+                      <div
+                        className="grid grid-cols-3 gap-1.5"
+                        style={{ aspectRatio: "3/4" }}
+                      >
+                        {[
+                          "/vantage/listing-bundle/1.webp",
+                          "/vantage/listing-bundle/2.webp",
+                          "/vantage/listing-bundle/3.webp",
+                          "/vantage/listing-bundle/4.webp",
+                          "/vantage/listing-bundle/5.webp",
+                          "/vantage/listing-bundle/6.webp",
+                        ].map((src, i) => (
+                          <div
+                            key={i}
+                            className="relative overflow-hidden"
+                            style={{
+                              aspectRatio: "9/16",
+                              border: "1px solid rgba(244,239,230,0.12)",
+                            }}
+                          >
+                            <img
+                              src={src}
+                              alt={`Listing reel frame ${i + 1}`}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                            <div
+                              className="absolute top-1.5 left-1.5 lux-display flex items-center justify-center"
+                              style={{
+                                width: 22,
+                                height: 22,
+                                background: "var(--lux-bone)",
+                                color: "var(--lux-ink)",
+                                fontSize: "0.7rem",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {i + 1}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Secondary row — 5 other films, compact */}
+              <div
+                className="lux-eyebrow text-center mb-6"
+                style={{ color: "var(--lux-ash)" }}
+              >
+                OR PICK ANOTHER FILM
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                 {[
                   {
-                    id: "done_for_you_reel",
-                    eyebrow: "MOST POPULAR",
-                    title: "Done-For-You Reel",
-                    desc: "Six photos → one auto-stitched 30s reel with price + address baked in.",
-                    credits: "200 credits",
-                  },
-                  {
                     id: "animate_single",
-                    eyebrow: "ONE SHOT",
                     title: "Animate Single",
-                    desc: "One photo, one camera move, one cinematic clip. Push, pedestal, dolly, roll.",
-                    credits: "30 credits",
+                    sub: "1 photo · 1 shot",
                   },
                   {
                     id: "virtual_staging",
-                    eyebrow: "EMPTY → FURNISHED",
                     title: "Virtual Staging",
-                    desc: "Empty room dresses itself in your chosen style, then the camera walks through.",
-                    credits: "60 credits",
+                    sub: "Empty → furnished",
                   },
                   {
                     id: "sun_to_sun",
-                    eyebrow: "DAY → DUSK",
                     title: "Sun-Up to Sundown",
-                    desc: "One daytime exterior. Time-lapse through sunrise, golden hour, and dusk.",
-                    credits: "60 credits",
+                    sub: "Day → dusk",
                   },
                   {
                     id: "sketch_to_real",
-                    eyebrow: "SIGNATURE REVEAL",
                     title: "Sketch to Reality",
-                    desc: "Hand-drawn sketch on a desk transforms into the real photo, then a glide-through.",
-                    credits: "60 credits",
+                    sub: "Signature reveal",
                   },
                   {
                     id: "listing_bundle",
-                    eyebrow: "PER-CLIP DELIVERY",
                     title: "Listing Bundle",
-                    desc: "Six photos → six individual cinematic clips delivered for your editor.",
-                    credits: "180 credits",
+                    sub: "Per-clip delivery",
                   },
                 ].map((p) => (
                   <Link
                     key={p.id}
                     to={destinationFor(p.id as Parameters<typeof destinationFor>[0])}
-                    className="block p-7 lux-bg-bone transition-colors"
+                    className="block p-4 lux-bg-bone transition-colors text-center"
                     style={{
                       border: "1px solid var(--lux-hairline-strong)",
                     }}
                   >
-                    <div
-                      className="lux-eyebrow mb-3"
-                      style={{
-                        color: "var(--lux-rust)",
-                        fontSize: "0.62rem",
-                      }}
-                    >
-                      {p.eyebrow}
-                    </div>
-                    <h3
-                      className="lux-display mb-3"
-                      style={{ fontSize: "1.5rem", lineHeight: 1.1 }}
+                    <h4
+                      className="lux-display mb-1"
+                      style={{ fontSize: "0.95rem", lineHeight: 1.1 }}
                     >
                       {p.title}
-                    </h3>
-                    <p
-                      className="lux-prose mb-4"
-                      style={{ fontSize: "0.9rem", lineHeight: 1.5 }}
-                    >
-                      {p.desc}
-                    </p>
+                    </h4>
                     <div
                       className="lux-eyebrow"
                       style={{
-                        color: "var(--lux-brass)",
-                        fontSize: "0.62rem",
+                        color: "var(--lux-ash)",
+                        fontSize: "0.55rem",
+                        letterSpacing: "0.18em",
                       }}
                     >
-                      FROM {p.credits.toUpperCase()}
+                      {p.sub.toUpperCase()}
                     </div>
                   </Link>
                 ))}
