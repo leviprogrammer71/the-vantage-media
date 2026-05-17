@@ -34,7 +34,11 @@ type TransformationType = string;
 
 type BuildType = "full_build" | "team_build" | "diy";
 type MotionStyle = "slow_reveal" | "fast_progression" | "cinematic_orbit" | "dramatic_push";
-type Duration = "5s" | "10s";
+// ── DURATION OPTIONS (May 15, 2026) ──
+// Now 10s and 15s, per user direction. Seedance 2.0 is the only generator
+// — Kling/5s paths are gone. 5s still exists in the type for historical
+// rows that may reference it but it's not selectable in the UI.
+type Duration = "5s" | "10s" | "15s";
 type Format = "reels" | "tiktok" | "landscape";
 
 const CONSTRUCTION_TYPES = [
@@ -158,7 +162,7 @@ export function TransformationFlow({ transformationCategory }: { transformationC
   const [buildType, setBuildType] = useState<BuildType>("team_build");
   const [motionStyle, setMotionStyle] = useState<MotionStyle>("dramatic_push");
   const [shotType, setShotType] = useState<ShotType>("slow_push");
-  const [duration, setDuration] = useState<Duration>("5s");
+  const [duration, setDuration] = useState<Duration>("10s");
   const [format, setFormat] = useState<Format>("reels");
   const [description, setDescription] = useState("");
 
@@ -181,16 +185,16 @@ export function TransformationFlow({ transformationCategory }: { transformationC
     return localStorage.getItem("seedance_banner_dismissed") === "true";
   });
 
+  // Credit costs per (category, beforeMode, duration). 15s = 10s + 50% surcharge.
   const creditCost = (() => {
-    if (transformationCategory === "cleanup" || transformationCategory === "setup") {
-      return beforeMode === "ai"
-        ? (duration === "10s" ? 60 : 50)
-        : (duration === "10s" ? 50 : 40);
-    }
-    // Construction
-    return beforeMode === "ai"
-      ? (duration === "10s" ? 50 : 40)
-      : (duration === "10s" ? 40 : 30);
+    const tenSec =
+      transformationCategory === "cleanup" || transformationCategory === "setup"
+        ? (beforeMode === "ai" ? 60 : 50)
+        : (beforeMode === "ai" ? 50 : 40);
+    if (duration === "15s") return Math.round(tenSec * 1.5);
+    if (duration === "10s") return tenSec;
+    // legacy 5s — kept for backward-compat with old submission rows
+    return Math.round(tenSec * 0.6);
   })();
   const hasEnoughCredits = credits !== null && credits >= creditCost;
   const canGenerate = Boolean(afterImageUrl) && (beforeMode === "ai" || Boolean(beforeImageUrl));
@@ -287,7 +291,9 @@ export function TransformationFlow({ transformationCategory }: { transformationC
   };
 
   const getDurationSeconds = () => {
-    return duration === "5s" ? 5 : 10;
+    if (duration === "15s") return 15;
+    if (duration === "10s") return 10;
+    return 5;
   };
 
   const handleGenerate = async () => {
@@ -485,9 +491,14 @@ export function TransformationFlow({ transformationCategory }: { transformationC
         setCompletedSteps((prev) => [...prev, 5]);
         setVideoUrl(startData.video_url);
       } else if (startData?.prediction_id) {
-        // Client-side polling loop
+        // Client-side polling loop.
+        // ── EXTENDED TIMEOUT (May 15, 2026) ──
+        // 5 minutes wasn't enough — 15s Seedance generations + storage
+        // upload can take 6-8 minutes during peak Replicate load. Bumped
+        // to 12 minutes so the user actually sees their video instead of
+        // getting "timed out — check gallery" without anything in gallery.
         const predictionId = startData.prediction_id;
-        const maxAttempts = 60; // 5 minutes at 5s intervals
+        const maxAttempts = 144; // 12 minutes at 5s intervals
         let completed = false;
 
         for (let i = 0; i < maxAttempts; i++) {
@@ -1007,15 +1018,18 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                       camera setup) so users don't have to pick a movement
                       they'd want for a different category. */}
 
-                  {/* Duration & Format */}
+                  {/* Duration & Format — 10s and 15s only, per May 15
+                      direction. Seedance 2.0 on Replicate produces cleaner
+                      output at these lengths and the full transformation
+                      narrative needs the runtime. */}
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-3">
                       <label className="lux-eyebrow flex items-center" style={{ color: "var(--lux-brass)" }}>
                         DURATION
-                        <SettingTooltip text="5s = snappy and punchy, great for TikTok. 10s = more story, better for Instagram." />
+                        <SettingTooltip text="10s = the standard. 15s = full story arc with the after state lingering longer — best for Instagram and stories." />
                       </label>
                       <div className="flex gap-2">
-                        {(["5s", "10s"] as Duration[]).map((d) => (
+                        {(["10s", "15s"] as Duration[]).map((d) => (
                           <button
                             key={d}
                             onClick={() => setDuration(d)}

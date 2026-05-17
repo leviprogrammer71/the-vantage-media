@@ -9,30 +9,34 @@ const corsHeaders = {
 
 const REPLICATE = "https://api.replicate.com/v1"
 
-// ── Shot-type model routing ───────────────────────────────────────────────
-// Mirrors src/lib/shot-types.ts on the client. Standard shots run on Kling
-// 2.5 Turbo Pro; premium shots run on ByteDance Seedance 2.0 for higher
-// quality drone-style and architectural moves.
+// ── Shot-type motion hint routing ──────────────────────────────────────────
+// All transformations now run on ByteDance Seedance 2.0 — Kling was
+// producing inconsistent end states that left customers thinking the
+// process never completed. Seedance is faster, cheaper, and the user A/B
+// tested it as cleaner. The simple-prompt grammar matches what wins on
+// Seedance: short, image-anchored, no rich style language.
+//
+// "reveal_rise" REMOVED — Seedance interpreted the crane prompt as
+// "show different parts of the room" and produced jump cuts.
 type ShotType =
   | "slow_push"
   | "drone_orbit"
   | "parallax_pan"
-  | "reveal_rise"
   | "architectural"
   | "establishing"
+  | "pedestal_up"
 
 interface ShotConfig {
-  model: "kling-2.5-turbo" | "seedance-2"
   motionHint: string
 }
 
 const SHOT_CONFIG: Record<ShotType, ShotConfig> = {
-  slow_push:     { model: "kling-2.5-turbo", motionHint: "Slow dolly camera push-in on the subject, steady and cinematic." },
-  drone_orbit:   { model: "seedance-2",      motionHint: "Slow aerial orbit 60° around the subject at elevated angle, smooth drone motion." },
-  parallax_pan:  { model: "kling-2.5-turbo", motionHint: "Lateral parallax pan moving slowly left to right with foreground/background depth shift." },
-  reveal_rise:   { model: "kling-2.5-turbo", motionHint: "Camera rises vertically from low to eye height, revealing the composition." },
-  architectural: { model: "seedance-2",      motionHint: "Clean architectural slider pan, perfectly horizontal." },
-  establishing:  { model: "seedance-2",      motionHint: "Slow pull-back dolly from tight composition to wide establishing shot." },
+  slow_push:     { motionHint: "slow camera dolly as if cameraman stepping towards" },
+  drone_orbit:   { motionHint: "slow elevated camera orbit from above around" },
+  parallax_pan:  { motionHint: "slow parallax pan left to right across" },
+  architectural: { motionHint: "slow architectural slider across" },
+  establishing:  { motionHint: "slow camera dolly pulling back wide from" },
+  pedestal_up:   { motionHint: "slow camera pedestal on" },
 }
 
 function resolveShot(shotType?: string | null): ShotConfig {
@@ -230,43 +234,38 @@ serve(async (req) => {
         .eq("id", submission_id)
     }
 
-    const negativePrompt = "objects moving without human or machine cause, self-assembling structures, materials appearing from nowhere, floating objects with no support, water rising without inlet source, soil moving without excavation agent, concrete appearing without being poured, walls building without workers, plants growing in real time, tools moving without hands holding them, people teleporting between positions, physically impossible object trajectories, water flowing upward against gravity, shadows moving opposite to sun direction, materials passing through solid surfaces, duplicate workers or machines, artifacts, flickering, strobing, morphing faces or hands, blurry unresolved motion, ghost trails on moving objects, unrealistic collision physics, objects with no weight or mass, distorted proportions of workers or machines"
+    // ── DURATION HANDLING ──
+    // User-facing options are 10s and 15s. Seedance Pro on Replicate
+    // officially supports 5 and 10 seconds; pass 15s through anyway so
+    // we benefit if/when the platform extends support, and clamp to 10
+    // on rejection in a future iteration if needed. Default = 10s.
+    const rawDuration = typeof duration === "string" ? parseInt(duration) : (duration || 10)
+    const durationSeconds = [5, 10, 12, 15].includes(rawDuration) ? rawDuration : 10
 
-    const durationSeconds = typeof duration === "string" ? parseInt(duration) : (duration || 5)
-
-    // ── Route to model based on shot type ──
-    let modelEndpoint: string
-    let modelInput: Record<string, any>
-
-    // Auto-promote long-form (≥6s) work to Seedance 2.0 for cleaner physics + sharper architectural moves
-    const useSeedance = shot.model === "seedance-2" || durationSeconds >= 6
-
-    if (useSeedance) {
-      // ByteDance Seedance 2.0 (slug: seedance-1-pro) on Replicate
-      modelEndpoint = `${REPLICATE}/models/bytedance/seedance-1-pro/predictions`
-      modelInput = {
-        prompt: finalPrompt,
-        duration: durationSeconds,
-        aspect_ratio: aspect_ratio || "9:16",
-        resolution: "1080p",
-      }
-      // Seedance uses a single image when going from one frame
-      if (beforeUrl) modelInput.image = beforeUrl
-      else if (afterUrl) modelInput.image = afterUrl
-    } else {
-      // Kling 2.5 Turbo Pro (default for standard shots)
-      modelEndpoint = `${REPLICATE}/models/kwaivgi/kling-v2.5-turbo-pro/predictions`
-      modelInput = {
-        prompt: finalPrompt,
-        aspect_ratio: aspect_ratio || "9:16",
-        duration: durationSeconds,
-        negative_prompt: negativePrompt,
-      }
-      if (beforeUrl) modelInput.start_image = beforeUrl
-      if (afterUrl) modelInput.end_image = afterUrl
+    // ── ALL TRANSFORMATIONS NOW USE SEEDANCE 2.0 ──
+    // User direction May 15, 2026: "All video generation should use Seedance
+    // 2.0 and offer 10 or 15 second duration options". Kling was producing
+    // inconsistent end states. Seedance 2.0 (bytedance/seedance-1-pro) is
+    // image-to-video — takes ONE image and a short motion prompt, no
+    // start/end frame pair. We pass the BEFORE image and a prompt that
+    // describes the transformation, including the target after-state.
+    const modelEndpoint = `${REPLICATE}/models/bytedance/seedance-1-pro/predictions`
+    const modelInput: Record<string, any> = {
+      prompt: finalPrompt,
+      duration: durationSeconds,
+      aspect_ratio: aspect_ratio || "9:16",
+      resolution: "1080p",
+      fps: 24,
+      camera_fixed: false,
     }
+    // Image-to-video needs one anchor image. Prefer the BEFORE image so the
+    // transformation starts from the empty / unfinished state and animates
+    // toward the AFTER state described in the prompt. Fall back to AFTER
+    // if no BEFORE was provided (rare — AI-generated before path).
+    if (beforeUrl) modelInput.image = beforeUrl
+    else if (afterUrl) modelInput.image = afterUrl
 
-    console.log(`[generate-transformation-video] shot=${shot_type || "slow_push"} model=${useSeedance ? "seedance-2" : "kling-2.5"} endpoint=${modelEndpoint} duration=${durationSeconds}s`)
+    console.log(`[generate-transformation-video] shot=${shot_type || "slow_push"} model=seedance-2 duration=${durationSeconds}s`)
 
     const createRes = await fetch(modelEndpoint, {
       method: "POST",
@@ -281,7 +280,7 @@ serve(async (req) => {
     const prediction = await createRes.json()
     if (!prediction.id) {
       throw new Error(
-        `${shot.model} prediction failed to start: ${JSON.stringify(prediction)}`
+        `seedance-2 prediction failed to start: ${JSON.stringify(prediction)}`
       )
     }
 

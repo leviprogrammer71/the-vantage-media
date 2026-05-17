@@ -213,12 +213,11 @@ const SHOT_CONFIG: Record<string, { model: "kling" | "seedance"; motionHint: str
     motionHint: "slow parallax pan left to right across",
     pacing: "medium",
   },
-  // ── VERTICAL (jib rise + tilts + pedestal moves) ──
-  reveal_rise: {
-    model: "seedance",
-    motionHint: "slow camera crane rising up over",
-    pacing: "medium",
-  },
+  // ── VERTICAL (tilts + pedestal moves) ──
+  // "reveal_rise" REMOVED May 15, 2026 — Seedance interpreted the crane
+  // prompt as "show different parts of the room" and produced jump-cut
+  // output instead of a clean vertical crane. Pedestal Up/Down cover the
+  // same use case correctly.
   tilt_up: {
     model: "seedance",
     motionHint: "slow camera tilt up on",
@@ -1353,24 +1352,85 @@ serve(async (req) => {
         : undefined
       // ── SEEDANCE 2.0 + SIMPLE PROMPTS (May 12, 2026, user-empirical) ──
       // User A/B tested these EXACT prompts on Seedance 2.0 and they worked
-      // beautifully with no extension / no hallucination:
-      //   "slow camera roll of still house"
-      //   "slow camera dolly as if cameraman stepping towards still house"
-      //   "slow camera pedestal on still house"
-      //   "slow camera truck on still house"
-      // The earlier "Kling solves hallucinations" theory was wrong — Seedance
-      // 2.0 itself is fine when the prompt stays under 10 words and uses the
-      // model's preferred cinematography verbs. Routing back to the per-shot
-      // SHOT_CONFIG.model default (which is "seedance" for every shot now).
-      const result = await startVideoGeneration(
-        sourceImageUrl,
-        shot_type,
-        duration || 5,
-        REPLICATE_TOKEN,
-        animateContext,
-      )
+      // beautifully with no extension / no hallucination.
+      //
+      // ── GUARANTEED-15s FALLBACK (May 15, 2026) ──
+      // When duration: 15 is requested, try Seedance with duration=15 first.
+      // If Replicate rejects it (most likely with HTTP 422 + a duration-
+      // validation error message), fire two parallel predictions (10s + 5s)
+      // using the same source image. Return both prediction IDs in the
+      // bundle response shape with `extended_cut: true`. Client polls both,
+      // then runs the existing ffmpeg.wasm stitch to concat them into a
+      // single 15s MP4. 15s ALWAYS works regardless of Replicate's schema.
+      const requestedDuration = duration || 5
+      let result: { videoUrl?: string; predictionId?: string }
+      let extendedCutMode = false
+      try {
+        result = await startVideoGeneration(
+          sourceImageUrl,
+          shot_type,
+          requestedDuration,
+          REPLICATE_TOKEN,
+          animateContext,
+        )
+      } catch (firstErr) {
+        const msg = (firstErr as Error)?.message ?? ""
+        const isDurationRejection =
+          requestedDuration === 15 && /duration|invalid_field|enum/i.test(msg)
+        if (!isDurationRejection) throw firstErr
 
-      // Synchronous success
+        // Replicate rejected duration: 15 — split into 10s + 5s parallel
+        // predictions. Both use the same source image (the cinematic seam
+        // at the 10s mark is acceptable for the guaranteed-15s feature;
+        // most camera moves at 10s are still near the start of their arc).
+        console.log("[animate_single] duration=15 rejected by Seedance, splitting into 10+5")
+        extendedCutMode = true
+        const [p10, p5] = await Promise.all([
+          startVideoGeneration(sourceImageUrl, shot_type, 10, REPLICATE_TOKEN, animateContext),
+          startVideoGeneration(sourceImageUrl, shot_type, 5, REPLICATE_TOKEN, animateContext),
+        ])
+
+        // If both finished within the wait window, persist and return.
+        if (p10.videoUrl && p5.videoUrl) {
+          const bundleStamp = Date.now()
+          const clipPaths: string[] = []
+          for (let i = 0; i < 2; i++) {
+            const url = i === 0 ? p10.videoUrl : p5.videoUrl
+            const path = await persistVideoToStorage(
+              url,
+              `listing-videos/${bundleStamp}/extcut-${i}.mp4`,
+              supabase,
+              `ext-15s[${i}]`,
+            )
+            if (path) clipPaths.push(path)
+          }
+          return new Response(JSON.stringify({
+            status: "complete",
+            category,
+            extended_cut: true,
+            video_url: p10.videoUrl,
+            clip_urls: [p10.videoUrl, p5.videoUrl],
+            output_clip_paths: clipPaths,
+            listing,
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+        }
+
+        // Async path for extended cut — return both prediction IDs in the
+        // SAME shape POLL MODE B expects, so the existing poll-mode-B
+        // handler already knows how to chase them.
+        return new Response(JSON.stringify({
+          status: "processing",
+          category,
+          extended_cut: true,
+          prediction_ids: [
+            { prediction_id: p10.predictionId, index: 0 },
+            { prediction_id: p5.predictionId, index: 1 },
+          ],
+          listing,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+      }
+
+      // Synchronous success — single-clip 10s or natively-supported 15s
       if (result.videoUrl) {
         const outputVideoPath = await persistVideoToStorage(
           result.videoUrl,
@@ -1395,7 +1455,7 @@ serve(async (req) => {
         })
       }
 
-      // Async path — client polls
+      // Async path — single prediction, client polls
       return new Response(JSON.stringify({
         status: "processing",
         prediction_id: result.predictionId,
@@ -1482,8 +1542,8 @@ serve(async (req) => {
         "establishing",   // 1. Wide opener — moving hook
         "push_in",        // 2. Hero — strongest interior feature
         "architectural",  // 3. Detail — read materials
-        "reveal_rise",    // 4. Hero again — second signature space (not another detail)
-        "drone_orbit",    // 5. Amenity — outdoor / signature
+        "pedestal_up",    // 4. Hero again — second signature space (vertical lift)
+        "truck_right",    // 5. Amenity — outdoor / signature (clean lateral slide)
         "parallax_left",  // 6. Closing — composed parallax
       ]
       const photos = photo_urls.slice(0, 6)

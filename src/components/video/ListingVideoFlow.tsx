@@ -64,19 +64,19 @@ const DFY_STYLES: DfyStylePreset[] = [
     id: "editorial",
     title: "Editorial",
     description: "Refined fashion-house typography. Serif price reveal. Slow magazine-grade pacing.",
-    shotRotation: ["push_in", "architectural", "reveal_rise", "establishing", "parallax_left", "truck_right"],
+    shotRotation: ["push_in", "architectural", "pedestal_up", "establishing", "parallax_left", "truck_right"],
   },
   {
     id: "snappy",
     title: "Snappy",
     description: "Bold caps, high-contrast yellow price, sharp wipe-left transitions. Built for TikTok and Reels feed.",
-    shotRotation: ["parallax_right", "truck_right", "push_in", "reveal_rise", "slide_left", "architectural"],
+    shotRotation: ["parallax_right", "truck_right", "push_in", "pedestal_up", "slide_left", "architectural"],
   },
   {
     id: "cinema",
     title: "Cinema",
     description: "Letterboxed crops, restrained type, fade-through-black transitions. Looks like a luxury auto ad.",
-    shotRotation: ["establishing", "truck_right", "push_in", "architectural", "reveal_rise", "parallax_left"],
+    shotRotation: ["establishing", "truck_right", "push_in", "architectural", "pedestal_up", "parallax_left"],
   },
   {
     id: "minimal",
@@ -240,6 +240,10 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   const [shotType, setShotType] = useState<ShotType>("push_in");
   const [effectId, setEffectId] = useState<EffectId>("none");
   const [vibe, setVibe] = useState<Vibe>("luxury");
+  // Duration option — 10s default, 15s extended. Per May 15 direction:
+  // "all video generation should use Seedance 2.0 and offer 10 or 15
+  // second duration options". Applies to single-clip categories.
+  const [singleClipDuration, setSingleClipDuration] = useState<10 | 15>(10);
   // Burn-in title overlay (Seedance renders text directly into the frame).
   const [titleOverlay, setTitleOverlay] = useState<TitleOverlayValue>(DEFAULT_TITLE_OVERLAY);
   const [stagingStyle, setStagingStyle] = useState<StagingStyle>("modern");
@@ -398,7 +402,18 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             caption: (category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan") ? undefined : caption,
             music_vibe: (category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan") ? undefined : musicVibe,
           },
-          duration: category === "animate_single" ? 8 : category === "sun_to_sun" ? 12 : category === "virtual_staging" ? 8 : category === "sketch_to_real" ? 8 : category === "floor_plan_pan" ? 5 : 20,
+          // ── DURATION ROUTING (May 15, 2026) ──
+          // Single-clip categories respect the user's 10s/15s pick.
+          // Bundle categories (listing_bundle, done_for_you_reel) keep their
+          // per-clip 5s pacing — the user-facing total is N × 5s and the
+          // 15s option doesn't apply (the bundle total > 15s already).
+          duration:
+            category === "animate_single" ? singleClipDuration
+            : category === "sun_to_sun" ? singleClipDuration
+            : category === "virtual_staging" ? singleClipDuration
+            : category === "sketch_to_real" ? singleClipDuration
+            : category === "floor_plan_pan" ? singleClipDuration
+            : 5, // bundle per-clip (listing_bundle, done_for_you_reel)
           credits_cost: creditCost,
           // Burn-in title overlay — only sent when enabled and non-empty.
           // Suppressed for done_for_you_reel (the auto-stitch adds its own
@@ -444,6 +459,16 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
       let finalClipPathsFromServer: string[] = Array.isArray(response.data?.output_clip_paths)
         ? response.data.output_clip_paths
         : [];
+
+      // ── GUARANTEED-15s EXTENDED CUT (May 15, 2026) ──
+      // When the edge function couldn't run a native 15s Seedance generation
+      // because Replicate rejected the duration, it splits into a 10s + 5s
+      // parallel pair and marks the response with extended_cut: true. The
+      // bundle-poll path will still chase both predictions; we just need to
+      // remember the flag so we can concat the two MP4s via ffmpeg.wasm
+      // once both clips land. The user always gets a single 15s MP4 — no
+      // visible workaround.
+      const isExtendedCut = !!response.data?.extended_cut;
       const isBundleAsync =
         response.data?.status === "processing" &&
         Array.isArray(response.data?.prediction_ids);
@@ -505,6 +530,33 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
 
       if (!finalVideoUrl) {
         throw new Error("No video URL returned from generation");
+      }
+
+      // ── EXTENDED-CUT CONCAT (15s guaranteed) ──
+      // If the server split the 15s request into a 10s + 5s pair, both
+      // clips are now in finalClipUrls. Concat them via ffmpeg.wasm into
+      // one continuous 15s MP4 and use THAT as the user-facing output.
+      if (isExtendedCut && finalClipUrls.length === 2) {
+        try {
+          console.log("[ListingVideoFlow] extended_cut detected — concatenating two clips into one 15s MP4");
+          toast.success("Stitching your 15s cut…");
+          const stitched = await stitchMp4Lossless({
+            clipUrls: finalClipUrls,
+            onStatus: (msg) => console.log("[ext-15s]", msg),
+          });
+          // Replace the user-facing video with the concatenated result.
+          finalVideoUrl = stitched.url;
+          // The Blob is also captured so download works on mobile via Web Share.
+          setStitchedUrl(stitched.url);
+          setStitchedBlob(stitched.blob);
+          setStitchedExt(stitched.ext);
+          console.log(`[ListingVideoFlow] extended cut ready — ${(stitched.blob.size / 1_000_000).toFixed(1)}MB MP4 via ${stitched.method}`);
+        } catch (concatErr) {
+          // ffmpeg failed — fall back to playing the first clip alone.
+          // Better to ship 10s than to fail outright.
+          console.error("[ListingVideoFlow] extended-cut concat failed, falling back to 10s clip:", concatErr);
+          toast.error("Couldn't merge into 15s — delivered the 10s base clip instead.");
+        }
       }
 
       // Capture all clips for the bundle path. For single-clip categories, clip_urls === [video_url].
@@ -1618,6 +1670,61 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                   CAMERA MOVEMENT
                 </h3>
                 <ShotTypePicker value={shotType} onChange={setShotType} />
+              </div>
+            )}
+
+            {/* ── DURATION PICKER (single-clip categories only) ──
+                Bundle paths (listing_bundle, done_for_you_reel) use a
+                fixed 5s per clip — the bundle total is already 25-30s
+                without an explicit picker. Single-clip categories let
+                the user pick 10s vs 15s, per May 15 direction. */}
+            {(category === "animate_single"
+              || category === "sun_to_sun"
+              || category === "virtual_staging"
+              || category === "sketch_to_real"
+              || category === "floor_plan_pan") && (
+              <div className="mt-8 pt-6" style={{ borderTop: "1px solid var(--lux-hairline)" }}>
+                <h3 className="lux-eyebrow mb-4" style={{ color: "var(--lux-ink)", fontWeight: 700 }}>
+                  DURATION
+                </h3>
+                <div className="grid grid-cols-2 gap-3 max-w-md">
+                  {([10, 15] as const).map((d) => {
+                    const isSelected = singleClipDuration === d;
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setSingleClipDuration(d)}
+                        className="p-4 border text-left transition-colors"
+                        style={isSelected ? {
+                          background: "var(--lux-ink)",
+                          borderColor: "var(--lux-ink)",
+                          color: "var(--lux-bone)",
+                        } : {
+                          background: "var(--lux-bone)",
+                          borderColor: "var(--lux-hairline-strong)",
+                          color: "var(--lux-ink)",
+                        }}
+                      >
+                        <div
+                          className="lux-display"
+                          style={{ fontSize: "1.5rem", lineHeight: 1 }}
+                        >
+                          {d}s
+                        </div>
+                        <div
+                          className="lux-eyebrow mt-1"
+                          style={{
+                            color: isSelected ? "var(--lux-champagne)" : "var(--lux-brass)",
+                            fontSize: "0.62rem",
+                          }}
+                        >
+                          {d === 10 ? "STANDARD · CINEMATIC" : "EXTENDED · FULL STORY ARC"}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

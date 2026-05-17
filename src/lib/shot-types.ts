@@ -27,7 +27,8 @@ export type ShotType =
   | "parallax_left"       // ◀️📐 Parallax Left — depth-revealing pan
   | "parallax_right"      // 📐▶️ Parallax Right
   // Vertical (rises + tilts + pedestals)
-  | "reveal_rise"         // ⬆️ Rise & Reveal — crane up
+  // "reveal_rise" deleted May 15, 2026 — generated random parts of the
+  // room instead of cleanly craning up. Removed entirely.
   | "tilt_up"             // ⤴️ Tilt Up — ceiling / sky reveal (rotation only)
   | "tilt_down"           // ⤵️ Tilt Down — top-down sweep (rotation only)
   | "pedestal_up"         // 🛗 Pedestal Up — vertical camera translation (no tilt)
@@ -198,18 +199,10 @@ export const SHOT_TYPES: ShotTypeConfig[] = [
     creditCost: 25,
   },
   // ── VERTICAL ────────────────────────────────────────────────────────
-  {
-    id: "reveal_rise",
-    label: "Rise & Reveal",
-    tagline: "Uplifting discovery",
-    description: "Camera rises vertically from low to eye level, revealing the subject from below.",
-    category: "vertical",
-    recommendedFor: ["architectural", "exterior", "double-height"],
-    model: "kling-2.5-turbo",
-    motionPrompt: "Camera rises uniformly from ankle height to eye level on a motorized jib, gimbal-locked horizon, no horizontal drift, revealing the composition from ground to canopy.",
-    isPremium: false,
-    creditCost: 25,
-  },
+  // "reveal_rise" / "Rise & Reveal" REMOVED May 15, 2026 — Seedance
+  // interpreted the prompt as "show different parts of the room" and
+  // generated jump cuts between random angles instead of a clean vertical
+  // crane move. Pedestal Up/Down replace this use case cleanly.
   {
     id: "tilt_up",
     label: "Tilt Up",
