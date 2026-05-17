@@ -126,7 +126,89 @@ serve(async (req) => {
   try {
     const body = await req.json()
 
-    // ── MODE B: Poll for status ──
+    // ── MODE C: Poll an extended-cut (15s split into two predictions) ──
+    if (Array.isArray(body.prediction_ids) && body.prediction_ids.length > 0) {
+      const TOKEN = Deno.env.get("REPLICATE_API_TOKEN")!
+      const updated = await Promise.all(
+        body.prediction_ids.map(async (entry: any) => {
+          if (entry.video_url) return entry
+          if (!entry.prediction_id) return { ...entry, video_url: null, error: "missing prediction_id" }
+          try {
+            const r = await fetch(`${REPLICATE}/predictions/${entry.prediction_id}`, {
+              headers: { Authorization: `Token ${TOKEN}` },
+            })
+            const d = await r.json()
+            if (d.status === "succeeded") {
+              const url = extractVideoUrl(d.output)
+              return { ...entry, video_url: url }
+            }
+            if (d.status === "failed" || d.status === "canceled") {
+              return { ...entry, video_url: null, error: d.error || "failed" }
+            }
+            return entry
+          } catch (e) {
+            return { ...entry, error: (e as Error).message }
+          }
+        })
+      )
+
+      const allDone = updated.every((e: any) => e.video_url || e.error)
+      if (allDone) {
+        const clipUrls = updated.filter((e: any) => e.video_url).map((e: any) => e.video_url)
+        if (clipUrls.length === 0) {
+          return new Response(
+            JSON.stringify({
+              status: "failed",
+              error: "All extended-cut clips failed: " + updated.map((e: any) => e.error).join("; "),
+            }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          )
+        }
+        // Both clips are ready — return the URLs so the client can concat
+        // via ffmpeg.wasm. Per-clip storage paths are written for the
+        // backfill flow to keep them recoverable.
+        const stamp = Date.now()
+        const clipPaths: string[] = []
+        for (let i = 0; i < clipUrls.length; i++) {
+          const path = await storeVideo(supabase, clipUrls[i], `${body.submission_id || `direct-${stamp}`}-ext${i}`)
+          if (path) clipPaths.push(path)
+        }
+        // Update the submission row with the FIRST clip's URL/path so the
+        // gallery has something to display while the user concats client-side.
+        if (body.submission_id) {
+          await supabase
+            .from("submissions")
+            .update({
+              output_video_url: clipUrls[0],
+              output_video_path: clipPaths[0] ?? null,
+              status: "delivered",
+              prompt_status: "complete",
+            })
+            .eq("id", body.submission_id)
+        }
+        return new Response(
+          JSON.stringify({
+            status: "complete",
+            extended_cut: true,
+            video_url: clipUrls[0],
+            clip_urls: clipUrls,
+            output_clip_paths: clipPaths,
+            submission_id: body.submission_id || null,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        )
+      }
+      return new Response(
+        JSON.stringify({
+          status: "processing",
+          extended_cut: true,
+          prediction_ids: updated,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      )
+    }
+
+    // ── MODE B: Poll a single prediction ──
     if (body.prediction_id && !body.video_prompt) {
       const TOKEN = Deno.env.get("REPLICATE_API_TOKEN")!
       const res = await fetch(
@@ -267,17 +349,60 @@ serve(async (req) => {
 
     console.log(`[generate-transformation-video] shot=${shot_type || "slow_push"} model=seedance-2 duration=${durationSeconds}s`)
 
-    const createRes = await fetch(modelEndpoint, {
-      method: "POST",
-      headers: {
-        Authorization: `Token ${Deno.env.get("REPLICATE_API_TOKEN")}`,
-        "Content-Type": "application/json",
-        Prefer: "wait=60",
-      },
-      body: JSON.stringify({ input: modelInput }),
-    })
+    // Helper that fires ONE Seedance prediction with a given duration.
+    // Returns { prediction, ok, error }. Doesn't throw — caller inspects.
+    async function fireSeedance(seconds: number) {
+      const input = { ...modelInput, duration: seconds }
+      const r = await fetch(modelEndpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${Deno.env.get("REPLICATE_API_TOKEN")}`,
+          "Content-Type": "application/json",
+          Prefer: "wait=60",
+        },
+        body: JSON.stringify({ input }),
+      })
+      const data = await r.json()
+      return { data, ok: !!data.id, status: r.status }
+    }
 
-    const prediction = await createRes.json()
+    const firstAttempt = await fireSeedance(durationSeconds)
+
+    // ── GUARANTEED-15s FALLBACK (May 15, 2026) ──
+    // Replicate's Seedance Pro has a hard duration cap of 12s. When a user
+    // picks 15s and Seedance returns HTTP 422 "Must be less than or equal
+    // to 12", split into a 10s + 5s parallel pair using the same source
+    // image. Return both prediction IDs as a bundle-style response with
+    // `extended_cut: true` — client concats via ffmpeg.wasm into one 15s.
+    const isDurationRejection =
+      !firstAttempt.ok &&
+      durationSeconds > 12 &&
+      /duration|number_lte|invalid_fields/i.test(JSON.stringify(firstAttempt.data))
+
+    if (isDurationRejection) {
+      console.log(`[generate-transformation-video] duration=${durationSeconds} rejected by Seedance, splitting into 10+5`)
+      const [p10, p5] = await Promise.all([fireSeedance(10), fireSeedance(5)])
+      if (!p10.ok || !p5.ok) {
+        throw new Error(
+          `seedance-2 split-fallback failed: 10s=${p10.ok ? "OK" : JSON.stringify(p10.data).slice(0, 200)} | 5s=${p5.ok ? "OK" : JSON.stringify(p5.data).slice(0, 200)}`
+        )
+      }
+      // Both predictions started. Return both IDs for client to poll + concat.
+      return new Response(
+        JSON.stringify({
+          extended_cut: true,
+          prediction_ids: [
+            { prediction_id: p10.data.id, index: 0, duration: 10 },
+            { prediction_id: p5.data.id, index: 1, duration: 5 },
+          ],
+          submission_id: submission_id || null,
+          status: "processing",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      )
+    }
+
+    const prediction = firstAttempt.data
     if (!prediction.id) {
       throw new Error(
         `seedance-2 prediction failed to start: ${JSON.stringify(prediction)}`

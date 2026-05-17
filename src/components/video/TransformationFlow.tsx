@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/hooks/useCredits";
 import { supabase } from "@/integrations/supabase/client";
 import { withFreshAuth } from "@/lib/auth-refresh";
+import { stitchMp4Lossless } from "@/lib/ffmpeg-stitch";
 import { InsufficientCreditsModal } from "./InsufficientCreditsModal";
 import { SettingTooltip } from "./SettingTooltip";
 import { toast } from "sonner";
@@ -484,39 +485,57 @@ export function TransformationFlow({ transformationCategory }: { transformationC
         throw new Error(detail);
       }
 
+      // ── EXTENDED-CUT (15s GUARANTEED) ──
+      // When the user picks 15s but Replicate's Seedance Pro caps at 12s,
+      // the edge function splits into a 10s + 5s pair and returns both
+      // prediction IDs with `extended_cut: true`. We poll both, then
+      // concat the resulting two MP4s into one 15s MP4 via ffmpeg.wasm.
+      const isExtendedCut =
+        startData?.extended_cut === true &&
+        Array.isArray(startData?.prediction_ids);
+
       // If it completed immediately (within Replicate's wait window)
-      if (startData?.status === "complete" && startData?.video_url) {
+      if (startData?.status === "complete" && startData?.video_url && !isExtendedCut) {
         setCompletedSteps((prev) => [...prev, 4]);
         setCurrentStep(5);
         setCompletedSteps((prev) => [...prev, 5]);
         setVideoUrl(startData.video_url);
-      } else if (startData?.prediction_id) {
+      } else if (isExtendedCut || startData?.prediction_id) {
         // Client-side polling loop.
-        // ── EXTENDED TIMEOUT (May 15, 2026) ──
-        // 5 minutes wasn't enough — 15s Seedance generations + storage
-        // upload can take 6-8 minutes during peak Replicate load. Bumped
-        // to 12 minutes so the user actually sees their video instead of
-        // getting "timed out — check gallery" without anything in gallery.
-        const predictionId = startData.prediction_id;
-        const maxAttempts = 144; // 12 minutes at 5s intervals
+        // 12-min timeout — 15s extended-cut generations need both clips
+        // to finish + a client-side ffmpeg.wasm concat at the end.
+        const maxAttempts = 144;
         let completed = false;
+        let extendedClipUrls: string[] | null = null;
+
+        // Both modes use a poll body — single ID or array of IDs.
+        let pollBody: any = isExtendedCut
+          ? { prediction_ids: startData.prediction_ids, submission_id: submissionId }
+          : { prediction_id: startData.prediction_id, submission_id: submissionId };
 
         for (let i = 0; i < maxAttempts; i++) {
           await new Promise((r) => setTimeout(r, 5000));
 
           const { data: pollData, error: pollError } = await supabase.functions.invoke(
             "generate-transformation-video",
-            {
-              body: {
-                prediction_id: predictionId,
-                submission_id: submissionId,
-              },
-            }
+            { body: pollBody }
           );
 
           if (pollError) throw new Error(pollError.message);
 
-          if (pollData?.status === "complete" && pollData?.video_url) {
+          // Extended-cut: both clips ready → trigger client-side concat
+          if (
+            isExtendedCut &&
+            pollData?.status === "complete" &&
+            Array.isArray(pollData?.clip_urls)
+          ) {
+            extendedClipUrls = pollData.clip_urls;
+            completed = true;
+            break;
+          }
+
+          // Single clip ready
+          if (!isExtendedCut && pollData?.status === "complete" && pollData?.video_url) {
             setCompletedSteps((prev) => [...prev, 4]);
             setCurrentStep(5);
             setCompletedSteps((prev) => [...prev, 5]);
@@ -529,11 +548,33 @@ export function TransformationFlow({ transformationCategory }: { transformationC
             throw new Error(pollData?.error || "Video generation failed");
           }
 
-          // Still processing — continue polling
+          // Update poll body with progress (bundle case keeps shape)
+          if (isExtendedCut && Array.isArray(pollData?.prediction_ids)) {
+            pollBody = { prediction_ids: pollData.prediction_ids, submission_id: submissionId };
+          }
+        }
+
+        // Run ffmpeg concat on the two clips into a single 15s MP4
+        if (isExtendedCut && extendedClipUrls && extendedClipUrls.length === 2) {
+          setCompletedSteps((prev) => [...prev, 4]);
+          setCurrentStep(5);
+          try {
+            toast.success("Stitching your 15s cut…");
+            const stitched = await stitchMp4Lossless({
+              clipUrls: extendedClipUrls,
+              onStatus: (msg) => console.log("[ext-15s-transform]", msg),
+            });
+            setVideoUrl(stitched.url);
+          } catch (concatErr) {
+            console.error("[TransformationFlow] ext-15s concat failed, falling back to 10s:", concatErr);
+            toast.error("Couldn't merge into 15s — delivered the 10s base clip instead.");
+            setVideoUrl(extendedClipUrls[0]);
+          }
+          setCompletedSteps((prev) => [...prev, 5]);
         }
 
         if (!completed) {
-          throw new Error("Video generation timed out after 5 minutes. Check your gallery — it may still complete.");
+          throw new Error("Video generation timed out. Check your gallery — it may still complete.");
         }
       } else {
         throw new Error("Video generation failed — no prediction ID returned");
