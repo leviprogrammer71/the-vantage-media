@@ -105,6 +105,7 @@ const CATEGORY_CARDS = [
     eyebrow: "★ MOST POPULAR · AUTO-STITCHED · 4 STYLES",
     description: "Upload 3-6 photos in the order you want them to play. We render each as a cinematic clip then auto-stitch into one finished MP4 with your price and realtor name baked in. Editorial, Snappy, Cinema, or Minimal style.",
     details: "15-30s · From 110 credits · Auto-stitched · Pick a style",
+    previewUrl: "/vantage/done-for-you/result.mp4",
   },
   {
     id: "listing_bundle" as const,
@@ -112,13 +113,15 @@ const CATEGORY_CARDS = [
     eyebrow: "MULTI-PHOTO REEL · PER-CLIP DELIVERY",
     description: "Upload 3-6 photos. We render each as a Seedance 2.0 cinematic clip and hand back the individual clips for you to mix in your editor.",
     details: "15-30s · From 90 credits · Per-clip delivery",
+    previewUrl: "/vantage/listing-bundle/1.mp4",
   },
   {
     id: "virtual_staging" as const,
     title: "Virtual Staging",
     eyebrow: "EMPTY ROOM TO FULLY FURNISHED",
-    description: "Upload one empty room photo. One 10-second cinematic film: the room dresses itself in your chosen style, then the camera glides through the finished space.",
+    description: "Upload one empty room photo. The room dresses itself in your chosen style — locked-off camera, identical framing. Furniture appears, settles, stays.",
     details: "10s film · Single download · From 50 credits",
+    previewUrl: "/vantage/build/result.mp4",
   },
   {
     id: "sun_to_sun" as const,
@@ -126,6 +129,7 @@ const CATEGORY_CARDS = [
     eyebrow: "DAY-TO-DUSK · GOLDEN-HOUR TIMELAPSE",
     description: "Upload one daytime exterior. We render a static-camera time-lapse through sunrise, golden hour, and dusk in a single 10-second clip.",
     details: "10s film · Single download · From 60 credits",
+    previewUrl: "/vantage/sun-cycle/result.mp4",
   },
   {
     id: "sketch_to_real" as const,
@@ -133,13 +137,15 @@ const CATEGORY_CARDS = [
     eyebrow: "HAND-DRAWN REVEAL · SIGNATURE MOMENT",
     description: "Upload your property photo. One 10-second cinematic film: a pencil sketch on a desk transforms into the real photo, then the camera reveals the space.",
     details: "10s film · Single download · From 60 credits",
+    previewUrl: "/vantage/sketch/result.mp4",
   },
   {
     id: "animate_single" as const,
     title: "Animate Single",
     eyebrow: "ONE PHOTO · ONE CINEMATIC SHOT",
     description: "Pick a single hero shot. Choose any of six camera moves.",
-    details: "5–8 seconds · 1080p vertical · From 25 credits",
+    details: "5–10 seconds · 1080p vertical · From 25 credits",
+    previewUrl: "/vantage/animate-single/result.mp4",
   },
   {
     id: "floor_plan_pan" as const,
@@ -147,6 +153,7 @@ const CATEGORY_CARDS = [
     eyebrow: "FLOOR PLAN · PHOTOREAL WALK-THROUGH",
     description: "Upload a floor plan or axonometric drawing. One 10-second cinematic film: the plan transforms into a photoreal interior, then the camera moves through the space.",
     details: "10s film · Single download · From 30 credits",
+    previewUrl: "/vantage/ranch-build/result.mp4",
   },
 ];
 
@@ -835,7 +842,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                   setCategory(card.id);
                   setStep(2);
                 }}
-                className="group text-left flex flex-col relative"
+                className="group text-left flex flex-col relative overflow-hidden"
                 style={{
                   background: isFeatured ? "var(--lux-ink)" : "var(--lux-cream)",
                   color: isFeatured ? "var(--lux-bone)" : "var(--lux-ink)",
@@ -845,7 +852,6 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                   // md breakpoint (768px → 2-up = ~360px each).
                   minWidth: 0,
                   minHeight: "360px",
-                  padding: "32px 28px",
                   boxShadow: isFeatured ? "0 14px 40px rgba(14,14,12,0.18)" : "none",
                 }}
                 onMouseEnter={(e) => {
@@ -855,9 +861,26 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                   if (!isFeatured) e.currentTarget.style.borderColor = "var(--lux-hairline)";
                 }}
               >
+                {/* ── Preview video (May 16, 2026) ──
+                    Each card shows a looping example of what the feature
+                    produces so users see the breadth before clicking in.
+                    Muted + autoPlay + playsInline so it works on mobile. */}
+                {card.previewUrl && (
+                  <video
+                    src={card.previewUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="w-full aspect-[4/3] object-cover"
+                    style={{ background: "var(--lux-ink)" }}
+                  />
+                )}
+                <div style={{ padding: "32px 28px", display: "flex", flexDirection: "column", flex: 1 }}>
                 {isFeatured && (
                   <div
-                    className="lux-eyebrow absolute -top-2 right-4 px-3 py-1"
+                    className="lux-eyebrow absolute top-2 right-4 px-3 py-1"
                     style={{
                       background: "var(--lux-rust)",
                       color: "var(--lux-bone)",
@@ -925,6 +948,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                     className="w-4 h-4 flex-shrink-0 group-hover:translate-x-1 transition"
                     style={{ color: isFeatured ? "var(--lux-champagne)" : "var(--lux-brass)" }}
                   />
+                </div>
                 </div>
               </button>
               );

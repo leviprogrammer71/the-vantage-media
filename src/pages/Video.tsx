@@ -102,14 +102,12 @@ export default function VideoPage() {
                   {videoMode === "select"
                     ? "Create a Video"
                     : videoMode === "listing"
-                    ? "Listing Videos"
-                    : videoMode === "transform" && !transformationCategory
-                    ? "Choose Type"
+                    ? "Camera Movement"
                     : videoMode === "transform"
-                    ? "Transformation Videos"
+                    ? "Transformation"
                     : videoMode === "setup"
-                    ? "Setup Videos"
-                    : "Cleanup Videos"}
+                    ? "Setup"
+                    : "Cleanup"}
                 </span>
               </div>
             </div>
@@ -153,103 +151,112 @@ export default function VideoPage() {
                 <h1 className="lux-display text-2xl font-bold tracking-tight">
                   CREATE A VIDEO
                 </h1>
-                <p className="lux-prose text-sm" style={{ color: "var(--lux-ash)" }}>Four products. One upload. Cinematic output.</p>
+                <p className="lux-prose text-sm" style={{ color: "var(--lux-ash)" }}>Three products. One upload. Cinematic output.</p>
               </div>
 
               <div className="grid grid-cols-1 gap-4">
-                {/* I. Listing Videos */}
+                {/* I. Camera Movement (consolidates listing video features) */}
                 <button
                   onClick={() => setVideoMode("listing")}
-                  className="text-left p-5 rounded-none border transition-all"
+                  className="text-left rounded-none border transition-all overflow-hidden"
                   style={{ backgroundColor: "var(--lux-bone)", borderColor: "var(--lux-hairline)", color: "var(--lux-ink)" }}
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--lux-cream)"}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--lux-bone)"}
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <span className="lux-display-italic text-3xl" style={{ color: "var(--lux-rust)" }}>I.</span>
-                  </div>
-                  <h2 className="lux-display text-xl font-bold tracking-wide mb-1">
-                    LISTING VIDEOS
-                  </h2>
-                  <p className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>FOR THE LISTING ON THE MARKET</p>
-                  <p className="lux-prose text-sm leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
-                    Turn one or more listing photos into cinematic Reels. Six camera moves, optional Just-Listed signage, multi-photo compilations. Built for real estate photographers and listing agents.
-                  </p>
-                  <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--lux-hairline)" }}>
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--lux-brass)" }}>PHOTOGRAPHERS · AGENTS · BROKERAGES</span>
-                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Begin →</span>
-                  </div>
-                </button>
-
-                {/* II. Transformation Videos */}
-                <button
-                  onClick={() => { setVideoMode("transform"); setTransformationCategory("construction"); }}
-                  className="text-left p-5 rounded-none border transition-all"
-                  style={{ backgroundColor: "var(--lux-bone)", borderColor: "var(--lux-hairline)", color: "var(--lux-ink)" }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--lux-cream)"}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--lux-bone)"}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <span className="lux-display-italic text-3xl" style={{ color: "var(--lux-rust)" }}>II.</span>
-                  </div>
-                  <h2 className="lux-display text-xl font-bold tracking-wide mb-1">
-                    TRANSFORMATION VIDEOS
-                  </h2>
-                  <p className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>FOR FINISHED CONSTRUCTION & RENOVATION</p>
-                  <p className="lux-prose text-sm leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
-                    Upload one finished after photo. We generate the raw bare-site before and animate the build sequence. Kitchen remodels, full builds, exteriors.
-                  </p>
-                  <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--lux-hairline)" }}>
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--lux-brass)" }}>CONTRACTORS · RENOVATORS · BUILDERS</span>
-                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Begin →</span>
+                  <video
+                    src="/vantage/animate-single/result.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full aspect-[4/3] object-cover"
+                    style={{ background: "var(--lux-ink)" }}
+                  />
+                  <div className="p-5">
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="lux-display-italic text-3xl" style={{ color: "var(--lux-rust)" }}>I.</span>
+                    </div>
+                    <h2 className="lux-display text-xl font-bold tracking-wide mb-1">
+                      CAMERA MOVEMENT
+                    </h2>
+                    <p className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>EVERY MOVE, EVERY EFFECT</p>
+                    <p className="lux-prose text-sm leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
+                      Turn one or more photos into cinematic Reels. Animate single, sun-to-sun, virtual staging, sketch-to-real, floor plan walkthroughs, multi-photo listing bundles, done-for-you reels. Every camera move and effect we offer.
+                    </p>
+                    <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--lux-hairline)" }}>
+                      <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--lux-brass)" }}>PHOTOGRAPHERS · AGENTS · BROKERAGES</span>
+                      <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Begin →</span>
+                    </div>
                   </div>
                 </button>
 
-                {/* III. Setup Videos */}
+                {/* II. Setup */}
                 <button
                   onClick={() => { setVideoMode("setup"); setTransformationCategory("setup"); }}
-                  className="text-left p-5 rounded-none border transition-all"
+                  className="text-left rounded-none border transition-all overflow-hidden"
                   style={{ backgroundColor: "var(--lux-bone)", borderColor: "var(--lux-hairline)", color: "var(--lux-ink)" }}
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--lux-cream)"}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--lux-bone)"}
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <span className="lux-display-italic text-3xl" style={{ color: "var(--lux-rust)" }}>III.</span>
-                  </div>
-                  <h2 className="lux-display text-xl font-bold tracking-wide mb-1">
-                    SETUP VIDEOS
-                  </h2>
-                  <p className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>FOR EVENT VENUES & STYLED SPACES</p>
-                  <p className="lux-prose text-sm leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
-                    Upload one styled after photo. We generate the empty unstyled before and animate the setup sequence. Event venues, caterers, hospitality.
-                  </p>
-                  <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--lux-hairline)" }}>
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--lux-brass)" }}>VENUES · CATERERS · STYLISTS</span>
-                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Begin →</span>
+                  <video
+                    src="/vantage/setup/video.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full aspect-[4/3] object-cover"
+                    style={{ background: "var(--lux-ink)" }}
+                  />
+                  <div className="p-5">
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="lux-display-italic text-3xl" style={{ color: "var(--lux-rust)" }}>II.</span>
+                    </div>
+                    <h2 className="lux-display text-xl font-bold tracking-wide mb-1">
+                      SETUP
+                    </h2>
+                    <p className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>EMPTY → FINISHED</p>
+                    <p className="lux-prose text-sm leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
+                      Upload the before and after. We animate the build sequence — empty room becoming furnished, raw site becoming finished home, bare table becoming styled. Anchored at both ends so the transformation actually completes.
+                    </p>
+                    <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--lux-hairline)" }}>
+                      <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--lux-brass)" }}>CONTRACTORS · STAGERS · VENUES</span>
+                      <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Begin →</span>
+                    </div>
                   </div>
                 </button>
 
-                {/* IV. Cleanup Videos */}
+                {/* III. Cleanup */}
                 <button
                   onClick={() => { setVideoMode("cleanup"); setTransformationCategory("cleanup"); }}
-                  className="text-left p-5 rounded-none border transition-all"
+                  className="text-left rounded-none border transition-all overflow-hidden"
                   style={{ backgroundColor: "var(--lux-bone)", borderColor: "var(--lux-hairline)", color: "var(--lux-ink)" }}
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--lux-cream)"}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--lux-bone)"}
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <span className="lux-display-italic text-3xl" style={{ color: "var(--lux-rust)" }}>IV.</span>
-                  </div>
-                  <h2 className="lux-display text-xl font-bold tracking-wide mb-1">
-                    CLEANUP VIDEOS
-                  </h2>
-                  <p className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>FOR CLEANED & RESTORED SPACES</p>
-                  <p className="lux-prose text-sm leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
-                    Upload one cleaned after photo. We generate the cluttered messy before and animate the cleanup sequence. Rubbish removal, hoarding cleanouts, restoration.
-                  </p>
-                  <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--lux-hairline)" }}>
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--lux-brass)" }}>CLEANUP CREWS · RESTORERS · HAULERS</span>
-                    <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Begin →</span>
+                  <video
+                    src="/vantage/cleanup/result.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full aspect-[4/3] object-cover"
+                    style={{ background: "var(--lux-ink)" }}
+                  />
+                  <div className="p-5">
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="lux-display-italic text-3xl" style={{ color: "var(--lux-rust)" }}>III.</span>
+                    </div>
+                    <h2 className="lux-display text-xl font-bold tracking-wide mb-1">
+                      CLEANUP
+                    </h2>
+                    <p className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>CLUTTERED → CLEAN</p>
+                    <p className="lux-prose text-sm leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
+                      Upload the before and after. We animate the cleanup — junk fades, surfaces clear, the room resolves to its restored state. Anchored to your final photo so the end state always matches what you shot.
+                    </p>
+                    <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--lux-hairline)" }}>
+                      <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--lux-brass)" }}>CLEANUP CREWS · RESTORERS · HAULERS</span>
+                      <span className="text-xs font-semibold" style={{ color: "var(--lux-ink)" }}>Begin →</span>
+                    </div>
                   </div>
                 </button>
               </div>
