@@ -29,7 +29,7 @@ import {
   Upload, Loader2, Download, Share2, RefreshCw, Check, AlertCircle, X,
   ChevronRight, Heart
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 type ListingCategory =
   | "animate_single"
@@ -98,6 +98,10 @@ interface Photo {
 // other multi-photo + single-photo features. Floor Plan is dropped from
 // the homepage showcase but still available here for users who specifically
 // want it.
+// ── Category ordering (May 16, 2026) ──
+// Done-For-You is the headline. Animate Single is the second most popular
+// option because everything (Camera Movement, Setup, Cleanup, Transformation)
+// lives inside it now. The other multi-photo / specialty categories follow.
 const CATEGORY_CARDS = [
   {
     id: "done_for_you_reel" as const,
@@ -106,6 +110,14 @@ const CATEGORY_CARDS = [
     description: "Upload 3-6 photos in the order you want them to play. We render each as a cinematic clip then auto-stitch into one finished MP4 with your price and realtor name baked in. Editorial, Snappy, Cinema, or Minimal style.",
     details: "15-30s · From 110 credits · Auto-stitched · Pick a style",
     previewUrl: "/vantage/done-for-you/result.mp4",
+  },
+  {
+    id: "animate_single" as const,
+    title: "Animate Single",
+    eyebrow: "★ 2ND MOST POPULAR · CAMERA · SETUP · CLEANUP · TRANSFORMATION",
+    description: "Animate one photo your way. Pick a camera move (tilt, pedestal, push, parallax, orbit, pan) or turn it into a Setup, Cleanup, or full Transformation morph. One feature, every mode.",
+    details: "5–10s · 1080p vertical · From 25 credits",
+    previewUrl: "/vantage/animate-single/result.mp4",
   },
   {
     id: "listing_bundle" as const,
@@ -138,14 +150,6 @@ const CATEGORY_CARDS = [
     description: "Upload your property photo. One 10-second cinematic film: a pencil sketch on a desk transforms into the real photo, then the camera reveals the space.",
     details: "10s film · Single download · From 60 credits",
     previewUrl: "/vantage/sketch/result.mp4",
-  },
-  {
-    id: "animate_single" as const,
-    title: "Animate Single",
-    eyebrow: "ONE PHOTO · ONE CINEMATIC SHOT",
-    description: "Pick a single hero shot. Choose any of six camera moves.",
-    details: "5–10 seconds · 1080p vertical · From 25 credits",
-    previewUrl: "/vantage/animate-single/result.mp4",
   },
   {
     id: "floor_plan_pan" as const,
@@ -240,9 +244,17 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
       ? initialCategory
       : null;
 
+  const navigate = useNavigate();
+
   // Wizard state
   const [step, setStep] = useState(validInitial ? 2 : 1);
   const [category, setCategory] = useState<ListingCategory | null>(validInitial);
+  // animate_single sub-mode picker. When user picks Animate Single from the
+  // category cards, we first show a 4-way picker (Camera Movement / Setup /
+  // Cleanup / Transformation) before letting them upload. Setup/Cleanup/
+  // Transformation route to TransformationFlow via /video?mode=...; Camera
+  // Movement continues in this flow with the shot-type picker.
+  const [showAnimateModePicker, setShowAnimateModePicker] = useState(false);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [shotType, setShotType] = useState<ShotType>("push_in");
   const [effectId, setEffectId] = useState<EffectId>("none");
@@ -815,6 +827,145 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     }
   };
 
+  // ── ANIMATE SINGLE MODE PICKER ──
+  // 4 options:
+  //   • Camera Movement → continues in this flow (Seedance single-image)
+  //   • Setup           → /video?mode=setup (TransformationFlow, Kling)
+  //   • Cleanup         → /video?mode=cleanup (TransformationFlow, Kling)
+  //   • Transformation  → /video?mode=transform (TransformationFlow, Kling)
+  if (step === 1 && showAnimateModePicker) {
+    const modes = [
+      {
+        id: "camera",
+        title: "Camera Movement",
+        eyebrow: "ANIMATE ONE PHOTO · TILT · PEDESTAL · PUSH · ORBIT · PAN",
+        description: "Pick a single hero photo and choose any camera move — tilt up/down, pedestal up/down, push in, pull back, parallax left/right, slow orbit, architectural slider. Six to ten seconds, 1080p vertical.",
+        details: "5–10s · From 25 credits",
+        previewUrl: "/vantage/animate-single/result.mp4",
+        action: () => {
+          setShowAnimateModePicker(false);
+          setCategory("animate_single");
+          setStep(2);
+        },
+      },
+      {
+        id: "setup",
+        title: "Setup",
+        eyebrow: "EMPTY → FINISHED · ANCHORED AT BOTH ENDS",
+        description: "Upload the empty before and the finished after. We animate the build — furniture appears, the room dresses itself, the space resolves to your final photo.",
+        details: "5–10s · From 50 credits",
+        previewUrl: "/vantage/setup/video.mp4",
+        action: () => navigate("/video?mode=setup"),
+      },
+      {
+        id: "cleanup",
+        title: "Cleanup",
+        eyebrow: "CLUTTERED → CLEAN · END-STATE LOCKED",
+        description: "Upload the cluttered before and the cleaned after. Junk fades, surfaces clear, the room resolves to the restored state shown in your final photo.",
+        details: "5–10s · From 50 credits",
+        previewUrl: "/vantage/cleanup/result.mp4",
+        action: () => navigate("/video?mode=cleanup"),
+      },
+      {
+        id: "transformation",
+        title: "Transformation",
+        eyebrow: "BEFORE → AFTER · KITCHEN, EXTERIOR, FULL BUILD",
+        description: "Upload the raw before and the finished after of any project — kitchen remodel, full build, exterior renovation, landscaping. We animate the morph.",
+        details: "5–10s · From 50 credits",
+        previewUrl: "/vantage/build/result.mp4",
+        action: () => navigate("/video?mode=transform"),
+      },
+    ];
+    return (
+      <div className="lux-section lux-bg-bone">
+        <div className="lux-container">
+          <button
+            onClick={() => setShowAnimateModePicker(false)}
+            className="mb-8 inline-flex items-center gap-2 px-4 py-2.5 border transition-colors"
+            style={{
+              background: "var(--lux-bone)",
+              borderColor: "var(--lux-hairline)",
+              color: "var(--lux-ink)",
+            }}
+          >
+            <ChevronRight className="w-4 h-4 rotate-180" />
+            <span className="lux-eyebrow text-xs">BACK TO LISTING VIDEOS</span>
+          </button>
+          <div className="mb-10">
+            <div className="lux-eyebrow mb-4" style={{ color: "var(--lux-rust)" }}>
+              ANIMATE SINGLE · CHOOSE YOUR MODE
+            </div>
+            <h2
+              className="lux-display"
+              style={{ fontSize: "clamp(2rem, 5vw, 4rem)", lineHeight: 0.95 }}
+            >
+              One photo, <span className="lux-display-italic">four modes.</span>
+            </h2>
+            <p className="lux-prose mt-4 max-w-2xl" style={{ color: "var(--lux-ash)" }}>
+              Camera Movement animates a single image. Setup, Cleanup, and Transformation morph a before into an after — anchored at both ends so the result actually completes.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+            {modes.map((m) => (
+              <button
+                key={m.id}
+                onClick={m.action}
+                className="group text-left flex flex-col relative overflow-hidden"
+                style={{
+                  background: "var(--lux-cream)",
+                  color: "var(--lux-ink)",
+                  border: "1px solid var(--lux-hairline)",
+                  transition: "all 0.3s var(--lux-ease)",
+                  minWidth: 0,
+                  minHeight: "320px",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--lux-ink)")}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--lux-hairline)")}
+              >
+                <video
+                  src={m.previewUrl}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="w-full aspect-[4/3] object-cover"
+                  style={{ background: "var(--lux-ink)" }}
+                />
+                <div style={{ padding: "28px 26px", display: "flex", flexDirection: "column", flex: 1 }}>
+                  <div
+                    className="lux-eyebrow mb-3"
+                    style={{ color: "var(--lux-rust)", fontSize: "0.7rem", letterSpacing: "0.16em", lineHeight: 1.4 }}
+                  >
+                    {m.eyebrow}
+                  </div>
+                  <h3 className="lux-display mb-3" style={{ fontSize: "1.7rem", lineHeight: 1.1 }}>
+                    {m.title}
+                  </h3>
+                  <p className="lux-prose mb-4 flex-1" style={{ fontSize: "0.95rem", lineHeight: 1.55 }}>
+                    {m.description}
+                  </p>
+                  <div
+                    className="flex items-center justify-between gap-3 pt-3"
+                    style={{ borderTop: "1px solid var(--lux-hairline)" }}
+                  >
+                    <span className="text-xs" style={{ fontSize: "0.7rem", lineHeight: 1.4 }}>
+                      {m.details}
+                    </span>
+                    <ChevronRight
+                      className="w-4 h-4 flex-shrink-0 group-hover:translate-x-1 transition"
+                      style={{ color: "var(--lux-brass)" }}
+                    />
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // STEP 1: Category picker
   if (step === 1) {
     return (
@@ -834,11 +985,20 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
             {CATEGORY_CARDS.map((card) => {
-              const isFeatured = card.id === "listing_bundle" || card.id === "done_for_you_reel";
+              const isFeatured = card.id === "done_for_you_reel" || card.id === "animate_single";
               return (
               <button
                 key={card.id}
                 onClick={() => {
+                  // animate_single → first show the 4-way mode picker
+                  // (Camera / Setup / Cleanup / Transformation). Camera
+                  // Movement stays in this flow; the other three route to
+                  // /video?mode=setup|cleanup|transform (TransformationFlow,
+                  // Kling start+end pair).
+                  if (card.id === "animate_single") {
+                    setShowAnimateModePicker(true);
+                    return;
+                  }
                   setCategory(card.id);
                   setStep(2);
                 }}
@@ -2034,6 +2194,10 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
               src={stitchedUrl || clipUrls[activeClipIndex] || videoUrl}
               controls={clipUrls.length <= 1 || stitchedUrl !== null}
               autoPlay
+              // Loop single-clip and stitched playback. Multi-clip mode uses
+              // onEnded to advance between clips, so don't set the native
+              // loop there or it'll never advance past clip 0.
+              loop={clipUrls.length <= 1 || stitchedUrl !== null}
               muted={clipUrls.length > 1 && !stitchedUrl}
               playsInline
               onEnded={() => {

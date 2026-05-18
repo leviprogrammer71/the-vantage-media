@@ -28,10 +28,12 @@ export default function VideoPage() {
   const getInitialMode = (): VideoMode => {
     const mode = searchParams.get("mode");
     if (mode === "transform") return "transform";
-    if (mode === "listing") return "listing";
     if (mode === "setup") return "setup";
     if (mode === "cleanup") return "cleanup";
-    return "select";
+    // Default + ?mode=listing → unified Listing Videos flow.
+    // The 3-card select screen has been retired (May 16, 2026): everything
+    // lives under "Animate Single" inside ListingVideoFlow now.
+    return "listing";
   };
 
   // Initialise transformationCategory from the URL too — without this, landing on
@@ -145,7 +147,12 @@ export default function VideoPage() {
             </button>
           )}
 
-          {videoMode === "select" && (
+          {/* The 3-card select screen has been retired. Setup, Cleanup, and
+              Transformation are now all accessible inside Animate Single
+              (within ListingVideoFlow). The select branch below is retained
+              for legacy navigation but is never reached because the default
+              mode is "listing". */}
+          {false && videoMode === "select" && (
             <>
               <div className="text-center space-y-1">
                 <h1 className="lux-display text-2xl font-bold tracking-tight">
