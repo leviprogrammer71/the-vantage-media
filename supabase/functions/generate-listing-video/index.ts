@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import {
+  streamReplicateToStorage,
+  markStorageError,
+} from "../_shared/store-video.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -698,9 +702,13 @@ async function generateSketchWithNanoBanana(
     if (url) return url
   }
 
+  // ── Bumped polling window (May 16, 2026) ──
+  // nano-banana spikes to 60–90s on busy days. The old 48s ceiling produced
+  // the non-2xx errors the user was seeing on sketch_to_real. Now 150s
+  // (30 polls × 5s) with the actual Replicate detail surfaced on failure.
   const TOKEN = Deno.env.get("REPLICATE_API_TOKEN")!
-  for (let i = 0; i < 12; i++) {
-    await new Promise((r) => setTimeout(r, 4000))
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => setTimeout(r, 5000))
     const pollRes = await fetch(`${REPLICATE}/predictions/${prediction.id}`, {
       headers: { Authorization: `Token ${TOKEN}` },
     })
@@ -712,10 +720,11 @@ async function generateSketchWithNanoBanana(
       throw new Error("nano-banana succeeded but returned no URL")
     }
     if (pollData.status === "failed" || pollData.status === "canceled") {
-      throw new Error(`nano-banana failed: ${pollData.error || "unknown"}`)
+      const detail = pollData?.error || JSON.stringify(pollData).slice(0, 300)
+      throw new Error(`nano-banana failed: ${detail}`)
     }
   }
-  throw new Error("nano-banana sketch generation timed out")
+  throw new Error("nano-banana sketch generation timed out after 150s (try again — it usually clears in a minute)")
 }
 
 // ── Sketch / Floor Plan → Photoreal renderer ──
@@ -919,35 +928,20 @@ async function persistVideoToStorage(
   label: string,
   maxRetries = 3,
 ): Promise<string | null> {
-  let lastErr: unknown = null
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const res = await fetch(videoUrl)
-      if (!res.ok) throw new Error(`fetch returned HTTP ${res.status}`)
-      const buffer = await res.arrayBuffer()
-      if (!buffer || buffer.byteLength === 0) {
-        throw new Error("downloaded buffer is empty")
-      }
-      const { error: upErr } = await supabase.storage
-        .from("project-submissions")
-        .upload(storagePath, buffer, {
-          contentType: "video/mp4",
-          upsert: true,
-        })
-      if (upErr) throw upErr
-      console.log(`[persist:${label}] uploaded ${storagePath} (${buffer.byteLength}B) on attempt ${attempt}`)
-      return storagePath
-    } catch (err) {
-      lastErr = err
-      console.error(`[persist:${label}] attempt ${attempt}/${maxRetries} failed for ${storagePath}:`, (err as Error)?.message ?? err)
-      if (attempt < maxRetries) {
-        // Exponential backoff: 1s, 2s, 4s. Total worst-case 7s before we give up.
-        await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt - 1)))
-      }
-    }
+  // Streaming variant. Pipes Replicate's response body directly into
+  // Supabase Storage instead of buffering the entire MP4 in Deno memory.
+  // The old ArrayBuffer pattern was silently failing on larger files
+  // (May 16, 2026 — user's "gallery struggles to save" report).
+  try {
+    const result = await streamReplicateToStorage(supabase, videoUrl, storagePath, {
+      logTag: `persist:${label}`,
+      maxRetries,
+    })
+    return result.path
+  } catch (err) {
+    console.error(`[persist:${label}] ALL ${maxRetries} attempts failed for ${storagePath}:`, (err as Error)?.message ?? err)
+    return null
   }
-  console.error(`[persist:${label}] ALL ${maxRetries} attempts failed for ${storagePath}. Last error:`, lastErr)
-  return null
 }
 
 // Returns either { videoUrl } if Replicate finished within wait window,
@@ -1698,25 +1692,24 @@ serve(async (req) => {
       // Single Seedance call handles the entire transformation — no separate
       // gpt-image-2 staging step. The style prompt drives the furnishing.
 
-      // SINGLE 10s Seedance 2.0 clip — continuous-motion grammar, no freeze
-      // beats. Earlier versions used [0:00–0:01] Hold + "every object
-      // settles" + "No further objects move" which produced 1-second freezes
-      // at the seams. Now the dressing phase RESOLVES (not "settles") by
-      // 0:04 and the camera is already in motion as the room fills — the
-      // back-half walkthrough flows out of the front-half transformation
-      // without any pause.
-      // Minimal Seedance prompt — empirically-verified short prompts
-      // produce cleaner output than rich 150-word grammar.
-      // Simple prompt — user principle: do not over-complicate.
+      // ── STATIC-CAMERA STAGING (May 16, 2026) ──
+      // User direction: virtual staging should NOT move the camera. The user
+      // wants the furniture to simply appear inside the input still — locked-
+      // off frame, identical perspective, only the contents of the room
+      // change. Previous versions used a walkthrough at the end, which made
+      // the output diverge from the source photo. We now set
+      // `camera_fixed: true` and the prompt only describes furniture
+      // populating the existing frame.
       const fullTransformPrompt =
-        `empty room dresses itself with ${stylePrompt}, then slow camera dolly forward through the finished space`
+        `the empty room becomes furnished with ${stylePrompt}, with the camera locked off in the same position throughout. No camera movement, no zoom, no pan, no parallax. The framing is identical to the input image. Only the furniture and decor appear and remain in place once placed.`
 
-      console.log("[virtual_staging] kicking off SINGLE 10s Seedance dressing+walkthrough")
+      console.log("[virtual_staging] kicking off SINGLE 10s Seedance static-camera staging")
       const result = await startSeedanceFromImage(
         emptyRoomUrl,
         fullTransformPrompt,
         10,
-        REPLICATE_TOKEN
+        REPLICATE_TOKEN,
+        { cameraFixed: true }
       )
 
       // Single-clip path — same shape as animate_single
@@ -1789,21 +1782,40 @@ serve(async (req) => {
           `Camera: top-down 3/4 angle, 50mm full-frame equivalent at f/2.5, shallow depth of field with the pencil tip in razor focus, paper edges still sharp, desk softly defocused. Photoreal background with hand-drawn pencil sketch on the paper. Kodak Vision3 250D color science. ` +
           `Anti-AI: no plastic AI sheen on the desk or hand, no doubled lines on the sketch, no impossible perspective, no smudged graphite.`
 
-      console.log("[sketch_to_real] generating sketch-on-desk via nano-banana")
-      const sketchOnDeskUrl = await generateSketchWithNanoBanana(propertyPhotoUrl, sketchPrompt, REPLICATE_TOKEN)
+      // ── SKETCH GENERATION + FALLBACK (May 16, 2026) ──
+      // User report: sketch_to_real returns non-2xx. Root cause was
+      // nano-banana timing out on busy days. We now (a) extend the
+      // nano-banana polling window inside the helper, and (b) wrap the
+      // call so that if it still fails, we fall back to a direct Seedance
+      // run anchored on the property photo with a prompt that asks
+      // Seedance to invent its own sketch-to-photo morph. That keeps the
+      // category usable instead of erroring out the whole request.
+      let sketchOnDeskUrl: string
+      let useDirectMorph = false
+      try {
+        console.log("[sketch_to_real] generating sketch-on-desk via nano-banana")
+        sketchOnDeskUrl = await generateSketchWithNanoBanana(propertyPhotoUrl, sketchPrompt, REPLICATE_TOKEN)
+      } catch (sketchErr) {
+        console.warn(`[sketch_to_real] nano-banana failed (${(sketchErr as Error).message}), falling back to direct Seedance morph from the property photo`)
+        sketchOnDeskUrl = propertyPhotoUrl
+        useDirectMorph = true
+      }
 
-      // SINGLE 10s Seedance 2.0 clip — timeline-prompted to FORCE the sketch-
-      // to-real morph to complete by 0:04. The user's previous complaint was
-      // "transition was too slow" — that was the model improvising pacing. By
-      // marking the morph as complete at a specific beat, the model commits
-      // to the transformation and gives us a clean reveal in the back half.
-      // Minimal Seedance prompt — empirically-verified short prompts win.
-      // Simple prompt — user principle: do not over-complicate.
-      const fullSketchPrompt = sketch_intent === "interior"
-        ? "pencil sketch on paper transforms into a photoreal interior, then slow camera dolly forward through the room"
-        : "pencil sketch on paper transforms into a photoreal house exterior, then slow parallax pan across the building"
+      // SINGLE 10s Seedance 2.0 clip. Two prompt variants depending on
+      // whether the sketch step succeeded:
+      //   - Normal: Seedance receives the sketch-on-desk image, morphs it.
+      //   - Direct fallback: Seedance receives the property photo and is
+      //     told to BEGIN with a sketch overlay that resolves into the photo.
+      // Minimal prompts win on Seedance — short, image-anchored.
+      const interiorMotion = "slow camera dolly forward through the room"
+      const exteriorMotion = "slow parallax pan across the building"
+      const motion = sketch_intent === "interior" ? interiorMotion : exteriorMotion
+      const subject = sketch_intent === "interior" ? "interior" : "house exterior"
+      const fullSketchPrompt = useDirectMorph
+        ? `the image begins as a pencil sketch on paper then transforms into a photoreal ${subject}, then ${motion}`
+        : `pencil sketch on paper transforms into a photoreal ${subject}, then ${motion}`
 
-      console.log("[sketch_to_real] kicking off SINGLE 10s Seedance morph+reveal")
+      console.log(`[sketch_to_real] kicking off SINGLE 10s Seedance ${useDirectMorph ? "direct-morph" : "morph+reveal"}`)
       const result = await startSeedanceFromImage(
         sketchOnDeskUrl,
         fullSketchPrompt,
@@ -1925,7 +1937,8 @@ async function startSeedanceFromImage(
   imageUrl: string,
   prompt: string,
   duration: number,
-  token: string
+  token: string,
+  options: { cameraFixed?: boolean } = {}
 ): Promise<{ videoUrl?: string; predictionId?: string }> {
   const res = await fetch(
     `${REPLICATE}/models/${MODEL_SEEDANCE}/predictions`,
@@ -1944,7 +1957,7 @@ async function startSeedanceFromImage(
           aspect_ratio: "9:16",
           resolution: "1080p",
           fps: 24,
-          camera_fixed: false,
+          camera_fixed: options.cameraFixed === true,
         },
       }),
     }

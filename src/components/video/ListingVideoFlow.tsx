@@ -240,10 +240,21 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   const [shotType, setShotType] = useState<ShotType>("push_in");
   const [effectId, setEffectId] = useState<EffectId>("none");
   const [vibe, setVibe] = useState<Vibe>("luxury");
-  // Duration option — 10s default, 15s extended. Per May 15 direction:
-  // "all video generation should use Seedance 2.0 and offer 10 or 15
-  // second duration options". Applies to single-clip categories.
-  const [singleClipDuration, setSingleClipDuration] = useState<10 | 15>(10);
+  // Duration option for single-clip categories. animate_single is 5s/10s
+  // (revert May 16 — 10s/15s was breaking Seedance for shorter shots).
+  // Other single-clip categories keep the 10s/15s extended range. The UI
+  // chooses the option set based on category.
+  const [singleClipDuration, setSingleClipDuration] = useState<5 | 10 | 15>(10);
+  // Clamp duration to a valid value for the current category. animate_single
+  // only allows 5s/10s; everything else allows 10s/15s. If the user picks
+  // animate_single while singleClipDuration is 15, snap it to 10.
+  useEffect(() => {
+    if (category === "animate_single" && singleClipDuration === 15) {
+      setSingleClipDuration(10);
+    } else if (category !== "animate_single" && singleClipDuration === 5) {
+      setSingleClipDuration(10);
+    }
+  }, [category, singleClipDuration]);
   // Burn-in title overlay (Seedance renders text directly into the frame).
   const [titleOverlay, setTitleOverlay] = useState<TitleOverlayValue>(DEFAULT_TITLE_OVERLAY);
   const [stagingStyle, setStagingStyle] = useState<StagingStyle>("modern");
@@ -1688,7 +1699,10 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                   DURATION
                 </h3>
                 <div className="grid grid-cols-2 gap-3 max-w-md">
-                  {([10, 15] as const).map((d) => {
+                  {(category === "animate_single"
+                    ? ([5, 10] as const)
+                    : ([10, 15] as const)
+                  ).map((d) => {
                     const isSelected = singleClipDuration === d;
                     return (
                       <button

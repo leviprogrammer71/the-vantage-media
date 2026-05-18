@@ -876,7 +876,7 @@ const ClientOnboarding = () => {
 
                 {/* Contact info */}
                 <div className="text-gray-400 text-sm">
-                  <p>Questions? Email us at <span className="text-red-400">hello@thevantage.com</span> or call <span className="text-red-400">(555) 123-4567</span></p>
+                  <p>Questions? Email us at <a href="mailto:hello@thevantage.media" className="text-red-400 hover:underline">hello@thevantage.media</a> — support is at <a href="mailto:support@thevantage.media" className="text-red-400 hover:underline">support@thevantage.media</a>.</p>
                 </div>
               </CardContent>
             </Card>

@@ -42,11 +42,11 @@ const Footer = () => {
             </Link>
           ))}
           <a
-            href="mailto:studio@thevantage.media"
+            href="mailto:support@thevantage.media"
             className="font-mono text-[12px] transition-colors hover:text-primary"
             style={{ color: "#555555" }}
           >
-            studio@thevantage.media
+            support@thevantage.media
           </a>
         </div>
       </div>

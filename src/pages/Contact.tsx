@@ -8,34 +8,58 @@ import { toast } from "sonner";
 
 const liaisons = [
   {
-    role: "STUDIO",
-    title: "Working photographers & studios",
-    email: "studio@thevantage.media",
-    note: "Onboarding, brand presets, agent gallery setup, and bulk render configuration.",
+    role: "HELLO",
+    title: "General inquiries",
+    email: "hello@thevantage.media",
+    note: "First-time questions, demo requests, or anything that doesn't quite fit another desk.",
   },
   {
-    role: "BROKERAGE",
-    title: "Brokerages & House plans",
-    email: "house@thevantage.media",
-    note: "White-label deployment, team seats, MLS integration, dedicated liaison assignment.",
+    role: "SALES",
+    title: "Sales & partnerships",
+    email: "sales@thevantage.media",
+    note: "Team seats, brokerage deployments, white-label, MLS integrations, custom volume pricing.",
   },
   {
-    role: "PRESS",
-    title: "Press & partnerships",
-    email: "press@thevantage.media",
-    note: "Editorial inquiries, partnership decks, embargoed previews of new releases.",
+    role: "SUPPORT",
+    title: "Customer support",
+    email: "support@thevantage.media",
+    note: "Technical issues, render failures, account access, gallery questions, anything broken.",
   },
   {
     role: "BILLING",
     title: "Billing & invoices",
     email: "billing@thevantage.media",
-    note: "Tax documentation, refunds, expense receipts, invoicing for House plan customers.",
+    note: "Tax documentation, refunds, expense receipts, invoicing for plan customers.",
+  },
+  {
+    role: "FEEDBACK",
+    title: "Feedback & feature requests",
+    email: "feedback@thevantage.media",
+    note: "Ideas, gripes, missing categories, things you wish we did differently. We read every note.",
+  },
+];
+
+const team = [
+  {
+    name: "Levi Sumbela",
+    role: "Founder",
+    email: "levisumbela@thevantage.media",
+  },
+  {
+    name: "Jorge Esparza",
+    role: "Studio operations",
+    email: "jorgeesparza@thevantage.media",
+  },
+  {
+    name: "Nancy Sarantos",
+    role: "Brokerage liaison",
+    email: "nancysarantos@thevantage.media",
   },
 ];
 
 const Contact = () => {
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", subject: "STUDIO", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", subject: "HELLO", message: "" });
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +67,7 @@ const Contact = () => {
     setTimeout(() => {
       setSubmitting(false);
       toast.success("Message received. A liaison will reply within four working hours.");
-      setForm({ name: "", email: "", subject: "STUDIO", message: "" });
+      setForm({ name: "", email: "", subject: "HELLO", message: "" });
     }, 900);
   };
 
@@ -94,12 +118,30 @@ const Contact = () => {
                   ))}
 
                   <div className="mt-12 p-8 lux-bg-cream" style={{ border: "1px solid var(--lux-hairline)" }}>
-                    <div className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>VISIT</div>
-                    <p className="lux-display text-2xl mt-3">By appointment, in studio.</p>
+                    <div className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>THE TEAM</div>
+                    <p className="lux-display text-2xl mt-3">Direct to a person.</p>
                     <p className="lux-prose mt-4 text-sm">
-                      Our New York and Los Angeles studios host House plan clients by appointment.
-                      Email <a href="mailto:house@thevantage.media" className="lux-link">house@thevantage.media</a> to arrange.
+                      Already speaking with someone here? Reach them directly.
                     </p>
+                    <ul className="mt-6 space-y-4">
+                      {team.map((member) => (
+                        <li key={member.email} className="flex items-baseline justify-between gap-4">
+                          <div>
+                            <div className="lux-display text-base">{member.name}</div>
+                            <div className="lux-eyebrow text-xs" style={{ color: "var(--lux-ash)" }}>
+                              {member.role}
+                            </div>
+                          </div>
+                          <a
+                            href={`mailto:${member.email}`}
+                            className="lux-link text-xs"
+                            style={{ color: "var(--lux-ink)" }}
+                          >
+                            {member.email}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
 
@@ -147,10 +189,11 @@ const Contact = () => {
                         className="w-full mt-3 bg-transparent outline-none py-3 text-lg lux-display-italic"
                         style={{ borderBottom: "1px solid var(--lux-hairline-strong)", color: "var(--lux-ink)" }}
                       >
-                        <option value="STUDIO">The Studio Desk</option>
-                        <option value="BROKERAGE">The House Plan Desk</option>
-                        <option value="PRESS">Press & Partnerships</option>
+                        <option value="HELLO">General Inquiries (hello@)</option>
+                        <option value="SALES">Sales & Partnerships</option>
+                        <option value="SUPPORT">Customer Support</option>
                         <option value="BILLING">Billing & Invoices</option>
+                        <option value="FEEDBACK">Feedback & Feature Requests</option>
                       </select>
                     </label>
 

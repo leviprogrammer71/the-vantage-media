@@ -3,7 +3,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/hooks/useCredits";
 import { supabase } from "@/integrations/supabase/client";
 import { withFreshAuth } from "@/lib/auth-refresh";
-import { stitchMp4Lossless } from "@/lib/ffmpeg-stitch";
 import { InsufficientCreditsModal } from "./InsufficientCreditsModal";
 import { SettingTooltip } from "./SettingTooltip";
 import { toast } from "sonner";
@@ -39,7 +38,7 @@ type MotionStyle = "slow_reveal" | "fast_progression" | "cinematic_orbit" | "dra
 // Now 10s and 15s, per user direction. Seedance 2.0 is the only generator
 // — Kling/5s paths are gone. 5s still exists in the type for historical
 // rows that may reference it but it's not selectable in the UI.
-type Duration = "5s" | "10s" | "15s";
+type Duration = "5s" | "10s";
 type Format = "reels" | "tiktok" | "landscape";
 
 const CONSTRUCTION_TYPES = [
@@ -163,7 +162,7 @@ export function TransformationFlow({ transformationCategory }: { transformationC
   const [buildType, setBuildType] = useState<BuildType>("team_build");
   const [motionStyle, setMotionStyle] = useState<MotionStyle>("dramatic_push");
   const [shotType, setShotType] = useState<ShotType>("slow_push");
-  const [duration, setDuration] = useState<Duration>("10s");
+  const [duration, setDuration] = useState<Duration>("5s");
   const [format, setFormat] = useState<Format>("reels");
   const [description, setDescription] = useState("");
 
@@ -192,10 +191,8 @@ export function TransformationFlow({ transformationCategory }: { transformationC
       transformationCategory === "cleanup" || transformationCategory === "setup"
         ? (beforeMode === "ai" ? 60 : 50)
         : (beforeMode === "ai" ? 50 : 40);
-    if (duration === "15s") return Math.round(tenSec * 1.5);
     if (duration === "10s") return tenSec;
-    // legacy 5s — kept for backward-compat with old submission rows
-    return Math.round(tenSec * 0.6);
+    return Math.round(tenSec * 0.6); // 5s
   })();
   const hasEnoughCredits = credits !== null && credits >= creditCost;
   const canGenerate = Boolean(afterImageUrl) && (beforeMode === "ai" || Boolean(beforeImageUrl));
@@ -292,7 +289,6 @@ export function TransformationFlow({ transformationCategory }: { transformationC
   };
 
   const getDurationSeconds = () => {
-    if (duration === "15s") return 15;
     if (duration === "10s") return 10;
     return 5;
   };
@@ -485,61 +481,45 @@ export function TransformationFlow({ transformationCategory }: { transformationC
         throw new Error(detail);
       }
 
-      // ── EXTENDED-CUT (15s GUARANTEED) ──
-      // When the user picks 15s but Replicate's Seedance Pro caps at 12s,
-      // the edge function splits into a 10s + 5s pair and returns both
-      // prediction IDs with `extended_cut: true`. We poll both, then
-      // concat the resulting two MP4s into one 15s MP4 via ffmpeg.wasm.
-      const isExtendedCut =
-        startData?.extended_cut === true &&
-        Array.isArray(startData?.prediction_ids);
-
-      // If it completed immediately (within Replicate's wait window)
-      if (startData?.status === "complete" && startData?.video_url && !isExtendedCut) {
+      // Synchronous completion (Replicate finished within the wait window)
+      if (startData?.status === "complete" && startData?.video_url) {
         setCompletedSteps((prev) => [...prev, 4]);
         setCurrentStep(5);
         setCompletedSteps((prev) => [...prev, 5]);
         setVideoUrl(startData.video_url);
-      } else if (isExtendedCut || startData?.prediction_id) {
-        // Client-side polling loop.
-        // 12-min timeout — 15s extended-cut generations need both clips
-        // to finish + a client-side ffmpeg.wasm concat at the end.
+        if (startData?.storage_error === true) {
+          toast.warning(
+            "Your video is ready, but we couldn't archive a permanent copy — please download it now (the source URL expires in 24h).",
+            { duration: 12000 }
+          );
+        }
+      } else if (startData?.prediction_id) {
+        // Client-side polling loop. Kling runs typically finish in 30–90s,
+        // but we keep a generous 12-min ceiling for queued bursts.
         const maxAttempts = 144;
         let completed = false;
-        let extendedClipUrls: string[] | null = null;
-
-        // Both modes use a poll body — single ID or array of IDs.
-        let pollBody: any = isExtendedCut
-          ? { prediction_ids: startData.prediction_ids, submission_id: submissionId }
-          : { prediction_id: startData.prediction_id, submission_id: submissionId };
 
         for (let i = 0; i < maxAttempts; i++) {
           await new Promise((r) => setTimeout(r, 5000));
 
           const { data: pollData, error: pollError } = await supabase.functions.invoke(
             "generate-transformation-video",
-            { body: pollBody }
+            { body: { prediction_id: startData.prediction_id, submission_id: submissionId } }
           );
 
           if (pollError) throw new Error(pollError.message);
 
-          // Extended-cut: both clips ready → trigger client-side concat
-          if (
-            isExtendedCut &&
-            pollData?.status === "complete" &&
-            Array.isArray(pollData?.clip_urls)
-          ) {
-            extendedClipUrls = pollData.clip_urls;
-            completed = true;
-            break;
-          }
-
-          // Single clip ready
-          if (!isExtendedCut && pollData?.status === "complete" && pollData?.video_url) {
+          if (pollData?.status === "complete" && pollData?.video_url) {
             setCompletedSteps((prev) => [...prev, 4]);
             setCurrentStep(5);
             setCompletedSteps((prev) => [...prev, 5]);
             setVideoUrl(pollData.video_url);
+            if (pollData?.storage_error === true) {
+              toast.warning(
+                "Your video is ready, but we couldn't archive a permanent copy — please download it now (the source URL expires in 24h).",
+                { duration: 12000 }
+              );
+            }
             completed = true;
             break;
           }
@@ -547,30 +527,6 @@ export function TransformationFlow({ transformationCategory }: { transformationC
           if (pollData?.status === "failed") {
             throw new Error(pollData?.error || "Video generation failed");
           }
-
-          // Update poll body with progress (bundle case keeps shape)
-          if (isExtendedCut && Array.isArray(pollData?.prediction_ids)) {
-            pollBody = { prediction_ids: pollData.prediction_ids, submission_id: submissionId };
-          }
-        }
-
-        // Run ffmpeg concat on the two clips into a single 15s MP4
-        if (isExtendedCut && extendedClipUrls && extendedClipUrls.length === 2) {
-          setCompletedSteps((prev) => [...prev, 4]);
-          setCurrentStep(5);
-          try {
-            toast.success("Stitching your 15s cut…");
-            const stitched = await stitchMp4Lossless({
-              clipUrls: extendedClipUrls,
-              onStatus: (msg) => console.log("[ext-15s-transform]", msg),
-            });
-            setVideoUrl(stitched.url);
-          } catch (concatErr) {
-            console.error("[TransformationFlow] ext-15s concat failed, falling back to 10s:", concatErr);
-            toast.error("Couldn't merge into 15s — delivered the 10s base clip instead.");
-            setVideoUrl(extendedClipUrls[0]);
-          }
-          setCompletedSteps((prev) => [...prev, 5]);
         }
 
         if (!completed) {
@@ -1067,10 +1023,10 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                     <div className="space-y-3">
                       <label className="lux-eyebrow flex items-center" style={{ color: "var(--lux-brass)" }}>
                         DURATION
-                        <SettingTooltip text="10s = the standard. 15s = full story arc with the after state lingering longer — best for Instagram and stories." />
+                        <SettingTooltip text="5s = fast, social-ready morph. 10s = full transformation with the after state lingering — best for Instagram and stories." />
                       </label>
                       <div className="flex gap-2">
-                        {(["10s", "15s"] as Duration[]).map((d) => (
+                        {(["5s", "10s"] as Duration[]).map((d) => (
                           <button
                             key={d}
                             onClick={() => setDuration(d)}
