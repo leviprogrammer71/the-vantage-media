@@ -42,8 +42,8 @@ const REPLICATE = "https://api.replicate.com/v1"
 const MODEL_KLING = "kwaivgi/kling-v2.5-turbo-pro"
 
 // ── Shot-type → motion hint ──
-// Short prompts only. Kling 2.5 respects natural motion language without
-// needing the full directorial grammar Seedance preferred.
+// Short prompts only. May 23, 2026 — user directive: "simple, no negatives".
+// Stripped all directorial vocabulary down to the minimum verb + direction.
 type ShotType =
   | "slow_push"
   | "drone_orbit"
@@ -53,12 +53,12 @@ type ShotType =
   | "pedestal_up"
 
 const SHOT_HINT: Record<ShotType, string> = {
-  slow_push:     "Slow cinematic dolly forward",
-  drone_orbit:   "Smooth elevated orbit around the subject",
-  parallax_pan:  "Slow parallax pan from left to right",
-  architectural: "Slow architectural slider across the scene",
-  establishing:  "Slow dolly pulling back to a wider establishing view",
-  pedestal_up:   "Slow camera pedestal rising upward",
+  slow_push:     "slow dolly forward",
+  drone_orbit:   "slow orbit around",
+  parallax_pan:  "slow pan left to right",
+  architectural: "slow slider across",
+  establishing:  "slow pull back wide",
+  pedestal_up:   "slow pedestal up",
 }
 
 function resolveShotHint(shotType?: string | null): string {
@@ -66,12 +66,11 @@ function resolveShotHint(shotType?: string | null): string {
   return SHOT_HINT[shotType as ShotType]
 }
 
-// Negative prompt for Kling — gates the recurring failure modes we saw
-// on transformations (faces, distortion, jitter, watermarks).
-const KLING_NEGATIVE_PROMPT =
-  "blurry, low quality, distortion, deformed, watermark, text overlay, " +
-  "jitter, flicker, ghosting, doubled objects, melting walls, warped " +
-  "architecture, hallucinated furniture, people, faces, hands, signature"
+// May 23, 2026: NEGATIVE PROMPTS REMOVED. User direction: "simple, no negatives".
+// Kling 2.5 with start_image + end_image anchoring + high cfg_scale is enough
+// to force the morph without inflating the prompt with defect vocabulary.
+// Leaving the constant in place but empty so callers don't break.
+const KLING_NEGATIVE_PROMPT = ""
 
 function extractVideoUrl(output: unknown): string {
   if (typeof output === "string") return output
@@ -274,17 +273,20 @@ serve(async (req) => {
     const rawDuration = typeof duration === "string" ? parseInt(duration, 10) : (duration || 5)
     const durationSeconds = rawDuration >= 10 ? 10 : 5
 
-    // ── PROMPT ASSEMBLY ──
-    // Short, declarative, image-anchored. The shot hint sets the camera
-    // language; the user's prompt describes the transformation content.
-    // We explicitly call out the transformation completion so Kling commits
-    // to the AFTER state by the final frame (it already has end_image as
-    // an anchor — this just reinforces the contract).
+    // ── PROMPT ASSEMBLY (May 23, 2026 — user directive: simple, no negatives) ──
+    // Aggressive end-state language because user reports "house build from
+    // ground up doesn't finish full transformation by the time 10 or 15 secs
+    // done". Kling has both start_image AND end_image as hard anchors — the
+    // prompt now front-loads "ends as" so the model commits to the AFTER
+    // state as the destination instead of treating it as a soft hint.
+    //
+    // cfg_scale bumped 0.7 → 1.0 (Kling's max). At 1.0 the model adheres
+    // tightly to the end_image, which is exactly what a forced morph needs.
+    // The "1.0 = max" recipe is documented in Kling's community guide for
+    // transformation morphs.
     const motion = resolveShotHint(shot_type)
     const finalPrompt =
-      `${motion}. ${userPrompt}. Cinematic real estate transformation. ` +
-      `The scene smoothly transitions from the starting frame to the ending frame, ` +
-      `reaching the final state by the final second of the clip. Photorealistic, no jitter.`
+      `${userPrompt} — ${motion}, ending fully at the second image.`
 
     const modelEndpoint = `${REPLICATE}/models/${MODEL_KLING}/predictions`
     const modelInput: Record<string, unknown> = {
@@ -293,8 +295,7 @@ serve(async (req) => {
       end_image: afterUrl,
       duration: durationSeconds,
       aspect_ratio: aspect_ratio || "9:16",
-      negative_prompt: KLING_NEGATIVE_PROMPT,
-      cfg_scale: 0.7,
+      cfg_scale: 1.0,
     }
 
     console.log(

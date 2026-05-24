@@ -1165,7 +1165,7 @@ export function TransformationFlow({ transformationCategory }: { transformationC
 
       {/* Bottom Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50" style={{ background: "var(--lux-bone)", borderTop: "1px solid var(--lux-hairline)" }}>
-        <div className="max-w-lg mx-auto flex items-center justify-between gap-4 p-4" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}>
+        <div className="max-w-lg md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto flex items-center justify-between gap-4 p-4 px-4 sm:px-6 lg:px-8" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}>
           <div className="flex items-center gap-3">
             <Coins className="h-5 w-5" style={{ color: hasEnoughCredits ? "var(--lux-brass)" : "var(--lux-rust)" }} />
             <div className="flex flex-col">

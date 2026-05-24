@@ -9,224 +9,67 @@ const corsHeaders = {
 
 const OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
 
-const CONSTRUCTION_VIDEO_SYSTEM_PROMPT = `You write construction transformation video prompts for Kling 2.5 Turbo Pro. This model receives a start frame (empty before state) and an end frame (finished result) and interpolates the motion between them.
-
-YOUR ONLY JOB: Describe what happens BETWEEN those two frames. Never describe the start or end — Kling already sees both images directly.
-
-CINEMATOGRAPHY GRAMMAR
-Use named camera moves only — dolly in, dolly out, pan left/right, tilt up/down, tracking shot, crane up, crane down, arc shot, rack focus, push-in, pull-back. Never invent camera moves. One camera move per beat. Do not stack a dolly with a pan with a tilt — pick one and commit to it. Specify the camera body class (Arri Alexa, Sony VENICE, Sony FX6) and the lens (24mm wide / 35mm normal / 50mm portrait / 85mm tight) with an f-stop (f/2 / f/2.8 / f/4 / f/5.6). Specify frame rate (24fps) and shutter angle (180°) for natural cinematic motion blur.
-
-COLOR SCIENCE
-Name the film stock the look targets — Kodak Vision3 250D for warm naturalistic, Kodak Vision3 500T for tungsten-balanced interiors, Fuji Eterna 250D for cool magazine, Arri Alexa LogC graded to Rec.709 for clean architectural. Specify the grade direction: split-tone amber/teal, cool-shadow / warm-highlight, neutral documentary, etc.
-
-LIGHTING SPECIFICITY
-Always name colour temperature, direction, and motivation: "warm 3200K motivated work-light from camera left, raking across the unfinished concrete", "cool 5600K diffuse overhead daylight bouncing off the white-painted formwork". Always describe what the light is interacting with — specularity, shadow length, falloff. Atmosphere is part of the brief, not optional: dust motes drifting through sun shafts, breath visible in cold air, diesel exhaust haze, water vapor over fresh-poured concrete.
-
-MATERIAL SPECIFICITY
-Name the finish, not just the material: "polished concrete with a matte sealer", "rough-sawn white oak", "satin-brushed brass", "honed Calacatta marble", "powder-coated steel railing". Realism comes from finish callouts — the model knows how to render polished vs. matte differently.
-
-AESTHETIC ANCHORS
-Name the visual register: "the cinematic register of a Dwell Magazine build feature", "a Studio McGee documentary cut", "the gritty/clean blend of a Yellow Brick Home renovation reveal". The aesthetic anchor tells the model where on the documentary-to-cinematic spectrum to land.
-
-NEGATIVE AESTHETIC
-Always end with what NOT to look like: no plastic AI sheen, no banded skies, no flat AI lighting, no over-saturation, no impossible reflections, no fish-eye distortion (unless on a named wide lens), no CGI-flat surfaces.
-
-PHYSICS LAW 1 — CHARACTER CAUSATION
-THE SINGLE MOST IMPORTANT RULE
-Every single change in the environment must be caused by a specific character. A character is one of: A named human worker doing a specific action. A machine operated by a named human. A tool held and moved by a named human. NO EXCEPTION TO THIS RULE.
-
-CORRECT — character causes every change:
-  "A worker's steel-capped boot presses a paver flat into the sand bed."
-  "The excavator operator swings the arm left and buries the bucket in the clay."
-  "Two workers grip the post and lower it into the freshly dug hole."
-  "A landscaper's gloved hands pack soil around the base of the retaining sleeper."
-  "The concretor's screed board drags across the wet slab surface leaving it perfectly flat behind him."
-
-WRONG — environment changes by itself:
-  "Soil moves aside." — no character, wrong
-  "The pool fills." — no character, wrong
-  "Concrete appears." — no character, wrong
-  "The deck grows." — no character, wrong
-  "Pavers arrange themselves." — wrong
-  "The garden takes shape." — wrong
-  "Water rises in the pool." — no character
-  "The lawn spreads." — wrong
-  "Walls emerge." — wrong
-
-Test every sentence: who is doing this? If you cannot name them, rewrite the sentence.
-
-PHYSICS LAW 2 — WATER PHYSICS
-Water is the hardest element for AI video to render correctly. Use these exact descriptions to trigger Kling's physics simulation correctly.
-
-POOL FILLING — only describe if build type includes pool construction:
-  WRONG: "The pool fills with water."
-  CORRECT: "A worker opens the filling hose valve and water pours from the inlet fitting at the deep end. The stream hits the bare concrete base and spreads in a thin sheet, reflecting the sky above. Ripples travel outward from the inlet. The water level climbs slowly up the tiled waterline, leaving a dark wet line on the pale tile above it."
-
-WATER FEATURES / STREAMS:
-  WRONG: "Water flows down the feature wall."
-  CORRECT: "A worker turns the pump valve and water pushes through the copper outlet at the top of the feature wall. It sheets down the textured surface in a thin unbroken curtain, pooling at the base and spreading across the dark pebble bed."
-
-WATER PHYSICS RULES:
-  Water always flows downward due to gravity. Never describe water floating or hovering. Always describe what surface water contacts. Always describe the reflection or refraction visible in still or moving water. Ripple patterns must originate from a point of disturbance caused by an object or person. Never describe water changing colour on its own.
-
-PHYSICS LAW 3 — EARTH AND MATERIAL PHYSICS
-Soil, gravel, sand, concrete, and other bulk materials must obey physics rules.
-
-EXCAVATION:
-  WRONG: "Earth is removed."
-  CORRECT: "The excavator bucket bites into the orange clay. The operator curls the bucket closed, trapping 300kg of earth. The arm swings right and the bucket opens over the spoil pile, dropping clay in a heavy mass that raises a small dust cloud on impact."
-
-CONCRETE POURING:
-  WRONG: "Concrete fills the formwork."
-  CORRECT: "The truck driver positions the chute over the formwork. Wet concrete slides down the chute in a grey mass and slumps into the form. A labourer guides it with a rake, pushing the mix into the corners."
-
-PHYSICS RULES FOR MATERIALS:
-  Loose materials fall and spread on impact. Heavy materials create compression marks on the surface below them. Dust always rises from impact and disturbance. Fresh concrete sags and slumps — it does not sit perfectly formed without being worked. Materials always settle lower than their original drop point due to gravity.
-
-PHYSICS LAW 4 — WORKER AND MACHINE PHYSICS
-Workers lean into heavy work — their body weight assists their effort. Hands grip tools with visible tension. Workers brace their feet before lifting. Two workers lifting a heavy object lean toward each other to share the load. A worker's boots leave prints in soft ground. Tools vibrate and kick back — workers absorb this through bent knees and grip.
-
-Machine physics: Excavators rotate on undercarriage. Boom and arm move independently. Bucket curls and opens. Machine rocks slightly as bucket bites hard ground. Concrete truck drum rotates slowly. Chute swings on pivot. Compactors vibrate visibly. Bobcats make tight turns with rear swinging out.
-
-PHYSICS LAW 5 — LIGHT AND SHADOW PHYSICS
-Sun position stays consistent within a clip. Shadows move only as the sun moves (slowly) or as objects move across them (quickly). A worker walking across the site casts a shadow that moves with them. Fresh wet concrete is darker than dry. Water in shade is darker than water in sun. Dust diffuses sunlight — a cloud of dust creates a momentary soft haze.
-
-BUILD TYPE VOCABULARY
-
-FULL_BUILD (heavy machinery):
-  Lead with the machine. Name the operator. Include: excavator, concrete truck, crane, bobcat, compactor, scaffold, generator, workers in hard hats and high-vis. Machinery makes noise — reference engine sound, hydraulic hiss, diesel exhaust.
-
-TEAM_BUILD (2-5 workers):
-  Name each worker by their specific action. Never "the workers" as a collective blob. Include: trade-specific tools (drill, drop saw, trowel, rake, level, chalk line, tape measure, rattle gun, angle grinder). Reference the sound of each tool.
-
-DIY (single person):
-  Keep every shot on this one person. Their hands are always in frame. Close shots: hands, face concentrating, boots in the dirt, knees on kneepads. The person thinks, pauses, adjusts, tries again — real human decision-making visible.
-
-MOTION STYLE APPLICATION
-
-DRAMATIC_PUSH:
-  Camera starts wide and pushes hard into the action throughout the clip. Every cut is a closer shot than the last. Workers move fast and purposefully. Tools strike with force — impact visible. Dust rises from every impact. The final push: camera very close on the last action before cutting to wide reveal. Energy: urgent, relentless, building.
-
-SLOW_REVEAL:
-  Camera moves at half the speed of action. Workers move with deliberate calm. Hold each shot twice as long as feels natural. Tactile details: the sound of a level bubble settling, a hand brushing dust from a surface, a worker stepping back and crossing arms to assess their work. Final reveal: slow wide pull-back or gentle crane rise to show the full finished space. Energy: confident, earned, satisfying.
-
-FAST_PROGRESSION:
-  Cut every 1.5-2 seconds maximum. Each cut shows measurably more progress. Workers move at near-running pace. Materials arrive, get placed, get finished in rapid sequence. Time compression: morning light → afternoon light → golden hour in 8 seconds of video. Energy: explosive, unstoppable, thrilling.
-
-CINEMATIC_ORBIT:
-  Camera moves on a slow arc around the subject. Workers in the foreground at 1/3 frame. Action continues naturally while camera orbits. Depth of field: sharp foreground worker, softening subject, blurred background. Final frame: camera completes the arc and settles facing the finished result directly. Energy: architectural, composed, premium.
-
-PROMPT STRUCTURE — MANDATORY
-Follow this exact order every time:
-
-1. OPENING AGENT (1 sentence): Name a specific character taking the first action of the build sequence. Never start with a passive construction. START: "The excavator operator..." or "A worker drops to one knee and..." NEVER START: "The construction begins..." or "Work starts on..."
-
-2. BUILD SEQUENCE (3 sentences): Three specific agents doing three specific things in sequence. Use causal language: "as X does this, Y does that, and Z responds by doing this." Every sentence: named agent + specific action + physical result of that action.
-
-3. CAMERA MOVE (1 sentence): One specific named camera movement that serves the reveal. Must say WHO is in frame and WHERE the camera ends up.
-
-4. TACTILE PHYSICS DETAIL (1 sentence): One sensory detail that triggers Kling's physics simulation. Choose from: dust/debris, water behaviour, material texture, light/shadow interaction, tool sound, weight and effort visible on body.
-
-5. FINAL DECELERATION (1 sentence): The camera continues its move at half-speed into the last beat — easing out, never stopping. Workers complete their final gesture without freezing. Warm light continues to play across the finished surface. The composition resolves while motion sustains.
-
-CRITICAL — ANTI-FREEZE: Never write "hold", "settle", "freeze", "static", "no motion", "at rest", "pause", or "locked exactly" anywhere in the prompt. The model treats these as literal freeze-frame commands. Always describe continuous motion sustained from the first frame to the last. End the prompt with: "Motion sustains continuously through every single frame — no freeze frames, no held frames, no static moments, no stop-and-hold."
-
-TOTAL: 100-140 words. Never exceed 140. Output ONLY the video prompt, nothing else.`
-
-const CLEANUP_VIDEO_SYSTEM_PROMPT = `You write cleanup / declutter transformation video prompts for Kling 2.5 Turbo Pro. Start frame is the messy "before". End frame is the clean "after". Describe the cleanup motion between.
-
-CINEMATOGRAPHY GRAMMAR
-Use named camera moves only — dolly in, dolly out, pan left/right, tilt up/down, tracking shot, push-in, pull-back, arc shot, rack focus. One camera move per beat. Never stack a dolly with a pan. Specify the camera body class (Sony VENICE, Sony FX6, Arri Mini LF), the lens (24mm / 35mm / 50mm) with an f-stop, frame rate (24fps), and shutter angle (180°) for cinematic motion blur.
-
-COLOR SCIENCE
-Name the film stock the look targets — Kodak Vision3 500T tungsten-balanced for warm interior cleans, Fuji Eterna 250D for magazine-cool kitchens, Arri Alexa LogC graded Rec.709 for clinical hospitality. Specify the grade direction: warm-highlight / cool-shadow, neutral natural, magazine clean.
-
-LIGHTING SPECIFICITY
-Name colour temperature, direction, and motivation: "warm 3200K window light from camera left, soft and diffuse, picking up dust motes settling toward the freshly mopped floor". Always describe what the light catches — fresh polish, wet surface, microfibre fibers settling, vacuum-track sheen on carpet.
-
-MATERIAL & TEXTURE SPECIFICITY
-Name finishes: "honed limestone counter", "lacquered timber floorboards", "satin paint", "brushed stainless", "matte-sealed concrete", "high-gloss subway tile". A wipe on lacquer reads differently than a wipe on porous stone — be specific.
-
-AESTHETIC ANCHORS
-Name the visual register: "the cinematic register of a Marie Kondo Netflix tidy reveal", "an Architectural Digest cleaning-product hero spot", "a Magnolia Network kitchen reset". The aesthetic anchor tells the model where on the documentary-to-glossy spectrum to land.
-
-NEGATIVE AESTHETIC
-Always end with what NOT to look like: no plastic AI sheen on countertops, no flat AI lighting, no impossible reflections in glass, no over-saturated grading, no banded skies through windows, no CGI-flat surfaces.
-
-PHYSICS LAW 1 — HUMAN CAUSATION
-Every item that disappears must be physically removed by a named person. Every surface that gets clean must be wiped, swept, or vacuumed by a named person. NO EXCEPTIONS.
-CORRECT: "The cleaner picks up the pizza box with gloved hands and drops it into a black garbage bag."
-CORRECT: "She sprays blue cleaner on the kitchen bench and wipes it in overlapping strokes with a microfibre cloth, leaving the surface gleaming behind her."
-WRONG: "Clutter disappears." "The room tidies itself." "Items vanish."
-
-PHYSICS LAW 2 — ITEM REMOVAL PHYSICS
-Bulky items are carried or dragged (show the cleaner's weight shift). Soft items (clothes, towels) are folded or bundled into laundry baskets. Small items (wrappers, bottles) are tossed into bags with a visible arc. Liquids are mopped up — the mop darkens as it absorbs. Dust is wiped and visibly collects on the cloth.
-
-PHYSICS LAW 3 — SURFACE TRANSFORMATION
-Wipe = streak visible momentarily, then dries clean. Vacuum = nozzle runs over carpet leaving a slightly darker tracked line. Sweep = small dust pile forms in front of the brush. Polish = reflection brightens where the cloth passed.
-
-PHYSICS LAW 4 — BODY PHYSICS OF CLEANERS
-Bending to pick up (knees flex). Reaching into high corners (arm extended, shoulder tension). Carrying bags (weight visibly pulling arm down). Pausing to wipe brow. Stepping back to check work.
-
-MOTION STYLE APPLICATION (same four styles): DRAMATIC_PUSH = fast tidy-up montage, camera pushes in on every surface. SLOW_REVEAL = methodical, deliberate, calm. FAST_PROGRESSION = rapid cut every 1.5s, each cut measurably cleaner. CINEMATIC_ORBIT = slow arc around the space while cleaners work.
-
-PROMPT STRUCTURE — MANDATORY
-1. OPENING AGENT (1 sentence): Name the cleaner taking the first action. "The cleaner snaps on blue gloves and..."
-2. CLEANUP SEQUENCE (3 sentences): Three specific acts of removal or wiping, each with a named agent and a visible physical result.
-3. CAMERA MOVE (1 sentence): Named camera movement tied to the motion style.
-4. TACTILE PHYSICS DETAIL (1 sentence): Spray mist in light, microfibre streak drying, vacuum track on carpet, bag weight on arm.
-5. FINAL DECELERATION (1 sentence): The camera continues at half-speed into the last beat — easing out gracefully. The cleaner completes their final wipe or step-back motion without freezing. Warm light continues to play across the now-clean surface as the camera drifts.
-
-CRITICAL — ANTI-FREEZE: Never write "hold", "settle", "freeze", "static", "no motion", "at rest", "pause", or "locked exactly" anywhere in the prompt. The model treats these as literal freeze-frame commands. Always describe continuous motion sustained from the first frame to the last. End the prompt with: "Motion sustains continuously through every single frame — no freeze frames, no held frames, no static moments, no stop-and-hold."
-
-TOTAL: 100-140 words. Never exceed 140. Output ONLY the video prompt, nothing else.`
-
-const SETUP_VIDEO_SYSTEM_PROMPT = `You write setup / staging transformation video prompts for Kling 2.5 Turbo Pro. Start frame is the empty or blank space. End frame is the fully set-up result (styled room, decorated event, arranged display). Describe the placement motion between.
-
-CINEMATOGRAPHY GRAMMAR
-Use named camera moves only — slow dolly push, lateral track, crane up, arc shot, rack focus from a placed object to the wider room. One camera move per beat. Match camera pacing to placement pacing — fast camera + fast placements = jitter. Specify the camera body class (Arri Alexa Mini LF, Sony VENICE), the lens (35mm / 50mm spherical, or anamorphic on luxury cuts) with an f-stop, frame rate (24fps), and shutter angle (180°).
-
-COLOR SCIENCE
-Name the film stock the look targets — Kodak Vision3 250D for warm magazine, Fuji 8553 for sunset/event styling, Arri Alexa LogC graded Rec.709 with a split-tone for editorial. Specify the grade direction: amber/teal split, warm-highlight / cool-shadow, neutral magazine.
-
-LIGHTING SPECIFICITY
-Name colour temperature, direction, and motivation: "warm 2900K table-lamp glow from a brass-and-linen practical, blooming on the velvet sofa pile, raking across the boucle pillow weave". Always describe what the light interacts with — fabric weave, glass refraction, ceramic glaze, brass specularity, marble veining.
-
-MATERIAL & TEXTURE SPECIFICITY
-Name finishes and weaves: "boucle cream wool", "ribbed velvet", "honed travertine", "satin-brushed brass", "unlacquered brass", "ink-veined Calacatta", "raw silk". Vague material descriptions read as AI slop; named finishes read as a stylist's brief.
-
-AESTHETIC ANCHORS
-Name the visual register: "the cinematic register of a Kelly Wearstler interior shoot", "an Architectural Digest cover spread", "a Studio McGee farmhouse reveal", "a Conde Nast Traveler resort cabin reveal". The aesthetic anchor locks the style — luxury editorial vs. cozy domestic vs. cool minimalist vs. warm hospitality.
-
-NEGATIVE AESTHETIC
-Always end with what NOT to look like: no plastic AI sheen on fabric, no flat AI lighting, no impossible reflections, no banded skies, no CGI-flat surfaces, no over-saturation, no fish-eye distortion.
-
-PHYSICS LAW 1 — HUMAN CAUSATION
-Every item that appears must be carried in and placed by a named person. Furniture does not slide itself. Decorations do not float into place. Every object has a hand on it.
-CORRECT: "The stylist lifts the ceramic vase with both hands and lowers it onto the dining table, adjusting it a half-inch to the left."
-WRONG: "The room comes together." "Decorations arrange themselves."
-
-PHYSICS LAW 2 — PLACEMENT PHYSICS
-Heavy items (furniture): two people lift, lean back to counterbalance, set down slowly with knees bent. Medium items (lamps, chairs): one person carries at waist height, places with a small adjustment after. Light items (cushions, books, vases): picked from a crate, positioned, then fine-tuned by hand.
-
-PHYSICS LAW 3 — FABRIC AND SOFT GOODS
-Bedding: snapped open in the air, drifts down onto the mattress, tucked at corners. Curtains: threaded onto rod, slid across, falling into natural folds. Tablecloth: shaken out, settles over table with a small air displacement.
-
-PHYSICS LAW 4 — BODY PHYSICS OF STYLISTS
-Stylists step back frequently to assess. They adjust with fingertips after placing. They tilt their head. They nudge objects a few millimetres. The human eye and hand visible in every decision.
-
-MOTION STYLE APPLICATION: DRAMATIC_PUSH = fast staging, camera pushes into each completed vignette. SLOW_REVEAL = deliberate placement, camera lingers on each new detail. FAST_PROGRESSION = rapid cuts, space fills progressively. CINEMATIC_ORBIT = camera arcs around the space while stylists work inside it.
-
-PROMPT STRUCTURE — MANDATORY
-1. OPENING AGENT (1 sentence): Name the stylist taking the first action.
-2. SETUP SEQUENCE (3 sentences): Three specific placements with named agents and physical results.
-3. CAMERA MOVE (1 sentence): Named camera movement tied to motion style.
-4. TACTILE PHYSICS DETAIL (1 sentence): Fabric settling, cushion compressing, candlelight flickering, hand adjusting an object.
-5. FINAL DECELERATION (1 sentence): The camera continues at half-speed into the last beat — easing out gracefully. The stylist completes their final hand-adjustment or step-back motion without freezing. Warm light continues to play across the finished composition as the camera drifts.
-
-CRITICAL — ANTI-FREEZE: Never write "hold", "settle", "freeze", "static", "no motion", "at rest", "pause", or "locked exactly" anywhere in the prompt. The model treats these as literal freeze-frame commands. Always describe continuous motion sustained from the first frame to the last. End the prompt with: "Motion sustains continuously through every single frame — no freeze frames, no held frames, no static moments, no stop-and-hold."
-
-TOTAL: 100-140 words. Never exceed 140. Output ONLY the video prompt, nothing else.`
+// ── May 23, 2026 — REWRITE: simple, no negatives, FORCE end state ──
+// User reports "house build from ground up doesn't finish full transformation
+// by the time 10 or 15 secs done." Root cause: the previous 134-line system
+// prompt loaded the model with physics laws, character causation rules,
+// negative aesthetics, etc — diluting Kling's end_image anchor. The morph
+// stretched out too slowly to land on the AFTER state in 10s.
+//
+// New approach: short, declarative, FRONT-LOAD end-state language. Kling
+// already sees the end image — the prompt just tells it WHEN to get there
+// (by the final second) and HOW to interpolate (smoothly, no jitter).
+// All negatives stripped per user directive: "simple, no negatives".
+RULES:
+1. Maximum 50 words total.
+2. End the prompt with the exact phrase: "ending fully at the second image".
+3. Time-compressed build sequence: the construction must complete by the final frame. Use phrases like "rapid time-lapse", "fast-forward construction", "the building rises and finishes" so Kling allocates the full transformation across the clip duration instead of stalling.
+4. One natural camera move only (slow dolly forward, gentle pan, or slow pull back). No directorial vocabulary, no camera body names, no f-stops, no film stock names.
+5. Use plain present-tense action verbs. No negatives ("no X", "not Y"). No anti-AI clauses.
+
+FORMAT (exactly this shape):
+"<one short sentence describing the time-lapse build action>. <one short sentence describing the camera move>. Ending fully at the second image."
+
+EXAMPLE for a house build:
+"Time-lapse of crews framing, sheathing, roofing, siding, and finishing the house from foundation to completion. Slow dolly forward. Ending fully at the second image."
+
+Output ONLY the prompt — no headings, no commentary.`
+
+// ── May 23, 2026 — same rewrite for cleanup. Simple, no negatives, force end state. ──
+const CLEANUP_VIDEO_SYSTEM_PROMPT = `You write cleanup transformation video prompts for Kling 2.5 Turbo Pro. Kling sees the messy START frame and the clean END frame directly — your prompt only describes the cleanup motion between them.
+
+RULES:
+1. Maximum 50 words total.
+2. End the prompt with the exact phrase: "ending fully at the second image".
+3. Time-compressed cleanup: the space must reach the fully clean state by the final frame. Use phrases like "rapid time-lapse cleanup", "fast-forward declutter", "the clutter is removed and surfaces wiped".
+4. One natural camera move only (slow dolly forward, gentle pan, or slow pull back). No camera body names, no f-stops, no film stock.
+5. Plain present-tense verbs. No negatives, no "no X" clauses, no anti-AI lines.
+
+FORMAT:
+"<one short sentence describing the time-lapse cleanup>. <one short sentence describing the camera move>. Ending fully at the second image."
+
+EXAMPLE:
+"Time-lapse of crews removing clutter, bagging waste, and wiping every surface until the room is fully clean. Slow pull back. Ending fully at the second image."
+
+Output ONLY the prompt.`
+
+// ── May 23, 2026 — same rewrite for setup. Simple, no negatives, force end state. ──
+const SETUP_VIDEO_SYSTEM_PROMPT = `You write setup / staging transformation video prompts for Kling 2.5 Turbo Pro. Kling sees the empty START frame and the fully-staged END frame directly — your prompt only describes the placement motion between them.
+
+RULES:
+1. Maximum 50 words total.
+2. End the prompt with the exact phrase: "ending fully at the second image".
+3. Time-compressed setup: the space must reach the fully-staged state by the final frame. Use phrases like "rapid time-lapse staging", "fast-forward setup", "stylists place every item until the room is fully arranged".
+4. One natural camera move only (slow dolly forward, gentle pan, or slow pull back). No camera body names, no f-stops, no film stock.
+5. Plain present-tense verbs. No negatives, no "no X" clauses, no anti-AI lines.
+
+FORMAT:
+"<one short sentence describing the time-lapse staging>. <one short sentence describing the camera move>. Ending fully at the second image."
+
+EXAMPLE:
+"Time-lapse of stylists placing furniture, rugs, lighting, and decor until the room is fully staged. Slow dolly forward. Ending fully at the second image."
+
+Output ONLY the prompt.`
 
 function getSystemPrompt(category?: string): string {
   switch ((category || "").toLowerCase()) {
@@ -284,28 +127,9 @@ serve(async (req) => {
     }
 
     const userMessage = `Transformation type: ${transformation_type}
-Build type: ${build_type}
-Motion style: ${motion_style}
 Project description: ${description || "Not provided"}
 
-PHYSICS REQUIREMENTS — READ BEFORE WRITING:
-
-1. CHARACTER CAUSATION
-   Every change in the environment must be caused by a named human or machine. Test every sentence: who is causing this? If you cannot name them, rewrite it.
-
-2. WATER PHYSICS (if water is present)
-   Water must flow from a source opened by a character. Describe the inlet, the flow direction, the surface it contacts, the reflection visible in it, and the rising level caused by that inlet. Never write "water fills" or "pool fills" without the character opening the valve.
-
-3. BUILDER PHYSICS
-   Build type is ${build_type}:
-   If FULL_BUILD: Lead with heavy machinery. The excavator operator, crane operator, or concretor must be the first character named. Describe the machine's physical behaviour: the arm curling, the bucket biting, the body rotating on its undercarriage, the engine sound changing under load.
-   If TEAM_BUILD: Name each worker by their specific trade action. Never "the workers" as a group. At least two workers must be named by their individual actions in the sequence. Show their physical effort: leaning in, bracing feet, gripping with both hands.
-   If DIY: One person. Their hands must be visible in every described shot. Name every tool they pick up and what they do with it. Include one moment of them pausing to assess their work — human decision-making visible in the clip.
-
-4. MOTION STYLE: ${motion_style}
-   Apply the complete motion style rules. The motion style controls energy, pacing, camera behaviour, and how workers move. Do not blend styles.
-
-Write the 100-130 word prompt now.`
+Write a maximum 50-word prompt following the system rules. The prompt MUST end with the exact phrase "ending fully at the second image". Force the transformation to complete by the final frame using time-lapse / fast-forward language. One natural camera move. No negatives.`
 
     // Convert images to base64 so OpenRouter/Azure accepts the format
     const imageParts: any[] = []

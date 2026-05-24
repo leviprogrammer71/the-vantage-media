@@ -128,7 +128,7 @@ export default function VideoPage() {
           </div>
         </header>
 
-        <main id="main-content" className="px-4 py-6 max-w-lg mx-auto space-y-5">
+        <main id="main-content" className="px-4 sm:px-6 lg:px-8 py-6 max-w-lg md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto space-y-5">
           {/* Breadcrumb when in a mode */}
           {videoMode !== "select" && (
             <button

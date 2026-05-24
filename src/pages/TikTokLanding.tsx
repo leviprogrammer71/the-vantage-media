@@ -4,6 +4,8 @@ import LuxuryHeader from "@/components/lux/LuxuryHeader";
 import LuxuryFooter from "@/components/lux/LuxuryFooter";
 import PreviewVideo from "@/components/lux/PreviewVideo";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
+import { useUtmCapture } from "@/hooks/useUtmCapture";
+import AdUrgencyStrip from "@/components/lux/AdUrgencyStrip";
 
 /**
  * TikTokLanding — /tiktok
@@ -24,6 +26,8 @@ import { useSmartCTA } from "@/hooks/useSmartCTA";
  */
 const TikTokLanding = () => {
   const { destination, isLoggedIn } = useSmartCTA("agent");
+  // Persist tiktok attribution + any ad-passed UTMs across the session.
+  useUtmCapture("tiktok");
 
   return (
     <>
@@ -37,6 +41,7 @@ const TikTokLanding = () => {
       </Helmet>
 
       <div className="min-h-screen lux-bg-bone" style={{ color: "var(--lux-ink)" }}>
+        <AdUrgencyStrip destination={destination} label="★ TIKTOK LAUNCH OFFER · FIRST 60 CREDITS FREE · NO CARD · TAP TO CLAIM →" />
         <LuxuryHeader variant="bone" />
 
         <main id="main-content">

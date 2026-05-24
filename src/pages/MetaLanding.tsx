@@ -7,6 +7,8 @@ import PreviewVideo from "@/components/lux/PreviewVideo";
 import Marquee from "@/components/lux/Marquee";
 import SectionHeading from "@/components/lux/SectionHeading";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
+import { useUtmCapture } from "@/hooks/useUtmCapture";
+import AdUrgencyStrip from "@/components/lux/AdUrgencyStrip";
 
 /**
  * MetaLanding — /meta
@@ -27,6 +29,8 @@ import { useSmartCTA } from "@/hooks/useSmartCTA";
  */
 const MetaLanding = () => {
   const { destination, destinationFor, isLoggedIn } = useSmartCTA("agent");
+  // Persist meta/instagram attribution + any ad-passed UTMs across the session.
+  useUtmCapture("meta");
 
   return (
     <>
@@ -40,6 +44,7 @@ const MetaLanding = () => {
       </Helmet>
 
       <div className="min-h-screen lux-bg-bone" style={{ color: "var(--lux-ink)" }}>
+        <AdUrgencyStrip destination={destination} label="★ INSTAGRAM LAUNCH OFFER · FIRST 60 CREDITS FREE · NO CARD · TAP TO CLAIM →" />
         <LuxuryHeader variant="bone" />
 
         <main id="main-content">

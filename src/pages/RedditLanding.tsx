@@ -4,6 +4,8 @@ import LuxuryHeader from "@/components/lux/LuxuryHeader";
 import LuxuryFooter from "@/components/lux/LuxuryFooter";
 import PreviewVideo from "@/components/lux/PreviewVideo";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
+import { useUtmCapture } from "@/hooks/useUtmCapture";
+import AdUrgencyStrip from "@/components/lux/AdUrgencyStrip";
 
 /**
  * RedditLanding — /reddit
@@ -27,6 +29,8 @@ import { useSmartCTA } from "@/hooks/useSmartCTA";
  */
 const RedditLanding = () => {
   const { destination, isLoggedIn } = useSmartCTA("agent");
+  // Persist reddit attribution + any ad-passed UTMs across the session.
+  useUtmCapture("reddit");
 
   return (
     <>
@@ -40,6 +44,7 @@ const RedditLanding = () => {
       </Helmet>
 
       <div className="min-h-screen lux-bg-bone" style={{ color: "var(--lux-ink)" }}>
+        <AdUrgencyStrip destination={destination} label="★ 60 FREE CREDITS · NO CARD · TRY IT YOURSELF →" />
         <LuxuryHeader variant="bone" />
 
         <main id="main-content">

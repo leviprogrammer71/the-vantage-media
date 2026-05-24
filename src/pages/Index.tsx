@@ -14,6 +14,7 @@ import ROICalculator from "@/components/lux/ROICalculator";
 import SectionHeading from "@/components/lux/SectionHeading";
 import OAuthReturnHandler from "@/components/OAuthReturnHandler";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
+import { useUtmCapture } from "@/hooks/useUtmCapture";
 
 // All imagery is now real Vantage customer output — no stock photography.
 const ux = {
@@ -37,6 +38,9 @@ const ux = {
 
 const Index = () => {
   const { destination, destinationFor, isLoggedIn } = useSmartCTA();
+  // Capture any UTM params from the homepage too — ads sometimes link
+  // straight to the root domain rather than /tiktok or /meta.
+  useUtmCapture();
 
   // Live counter: base 47 + 3 per hour since midnight
   const [liveCount, setLiveCount] = useState(47);

@@ -428,10 +428,13 @@ function buildSeedanceClipPrompt(
   return prompt
 }
 
-// ── KLING 2.5 TURBO PRO — richer (~140 words) ──
-// Kling accepts up to 2,500 chars and performs better with shot-list grammar
-// (subject → action → camera → environment → style/mood). Negative defects
-// go in the dedicated negative_prompt API field — never inline here.
+// ── KLING 2.5 TURBO PRO — SIMPLIFIED (May 23, 2026) ──
+// User report: camera-movement reels have hallucinations. User directive:
+// "simple, no negatives". The previous 140-word Kling builder stacked named
+// materials + atmospheric vocab + beat register language + tempo cues — every
+// extra noun gave Kling another thing to render, and hallucinations crept in.
+// Now Kling gets the same ultra-minimal grammar Seedance gets: motion verb
+// + subject. Image conditioning carries the rest.
 function buildKlingClipPrompt(
   motionHint: string,
   duration: number,
@@ -439,53 +442,8 @@ function buildKlingClipPrompt(
   pacing: "slow" | "medium" = "slow",
   context?: ClipContext,
 ): string {
-  const tempoCue = pacing === "slow"
-    ? "at a gentle, uniform slow tempo"
-    : "at a steady, measured tempo"
-
-  // Three named materials per clip — keeps under Kling's 5-7 noun ceiling.
-  const materials = materialPalette("interior").slice(0, 3).join(", ")
-
-  // Beat register — longer, name-rich register language.
-  let beatRegister = ""
-  const beat = context?.beat?.toLowerCase()
-  if (beat === "establishing" || beat === "opener") {
-    beatRegister = "The opening shot of the reel — wide architectural framing, generous breathing room, cool register. Shot opens MID-MOTION (research finding: 3-second hook window on IG / TikTok demands no static opening frame) — camera already drifting forward at frame zero, foliage already moving, light already in play, never a static reveal. "
-  } else if (beat === "hero" || beat === "feature") {
-    beatRegister = "The hero shot — tighter framing on the strongest architectural feature, warm hero light. "
-  } else if (beat === "detail" || beat === "texture") {
-    beatRegister = "A detail beat — closer framing on a material story, raking light revealing texture. "
-  } else if (beat === "amenity") {
-    beatRegister = "An amenity beat — outdoor or signature space, wider framing, energy continues. "
-  } else if (beat === "closing" || beat === "resolution" || beat === "closer") {
-    beatRegister = "The closing shot — composed framing easing into a magazine resolution, warm closing light. "
-  } else if (beat === "transition" || beat === "bridge") {
-    beatRegister = "A bridging shot — medium framing, neutral register connecting adjacent beats. "
-  }
-
-  const positionHeader = context?.index && context?.total
-    ? `Shot ${context.index} of ${context.total} in a cinematic 9:16 listing reel${context.beat ? ` — beat: ${context.beat.toUpperCase()}` : ""}. ${beatRegister}`
-    : ""
-
-  // Atmospheric lock — shared verbatim across stitched bundle clips so the
-  // grade and time-of-day stay consistent across separate predictions.
-  const atmos = context?.atmosphericLock
-    ? `Atmospheric state: ${context.atmosphericLock} ` : ""
-
-  return (
-    positionHeader +
-    `Cinematic 9:16 vertical real-estate reel, ${duration} seconds total. ${atmos}` +
-    // Subject: room + named materials
-    `Subject: the unoccupied interior holds its architectural geometry exactly — walls, windows, doors, finishes remain consistent throughout. Named materials catch directional light as the camera passes: ${materials}. ` +
-    // Background + Movement — Higgsfield-documented atmospheric vocabulary
-    // that Kling 2.5 Turbo Pro responds to specifically (dust, soft wind,
-    // light flicker, reflections, slight camera shake — official tip).
-    `Background: dust motes drift through window light, a soft wind moves any visible fronds or sheer curtains, light flickers gently in reflections on glass and stone, faint warm haze builds depth; the space is unoccupied, motion comes only from the camera and the ambient light. ` +
-    // Camera + Movement — continuous, deceleration as positive end-state
-    `Camera technique: ${motionHint} ${tempoCue}, one continuous uninterrupted move from the first frame through to the last, with slight micro camera shake characteristic of a real gimbal at this focal length, smoothly decelerating into a magazine-grade resolution across the final second while still drifting forward toward a settled composition that continues the camera's gentle motion. Start frame and end frame share identical focal length and lighting state — no perspective jumps. ` +
-    // Style
-    `${vibeLine}`
-  )
+  void duration; void vibeLine; void pacing; void context
+  return `${motionHint} still house`
 }
 
 // Sign overlay prompts. gpt-image-2 (and the nano-banana fallback) handle
@@ -991,19 +949,11 @@ async function startVideoGeneration(
     ? `${REPLICATE}/models/${MODEL_SEEDANCE}/predictions`
     : `${REPLICATE}/models/${MODEL_KLING}/predictions`
 
-  // Kling accepts start_image/end_image + negative_prompt API field.
-  // Seedance Pro accepts `image` only — Seedance IGNORES negative_prompt
-  // per ByteDance docs, so we never send one.
-  //
-  // ── QUALITY MAX-OUT (May 12, 2026) ──
-  // Seedance: 1080p is the model's ceiling. fps:24 is the cinema standard
-  //   that gives the output a "shot on film" cadence (vs the soap-opera
-  //   30fps look). camera_fixed:false because we ARE moving the camera —
-  //   leaving it default false ensures the model doesn't lock the camera.
-  // Kling: cfg_scale:0.7 (above the 0.5 default) tightens prompt adherence,
-  //   which for real estate translates to fewer hallucinated objects, more
-  //   architectural fidelity. negative_prompt remains the primary defect
-  //   gate.
+  // ── May 23, 2026: SIMPLIFIED + NO NEGATIVES ──
+  // User report: camera-movement reels have hallucinations. User directive:
+  // "simple, no negatives". Kling's negative_prompt is removed entirely;
+  // Seedance never used one. cfg_scale stays at 0.7 to keep good prompt
+  // adherence without over-constraining the model.
   const modelInput: Record<string, unknown> = useSeedance
     ? {
         prompt,
@@ -1019,7 +969,6 @@ async function startVideoGeneration(
         start_image: imageUrl,
         duration,
         aspect_ratio: "9:16",
-        negative_prompt: KLING_NEGATIVE_PROMPT,
         cfg_scale: 0.7,
       }
 
@@ -1989,8 +1938,7 @@ async function startKlingTransitionPrediction(
   duration: number,
   token: string
 ): Promise<{ videoUrl?: string; predictionId?: string }> {
-  const prompt = `${motionPrompt} Cinematic real-estate listing reel. Photorealistic. Smooth physically-plausible transition between the two frames.`
-  const negativePrompt = KLING_NEGATIVE_PROMPT
+  const prompt = `${motionPrompt}, ending fully at the second image.`
 
   const res = await fetch(
     `${REPLICATE}/models/${MODEL_KLING}/predictions`,
@@ -2008,7 +1956,7 @@ async function startKlingTransitionPrediction(
           end_image: endImageUrl,
           duration,
           aspect_ratio: "9:16",
-          negative_prompt: negativePrompt,
+          cfg_scale: 1.0,
         },
       }),
     }
@@ -2037,8 +1985,7 @@ async function animatePhotoTransition(
   duration: number,
   token: string
 ): Promise<string> {
-  const prompt = `${motionPrompt} Cinematic real-estate listing reel. Photorealistic. Smooth physically-plausible transition between the two frames.`
-  const negativePrompt = KLING_NEGATIVE_PROMPT
+  const prompt = `${motionPrompt}, ending fully at the second image.`
 
   const res = await fetch(
     "https://api.replicate.com/v1/models/kwaivgi/kling-v2.5-turbo-pro/predictions",
@@ -2056,7 +2003,7 @@ async function animatePhotoTransition(
           end_image: endImageUrl,
           duration,
           aspect_ratio: "9:16",
-          negative_prompt: negativePrompt,
+          cfg_scale: 1.0,
         },
       }),
     }
