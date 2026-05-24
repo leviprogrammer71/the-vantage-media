@@ -6,6 +6,7 @@ import PreviewVideo from "@/components/lux/PreviewVideo";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
 import { useUtmCapture } from "@/hooks/useUtmCapture";
 import AdUrgencyStrip from "@/components/lux/AdUrgencyStrip";
+import TrustSignals from "@/components/lux/TrustSignals";
 
 /**
  * TikTokLanding — /tiktok
@@ -160,14 +161,8 @@ const TikTokLanding = () => {
                         : "MAKE MY FIRST REEL FREE →"}
                     </Link>
                   </div>
-                  <div
-                    className="lux-eyebrow mt-4"
-                    style={{
-                      color: "var(--lux-ash)",
-                      fontSize: "0.65rem",
-                    }}
-                  >
-                    60 FREE CREDITS · NO CARD · 3 MIN FIRST REEL
+                  <div className="mt-5">
+                    <TrustSignals />
                   </div>
                 </div>
 
@@ -239,31 +234,34 @@ const TikTokLanding = () => {
                 className="lux-eyebrow mb-2"
                 style={{ color: "var(--lux-champagne)" }}
               >
-                THE QUIET PART, OUT LOUD
+                ANCHOR PRICING · THE RECEIPTS
               </div>
               <p
                 className="lux-display"
                 style={{
                   fontSize: "clamp(1.4rem, 3vw, 2.2rem)",
-                  lineHeight: 1.2,
+                  lineHeight: 1.3,
                 }}
               >
-                Realtors who post listing Reels close{" "}
+                One videographer shoot:{" "}
+                <s style={{ color: "rgba(244,239,230,0.45)" }}>$300–$1,000</s>
+                <br />
+                The Vantage PRO:{" "}
                 <span
                   className="lux-display-italic"
                   style={{ color: "var(--lux-champagne)" }}
                 >
-                  9 days faster.
+                  $79/month · unlimited.
                 </span>
               </p>
               <div
-                className="lux-eyebrow mt-2"
+                className="lux-eyebrow mt-3"
                 style={{
                   color: "rgba(244,239,230,0.55)",
                   fontSize: "0.65rem",
                 }}
               >
-                NAR DATA · 2025 LISTING VELOCITY REPORT
+                BOXBROWNIE = $24/IMAGE · 48 HR · NO VIDEO · WE'RE 3 MIN · VIDEO INCLUDED
               </div>
             </div>
           </section>
@@ -408,6 +406,86 @@ const TikTokLanding = () => {
             </div>
           </section>
 
+          {/* ═══════════ FAQ — objection handlers ═══════════ */}
+          {/* Research-finding: TikTok landing had no FAQ. Cold platform traffic
+              with no objection handlers = bounces. Each Q here targets a top-3
+              objection identified in the conversion research. */}
+          <section className="lux-section" style={{ background: "var(--lux-cream)" }}>
+            <div className="lux-container max-w-3xl">
+              <div className="lux-eyebrow mb-4" style={{ color: "var(--lux-rust)" }}>
+                BEFORE YOU SIGN UP
+              </div>
+              <h2
+                className="lux-display mb-10"
+                style={{ fontSize: "clamp(2rem, 5vw, 3.4rem)", lineHeight: 1.05 }}
+              >
+                Real questions. <span className="lux-display-italic">Real answers.</span>
+              </h2>
+              <div className="space-y-6">
+                {[
+                  {
+                    q: "Will MLS flag this? What about AI disclosure?",
+                    a: "Every export carries a built-in AI-disclosure tag, and we provide a one-click link to the original photo for buyers. Compliant with CA AB-723, CO HB24-1147, and every major MLS we've checked. We update the disclosure layer whenever local rules change.",
+                  },
+                  {
+                    q: "Does the video look fake?",
+                    a: "It's the same photo you uploaded — we just add cinematic camera motion to it. No invented walls, no morphing furniture, no plastic AI sheen. The Reel feels like a slider or steadicam shot, because that's exactly what it is mathematically.",
+                  },
+                  {
+                    q: "Will TikTok downrank a watermarked video?",
+                    a: "Zero watermark on PRO ($79) and STUDIO ($149.99). Native 9:16 vertical, 1080p, MP4 — uploads clean to TikTok, Reels, Shorts, and the MLS without re-encoding.",
+                  },
+                  {
+                    q: "What if I hate the result?",
+                    a: "Your first 60 credits are free — that's a full Done-For-You reel plus a single-clip animation. If you upgrade to PRO or STUDIO and don't love it, we refund the month, no calls, no forms. 30-day money-back.",
+                  },
+                ].map((f) => (
+                  <details
+                    key={f.q}
+                    className="group"
+                    style={{
+                      borderBottom: "1px solid var(--lux-hairline)",
+                      paddingBottom: 16,
+                    }}
+                  >
+                    <summary
+                      className="lux-display cursor-pointer flex items-center justify-between gap-4"
+                      style={{ fontSize: "1.25rem", lineHeight: 1.3, color: "var(--lux-ink)" }}
+                    >
+                      {f.q}
+                      <span
+                        className="lux-eyebrow flex-shrink-0"
+                        style={{ color: "var(--lux-rust)" }}
+                      >
+                        +
+                      </span>
+                    </summary>
+                    <p
+                      className="lux-prose mt-3"
+                      style={{ fontSize: "0.98rem", lineHeight: 1.6, color: "var(--lux-ash)" }}
+                    >
+                      {f.a}
+                    </p>
+                  </details>
+                ))}
+              </div>
+              <div className="mt-10 text-center">
+                <Link
+                  to={destination}
+                  className="lux-btn"
+                  style={{
+                    background: "var(--lux-ink)",
+                    color: "var(--lux-bone)",
+                    padding: "20px 36px",
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  {isLoggedIn ? "ENTER STUDIO →" : "START FREE · 60 CREDITS →"}
+                </Link>
+              </div>
+            </div>
+          </section>
+
           {/* ═══════════ FINAL CTA ═══════════ */}
           <section
             className="lux-section"
@@ -445,7 +523,7 @@ const TikTokLanding = () => {
                   fontSize: "0.7rem",
                 }}
               >
-                NO CARD REQUIRED · CANCEL ANYTIME
+                60 FREE CREDITS · NO CARD · 30-DAY MONEY-BACK ON PAID TIERS
               </div>
             </div>
           </section>

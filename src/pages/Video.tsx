@@ -78,7 +78,7 @@ export default function VideoPage() {
         <div className="min-h-screen bg-background pb-24">
         {/* Header */}
         <header className="border-b bg-background/95 backdrop-blur sticky top-0 z-50">
-          <div className="px-4 h-14 flex items-center justify-between">
+          <div className="px-4 sm:px-6 lg:px-10 xl:px-16 2xl:px-24 h-14 flex items-center justify-between">
             <div className="flex items-center gap-3">
                <Button
                 variant="ghost"
@@ -128,7 +128,7 @@ export default function VideoPage() {
           </div>
         </header>
 
-        <main id="main-content" className="px-4 sm:px-6 lg:px-8 py-6 max-w-lg md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto space-y-5">
+        <main id="main-content" className="w-full px-4 sm:px-6 lg:px-10 xl:px-16 2xl:px-24 py-6 lg:py-10 space-y-5">
           {/* Breadcrumb when in a mode */}
           {videoMode !== "select" && (
             <button

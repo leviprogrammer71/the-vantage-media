@@ -44,3 +44,6 @@ supabase/.temp/
 # OS files
 Thumbs.db
 .vercel
+
+# Cowork/Claude local settings — never commit (contains secrets)
+.claude/

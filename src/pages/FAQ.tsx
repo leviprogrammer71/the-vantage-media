@@ -14,15 +14,19 @@ const groups = [
       },
       {
         q: "Do I need a 'before' photograph?",
-        a: "No. We reconstruct the prior state from architectural cues in your finished frame. That's the heart of the studio. One photo in. A full transformation out.",
+        a: "Only for Setup / Cleanup / Transformation morphs. For Done-For-You Reels, Camera Movement, Sun-to-Dusk, Virtual Staging, Sketch-to-Real, and Floor Plan walkthroughs you upload one photo (or a handful) and we render the rest.",
       },
       {
         q: "How long does a render take?",
-        a: "Average across the studio is 3 minutes 14 seconds. Studio plan subscribers see 90 seconds. House plan: 45 seconds.",
+        a: "Three minutes is the typical wall-clock time from upload to finished MP4. Done-For-You Reels (6 clips auto-stitched) take 3–5 minutes. Single-clip animations finish in about 90 seconds.",
       },
       {
         q: "What formats do you export?",
-        a: "Vertical 9:16, square 1:1, and horizontal 16:9 — every render delivers all three simultaneously, ready for any MLS field, Reels, TikTok, YouTube Shorts, or Vimeo.",
+        a: "Native 9:16 vertical 1080p MP4 — uploads cleanly to Reels, TikTok, Shorts, Zillow, Realtor.com, and the MLS without re-encoding.",
+      },
+      {
+        q: "Is this MLS-safe? What about AI-disclosure laws?",
+        a: "Every export carries a built-in AI-disclosure tag, plus a one-click link to the original photo for buyers. Compliant with CA AB-723, CO HB24-1147, and every major MLS we've checked. We track the disclosure rules and update the layer when local law changes.",
       },
     ],
   },
@@ -31,36 +35,40 @@ const groups = [
     items: [
       {
         q: "Do credits expire?",
-        a: "Credits are valid for 12 months from your most recent purchase. Buying more credits resets the 12-month clock for your whole balance, so active users effectively never see expiry. You can always see your current expiry date on your /profile page.",
+        a: "Credits are valid 12 months from your most recent purchase. Buying more credits resets the 12-month clock for your whole balance, so active users effectively never see expiry.",
       },
       {
-        q: "What does a typical film cost in credits?",
-        a: "A 5-second listing film: 20 credits. A 10-second transformation with AI before: 50 credits. A photo enhancement: 10 credits. The Studio pack ($129 for 650 credits) works out to roughly $0.42 per finished film at volume.",
+        q: "What does a typical render cost in credits?",
+        a: "Done-For-You Reel: 50 credits. Animate Single (one camera move on one photo): 10 credits. Virtual Staging / Sun-to-Dusk / Sketch-to-Real / Floor Plan: 15 credits each. Listing Bundle (6 clips, delivered separately): 45 credits. Setup / Cleanup / Transformation: 12–15 credits.",
       },
       {
         q: "Can I get a refund?",
-        a: "Yes. We offer a 30-day refund window on all credit packs. Subscriptions can be cancelled anytime — you keep your remaining credits.",
+        a: "Yes. PRO ($79) and STUDIO ($149.99) include a 30-day money-back guarantee — refund the month if you don't love it, no calls, no forms. STARTER ($39) doesn't include the guarantee but you can cancel anytime and keep your remaining credits.",
+      },
+      {
+        q: "What's the difference between the three tiers?",
+        a: "STARTER ($39 / 500 credits) is the watermark trial. PRO ($79 / 1,200 credits) removes the watermark, adds brand presets (logo + agent name), priority render queue, and the 30-day money-back. STUDIO ($149.99 / 2,800 credits) adds team seats for up to 5 agents and MLS-ready exports with disclosure URLs.",
       },
     ],
   },
   {
-    title: "Workflow & Trade",
+    title: "Output & Compliance",
     items: [
       {
+        q: "Does the video look fake?",
+        a: "It's the same photo you uploaded — we just add cinematic camera motion to it. No invented walls, no morphing furniture, no plastic AI sheen. The Reel feels like a steadicam shot because mathematically that's what it is.",
+      },
+      {
         q: "Will this replace my videographer?",
-        a: "It replaces the $1,500 cinematic listing add-on you stopped offering because the margins were thin. It does not replace a fully scripted property tour. We're a complement, not a substitute.",
+        a: "It replaces the $300–$1,000 cinematic listing add-on you stopped offering because turnaround was too slow. It does not replace a fully narrated property tour with a drone operator on site. Complement, not substitute.",
       },
       {
-        q: "Who owns the films?",
-        a: "You do. Full commercial rights to every film delivered on your account, including for client resale. We never use your photographs to train future models.",
+        q: "Who owns the videos?",
+        a: "You do. Full commercial rights to every Reel delivered on your account, including for client resale. We never use your photographs to train future models.",
       },
       {
-        q: "Can my brokerage white-label this?",
-        a: "Yes. The House plan includes white-label delivery, brokerage-branded galleries, agent seats, and a dedicated liaison. Speak to us.",
-      },
-      {
-        q: "Do you integrate with my existing tools?",
-        a: "Yes — we integrate with Pixifi, Iris, ShootProof, HoneyBook, Compass tools, Side Inc., kvCORE, Sierra, BoomTown, and the major MLS platforms. Native API + Zapier.",
+        q: "Can my brokerage use it?",
+        a: "Yes. STUDIO ($149.99) includes 5 agent seats and MLS-ready exports. For larger teams or brokerage-branded galleries, email hello@thevantage.media.",
       },
     ],
   },

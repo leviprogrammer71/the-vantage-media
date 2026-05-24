@@ -18,7 +18,7 @@ import { normalizeImageForUpload } from "@/lib/normalize-image";
 import { withFreshAuth } from "@/lib/auth-refresh";
 import { stitchClipsClientSide, downloadBlobOrUrl } from "@/lib/client-stitch";
 import { stitchMp4Lossless, ffmpegWasmAvailable } from "@/lib/ffmpeg-stitch";
-import { SHOT_TYPES, STAGING_STYLES } from "@/lib/shot-types";
+import { SHOT_TYPES, STAGING_STYLES, AI_PICKED_STAGING_STYLES, type StagingMode } from "@/lib/shot-types";
 import { VIBES } from "@/lib/vibes";
 import { SUNO_PRESETS, type SunoPreset, defaultSongForStyle } from "@/lib/suno-presets";
 import { SunoMusicPicker } from "./SunoMusicPicker";
@@ -108,7 +108,7 @@ const CATEGORY_CARDS = [
     title: "Done-For-You Reel",
     eyebrow: "★ MOST POPULAR · AUTO-STITCHED · 4 STYLES",
     description: "Upload 3-6 photos in the order you want them to play. We render each as a cinematic clip then auto-stitch into one finished MP4 with your price and realtor name baked in. Editorial, Snappy, Cinema, or Minimal style.",
-    details: "15-30s · From 110 credits · Auto-stitched · Pick a style",
+    details: "15-30s · 50 credits · Auto-stitched · Pick a style",
     previewUrl: "/vantage/done-for-you/result.mp4",
   },
   {
@@ -116,7 +116,7 @@ const CATEGORY_CARDS = [
     title: "Animate Single",
     eyebrow: "★ 2ND MOST POPULAR · CAMERA · SETUP · CLEANUP · TRANSFORMATION",
     description: "Animate one photo your way. Pick a camera move (tilt, pedestal, push, parallax, orbit, pan) or turn it into a Setup, Cleanup, or full Transformation morph. One feature, every mode.",
-    details: "5–10s · 1080p vertical · From 25 credits",
+    details: "5–10s · 1080p vertical · From 10 credits",
     previewUrl: "/vantage/animate-single/result.mp4",
   },
   {
@@ -124,7 +124,7 @@ const CATEGORY_CARDS = [
     title: "The Listing Bundle",
     eyebrow: "MULTI-PHOTO REEL · PER-CLIP DELIVERY",
     description: "Upload 3-6 photos. We render each as a Seedance 2.0 cinematic clip and hand back the individual clips for you to mix in your editor.",
-    details: "15-30s · From 90 credits · Per-clip delivery",
+    details: "15-30s · From 45 credits · Per-clip delivery",
     previewUrl: "/vantage/listing-bundle/1.mp4",
   },
   {
@@ -132,7 +132,7 @@ const CATEGORY_CARDS = [
     title: "Virtual Staging",
     eyebrow: "EMPTY ROOM TO FULLY FURNISHED",
     description: "Upload one empty room photo. The room dresses itself in your chosen style — locked-off camera, identical framing. Furniture appears, settles, stays.",
-    details: "10s film · Single download · From 50 credits",
+    details: "10s film · Single download · 15 credits",
     previewUrl: "/vantage/build/result.mp4",
   },
   {
@@ -140,7 +140,7 @@ const CATEGORY_CARDS = [
     title: "Sun-Up to Sundown",
     eyebrow: "DAY-TO-DUSK · GOLDEN-HOUR TIMELAPSE",
     description: "Upload one daytime exterior. We render a static-camera time-lapse through sunrise, golden hour, and dusk in a single 10-second clip.",
-    details: "10s film · Single download · From 60 credits",
+    details: "10s film · Single download · 15 credits",
     previewUrl: "/vantage/sun-cycle/result.mp4",
   },
   {
@@ -148,7 +148,7 @@ const CATEGORY_CARDS = [
     title: "Sketch to Reality",
     eyebrow: "HAND-DRAWN REVEAL · SIGNATURE MOMENT",
     description: "Upload your property photo. One 10-second cinematic film: a pencil sketch on a desk transforms into the real photo, then the camera reveals the space.",
-    details: "10s film · Single download · From 60 credits",
+    details: "10s film · Single download · 15 credits",
     previewUrl: "/vantage/sketch/result.mp4",
   },
   {
@@ -156,7 +156,7 @@ const CATEGORY_CARDS = [
     title: "Floor Plan to Walkthrough",
     eyebrow: "FLOOR PLAN · PHOTOREAL WALK-THROUGH",
     description: "Upload a floor plan or axonometric drawing. One 10-second cinematic film: the plan transforms into a photoreal interior, then the camera moves through the space.",
-    details: "10s film · Single download · From 30 credits",
+    details: "10s film · Single download · 15 credits",
     previewUrl: "/vantage/ranch-build/result.mp4",
   },
 ];
@@ -181,31 +181,36 @@ const EFFECT_OPTIONS: Record<EffectId, string> = {
 
 // Per-feature credit cost.
 //
-// Reference cost (May 2026): Seedance 1 Pro 1080p ≈ $0.15/sec at the
-// safety-margin tier. So 5s clip = $0.75 cost, 10s clip = $1.50 cost.
-// At 1 credit = $0.06, target ~60% gross margin.
+// ── May 23, 2026 — REBALANCE ──
+// User directive: 60 free credits has to actually let a new user produce
+// something. Old prices made 60 credits insufficient for any flagship
+// output, so trials died on contact. Margin is recovered through higher
+// pricing tiers ($39 / $79 / $149.99) rather than higher per-feature cost.
 //
-//   Animate Single (1×5s):           cost $0.75 → 30 cr → $1.80 (60% mgn)
-//   Sun-Up to Sundown (1×10s):        cost $1.50 → 60 cr → $3.60 (58%)
-//   Virtual Staging (1×10s):           cost $1.50 → 60 cr → $3.60 (58%)
-//   Sketch to Reality (1×10s + sketch step): cost $1.55 → 60 cr → $3.60 (57%)
-//   Floor Plan to Walkthrough (1×10s): cost $1.50 → 60 cr → $3.60 (58%)
-//   Listing Bundle (6×5s):             cost $4.50 → 180 cr → $10.80 (58%)
-//   Done-For-You Reel (6×5s + stitch): cost $4.50 → 200 cr → $12.00 (62%)
-//                                       (auto-stitch, baked overlays, style preset)
+// New scale (all categories repriced ÷4 on average):
+//   Animate Single (1×5s):           10 cr   (was 30)
+//   Sun-Up to Sundown (1×10s):       15 cr   (was 60)
+//   Virtual Staging (1×10s):         15 cr   (was 60)
+//   Sketch to Reality (1×10s):       15 cr   (was 60)
+//   Floor Plan Walkthrough (1×10s):  15 cr   (was 60)
+//   Listing Bundle (6×5s):           45 cr   (was 180)
+//   Done-For-You Reel (6×5s+stitch): 50 cr   (was 200)  ← user-specified anchor
+//
+// With 60 free credits a new user can: 1 Done-For-You + 1 Animate Single,
+// or 4 staging/sketch/sun-to-sun, or 6 animate singles. Real trial value.
 function calculateListingCost(category: ListingCategory, effectId: EffectId): number {
   let base = 0;
-  if (category === "animate_single") base = 30;
-  else if (category === "sun_to_sun") base = 60;
-  else if (category === "listing_bundle") base = 180;
-  else if (category === "done_for_you_reel") base = 200;
-  else if (category === "virtual_staging") base = 60;
-  else if (category === "sketch_to_real") base = 60;
-  else if (category === "floor_plan_pan") base = 60;
+  if (category === "animate_single") base = 10;
+  else if (category === "sun_to_sun") base = 15;
+  else if (category === "listing_bundle") base = 45;
+  else if (category === "done_for_you_reel") base = 50;
+  else if (category === "virtual_staging") base = 15;
+  else if (category === "sketch_to_real") base = 15;
+  else if (category === "floor_plan_pan") base = 15;
 
   // Realistic effect (gpt-image-2 sign overlay) adds an image-gen call.
   if (effectId !== "none" && (category === "animate_single" || category === "listing_bundle" || category === "done_for_you_reel" || category === "sun_to_sun")) {
-    base += 15;
+    base += 5;
   }
   return base;
 }
@@ -276,7 +281,15 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   }, [category, singleClipDuration]);
   // Burn-in title overlay (Seedance renders text directly into the frame).
   const [titleOverlay, setTitleOverlay] = useState<TitleOverlayValue>(DEFAULT_TITLE_OVERLAY);
-  const [stagingStyle, setStagingStyle] = useState<StagingStyle>("modern");
+  const [stagingStyle, setStagingStyle] = useState<StagingStyle>("luxury_minimalist");
+  // ── MULTI-STYLE STAGING (May 24, 2026) ──
+  // User's Replicate-tested prompts cycle through 3 design styles in one
+  // video (e.g. "mediterranean → luxury minimalist → bohemian"). We let
+  // them pick 1–3 styles, choose a mode (single / cycle / cycle+return),
+  // or hand the choice to the AI.
+  const [stagingMode, setStagingMode] = useState<StagingMode>("single");
+  const [stagingStyles, setStagingStyles] = useState<StagingStyle[]>(["luxury_minimalist"]);
+  const [stagingAiPick, setStagingAiPick] = useState<boolean>(false);
   const [sketchIntent, setSketchIntent] = useState<"interior" | "exterior">("interior");
 
   // Form state (Step 3) — every field is OPTIONAL. Users have profiles, so
@@ -419,6 +432,15 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
           photo_urls: photoUrls,
           shot_type: category === "animate_single" ? shotType : category === "virtual_staging" ? "push_in" : category === "floor_plan_pan" ? shotType : undefined,
           staging_style: category === "virtual_staging" ? stagingStyle : undefined,
+          // ── MULTI-STYLE STAGING (May 24, 2026) ──
+          // Forwarded only for virtual_staging. AI-pick mode swaps in the
+          // user's tested-default cycle for whichever stagingMode is set.
+          staging_mode: category === "virtual_staging" ? stagingMode : undefined,
+          staging_styles:
+            category === "virtual_staging"
+              ? (stagingAiPick ? AI_PICKED_STAGING_STYLES[stagingMode] : stagingStyles)
+              : undefined,
+          staging_ai_pick: category === "virtual_staging" ? stagingAiPick : undefined,
           sketch_intent: category === "sketch_to_real" ? sketchIntent : undefined,
           effect_id: effectId,
           effect_mode: effectId !== "none" ? "realistic" : undefined,
@@ -840,7 +862,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
         title: "Camera Movement",
         eyebrow: "ANIMATE ONE PHOTO · TILT · PEDESTAL · PUSH · ORBIT · PAN",
         description: "Pick a single hero photo and choose any camera move — tilt up/down, pedestal up/down, push in, pull back, parallax left/right, slow orbit, architectural slider. Six to ten seconds, 1080p vertical.",
-        details: "5–10s · From 25 credits",
+        details: "5–10s · From 10 credits",
         previewUrl: "/vantage/animate-single/result.mp4",
         action: () => {
           setShowAnimateModePicker(false);
@@ -853,7 +875,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
         title: "Setup",
         eyebrow: "EMPTY → FINISHED · ANCHORED AT BOTH ENDS",
         description: "Upload the empty before and the finished after. We animate the build — furniture appears, the room dresses itself, the space resolves to your final photo.",
-        details: "5–10s · From 50 credits",
+        details: "5–10s · From 12 credits",
         previewUrl: "/vantage/setup/video.mp4",
         action: () => navigate("/video?mode=setup"),
       },
@@ -862,7 +884,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
         title: "Cleanup",
         eyebrow: "CLUTTERED → CLEAN · END-STATE LOCKED",
         description: "Upload the cluttered before and the cleaned after. Junk fades, surfaces clear, the room resolves to the restored state shown in your final photo.",
-        details: "5–10s · From 50 credits",
+        details: "5–10s · From 12 credits",
         previewUrl: "/vantage/cleanup/result.mp4",
         action: () => navigate("/video?mode=cleanup"),
       },
@@ -871,14 +893,14 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
         title: "Transformation",
         eyebrow: "BEFORE → AFTER · KITCHEN, EXTERIOR, FULL BUILD",
         description: "Upload the raw before and the finished after of any project — kitchen remodel, full build, exterior renovation, landscaping. We animate the morph.",
-        details: "5–10s · From 50 credits",
+        details: "5–10s · From 12 credits",
         previewUrl: "/vantage/build/result.mp4",
         action: () => navigate("/video?mode=transform"),
       },
     ];
     return (
-      <div className="lux-section lux-bg-bone">
-        <div className="lux-container">
+      <div className="py-6 lg:py-10" style={{ background: "var(--lux-bone)" }}>
+        <div>
           <button
             onClick={() => setShowAnimateModePicker(false)}
             className="mb-8 inline-flex items-center gap-2 px-4 py-2.5 border transition-colors"
@@ -905,7 +927,12 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
               Camera Movement animates a single image. Setup, Cleanup, and Transformation morph a before into an after — anchored at both ends so the result actually completes.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+          {/* Same auto-fit pattern — 4 modes naturally line up in one row
+              on desktop while gracefully collapsing on narrow viewports. */}
+          <div
+            className="grid gap-6 lg:gap-8"
+            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}
+          >
             {modes.map((m) => (
               <button
                 key={m.id}
@@ -967,11 +994,16 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   }
 
   // STEP 1: Category picker
+  // ── May 23, 2026 — desktop-fit ──
+  // Dropped lux-section (180px vertical padding) and the inner lux-container
+  // (1320px max-width) — Video.tsx <main> already provides the responsive
+  // max-width (up to 1800px on 2xl) plus its own padding. Nesting both was
+  // causing the cramped "skinny mobile column" the user saw on desktop.
   if (step === 1) {
     return (
-      <div className="lux-section lux-bg-bone">
-        <div className="lux-container">
-          <div className="mb-12">
+      <div className="py-6 lg:py-10" style={{ background: "var(--lux-bone)" }}>
+        <div>
+          <div className="mb-10 lg:mb-12">
             <div className="lux-eyebrow mb-4" style={{ color: "var(--lux-rust)" }}>
               LISTING VIDEO TYPES
             </div>
@@ -983,7 +1015,14 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
+          {/* Auto-fit grid: cards are always >= 280px wide and pack as many
+              columns as the viewport allows. On a 1900px desktop with 8px
+              gaps, this yields 5-6 cards per row at ~300px each — fills the
+              screen instead of clustering narrow cards in the centre. */}
+          <div
+            className="grid gap-6 lg:gap-8"
+            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}
+          >
             {CATEGORY_CARDS.map((card) => {
               const isFeatured = card.id === "done_for_you_reel" || card.id === "animate_single";
               return (
@@ -1241,52 +1280,198 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             ← Browse all 7 films
           </button>
 
-          <div className="mb-12">
+          <div className="mb-10">
             <h2 className="lux-display mb-2" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
               Choose your style
             </h2>
-            <p className="lux-prose mb-6" style={{ color: "var(--lux-ash)" }}>
-              Pick how you'd like the room furnished. We'll add furniture and decor matching this aesthetic.
+            <p className="lux-prose mb-2" style={{ color: "var(--lux-ash)" }}>
+              Pick how you'd like the room furnished, or let us pick. You can showcase up to 3 design styles in one video.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
-            {STAGING_STYLES.map((style) => {
-              const isSelected = stagingStyle === style.id;
-              return (
-                <button
-                  key={style.id}
-                  onClick={() => setStagingStyle(style.id)}
-                  className={`text-left p-6 rounded-none border transition-all ${
-                    isSelected
-                      ? "bg-ink border-ink text-bone"
-                      : "bg-bone border-hairline hover:border-ink"
-                  }`}
-                  style={isSelected ? {
-                    backgroundColor: "#0E0E0C",
-                    borderColor: "#0E0E0C",
-                    color: "#F4EFE6",
-                  } : {
-                    backgroundColor: "#F4EFE6",
-                    borderColor: "var(--lux-hairline)",
-                    color: "#0E0E0C",
-                  }}
-                >
-                  <h3 className="lux-display text-lg mb-1">{style.label}</h3>
-                  <p className="lux-prose text-sm" style={{
-                    color: isSelected ? "#A39E94" : "#6B6760",
-                  }}>
-                    {style.description}
-                  </p>
-                </button>
-              );
-            })}
+          {/* ── MODE PICKER ──
+              Three modes mirror the user's Replicate-tested prompts:
+                • single      → one style transformation
+                • cycle       → 2–3 styles cycle in one video
+                • cycle+return → 2–3 styles, then back to the original room
+          */}
+          <div className="mb-8">
+            <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-brass)", fontWeight: 700 }}>
+              ✦ HOW MANY STYLES
+            </div>
+            <div
+              className="grid gap-3"
+              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}
+            >
+              {([
+                { id: "single", label: "Single style", desc: "One transformation. The original room becomes the style you pick." },
+                { id: "cycle", label: "Cycle 2–3 styles", desc: "Showcase 2–3 design styles in one continuous video. Most popular." },
+                { id: "cycle_return", label: "Cycle + return", desc: "Original → 2–3 styles → back to original. Loops cleanly on social." },
+              ] as { id: StagingMode; label: string; desc: string }[]).map((m) => {
+                const isSel = stagingMode === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      setStagingMode(m.id);
+                      // Reset selections to a sensible default for the new mode.
+                      if (m.id === "single") setStagingStyles((s) => [s[0] || "luxury_minimalist"]);
+                      else if (stagingStyles.length < 2) setStagingStyles(AI_PICKED_STAGING_STYLES[m.id]);
+                    }}
+                    className="text-left p-5 border transition-all"
+                    style={isSel ? {
+                      background: "var(--lux-ink)",
+                      borderColor: "var(--lux-ink)",
+                      color: "var(--lux-bone)",
+                    } : {
+                      background: "var(--lux-bone)",
+                      borderColor: "var(--lux-hairline-strong)",
+                      color: "var(--lux-ink)",
+                    }}
+                  >
+                    <div className="lux-display text-lg mb-1.5">{m.label}</div>
+                    <p className="text-sm" style={{ color: isSel ? "rgba(244,239,230,0.7)" : "var(--lux-ash)", lineHeight: 1.45 }}>
+                      {m.desc}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── AI-PICK TOGGLE ──
+              Default OFF so the user sees the styles. Toggle ON to hand
+              the decision back to the studio — we drop in the user-tested
+              cycle for whichever mode they chose. */}
+          <div
+            className="mb-8 flex items-center gap-4 p-4"
+            style={{
+              background: stagingAiPick ? "var(--lux-ink)" : "var(--lux-cream)",
+              color: stagingAiPick ? "var(--lux-bone)" : "var(--lux-ink)",
+              border: "1px solid var(--lux-hairline-strong)",
+            }}
+          >
+            <input
+              id="staging-ai-pick"
+              type="checkbox"
+              checked={stagingAiPick}
+              onChange={(e) => setStagingAiPick(e.target.checked)}
+              style={{ width: 18, height: 18, accentColor: "var(--lux-rust)" }}
+            />
+            <label htmlFor="staging-ai-pick" className="flex-1 cursor-pointer">
+              <div className="lux-display text-base mb-0.5">Let the studio pick for me</div>
+              <div className="text-xs" style={{ opacity: 0.7, lineHeight: 1.5 }}>
+                We use our tested-defaults — <em>{AI_PICKED_STAGING_STYLES[stagingMode].map((s) => STAGING_STYLES.find((x) => x.id === s)?.label).filter(Boolean).join(" → ")}</em> — which consistently look best for residential listings.
+              </div>
+            </label>
+          </div>
+
+          {/* ── STYLE GRID ──
+              Disabled-look when AI-pick is on. In single mode it's a radio
+              pick; in cycle/cycle_return it's multi-select capped at 3. */}
+          <div className={stagingAiPick ? "opacity-40 pointer-events-none" : ""}>
+            <div className="lux-eyebrow mb-3 flex items-center justify-between" style={{ color: "var(--lux-brass)", fontWeight: 700 }}>
+              <span>
+                ✦ PICK {stagingMode === "single" ? "A STYLE" : `UP TO 3 STYLES`}
+              </span>
+              {stagingMode !== "single" && (
+                <span style={{ color: "var(--lux-ink)", opacity: 0.55, fontSize: 11 }}>
+                  {stagingStyles.length} / 3 selected
+                </span>
+              )}
+            </div>
+            <div
+              className="grid gap-3 mb-12"
+              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}
+            >
+              {STAGING_STYLES.map((style) => {
+                const isSingle = stagingMode === "single";
+                const isSelected = isSingle
+                  ? stagingStyles[0] === style.id
+                  : stagingStyles.includes(style.id);
+                const order = stagingStyles.indexOf(style.id);
+                return (
+                  <button
+                    key={style.id}
+                    type="button"
+                    onClick={() => {
+                      if (isSingle) {
+                        setStagingStyles([style.id]);
+                        setStagingStyle(style.id);
+                      } else {
+                        // Toggle for multi-style; cap at 3; preserve pick order.
+                        if (isSelected) {
+                          const next = stagingStyles.filter((s) => s !== style.id);
+                          setStagingStyles(next.length ? next : [style.id]);
+                        } else if (stagingStyles.length < 3) {
+                          setStagingStyles([...stagingStyles, style.id]);
+                        }
+                      }
+                    }}
+                    className="relative text-left p-5 rounded-none border transition-all"
+                    style={isSelected ? {
+                      backgroundColor: "#0E0E0C",
+                      borderColor: "#0E0E0C",
+                      color: "#F4EFE6",
+                    } : {
+                      backgroundColor: "#F4EFE6",
+                      borderColor: "var(--lux-hairline)",
+                      color: "#0E0E0C",
+                    }}
+                  >
+                    {!isSingle && isSelected && (
+                      <span
+                        className="absolute top-2 right-2 lux-display-italic"
+                        style={{
+                          color: "var(--lux-champagne)",
+                          fontSize: 18,
+                          lineHeight: 1,
+                        }}
+                      >
+                        {order + 1}
+                      </span>
+                    )}
+                    <h3 className="lux-display text-lg mb-1 pr-6">{style.label}</h3>
+                    <p className="lux-prose text-sm" style={{
+                      color: isSelected ? "#A39E94" : "#6B6760",
+                      lineHeight: 1.5,
+                    }}>
+                      {style.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── PROMPT PREVIEW ──
+              Shows the user exactly what the studio will tell Seedance.
+              Builds confidence the picks line up with the output. */}
+          <div className="mb-8 p-5" style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline)" }}>
+            <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-rust)" }}>
+              ✦ YOUR FILM'S DIRECTION
+            </div>
+            <p className="lux-prose text-sm" style={{ lineHeight: 1.65 }}>
+              {(() => {
+                const picks = stagingAiPick ? AI_PICKED_STAGING_STYLES[stagingMode] : stagingStyles;
+                const labels = picks.map((id) => STAGING_STYLES.find((x) => x.id === id)?.promptKeyword).filter(Boolean) as string[];
+                if (stagingMode === "single") {
+                  return `Redesign the room into a ${labels[0] || "luxury minimalist"} style, keeping the layout and the room intact. Only the furniture and decor change.`;
+                }
+                if (stagingMode === "cycle") {
+                  return `Redesign the room — ${labels.join(" → ")} — keeping the layout and the room intact. Furniture spins to change between each style. Smooth transitions.`;
+                }
+                return `Begin with the original room, then redesign — ${labels.join(" → ")} — then return to the original. The layout stays intact; only furniture and decor change.`;
+              })()}
+            </p>
           </div>
 
           <button
             onClick={() => setStep(3)}
             className="lux-btn w-full"
             style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "18px 24px" }}
+            disabled={!stagingAiPick && stagingStyles.length === 0}
           >
             Continue to Details →
           </button>

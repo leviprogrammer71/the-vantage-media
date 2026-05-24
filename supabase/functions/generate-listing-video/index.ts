@@ -517,6 +517,25 @@ const QUICK_EFFECT_BADGES: Record<string, { label: string; color: string }> = {
 //   • Light brief with Kelvin temperature + falloff + atmospheric quality
 //   • Aesthetic anchor (publication / designer / film reference)
 //   • Anti-AI line (banned generic descriptors)
+// ── KEYWORD MAP (May 24, 2026) ──
+// Short canonical keywords for the user's tested template. The simpler
+// "redesign the room into a [keyword] style" pattern outperforms the long
+// aesthetic-clause STAGING_STYLES on Seedance's layout-locking behaviour.
+// STAGING_STYLES still gets exported for legacy callers.
+const STAGING_STYLE_KEYWORDS: Record<string, string> = {
+  modern: "modern",
+  luxury_minimalist: "luxury minimalist",
+  bohemian: "bohemian",
+  mediterranean: "mediterranean",
+  spanish: "spanish",
+  mid_century: "mid-century",
+  coastal: "coastal",
+  farmhouse: "farmhouse",
+  luxury_modern: "luxury modern",
+  scandinavian: "scandinavian",
+  empty: "empty",
+}
+
 const STAGING_STYLES: Record<string, string> = {
   modern:
     "Modern minimalist palette: warm-white plaster walls, mid-tone European oak floor with a matte oil finish, brushed nickel and matte-black accents, no warm wood tones beyond the floor. " +
@@ -560,6 +579,37 @@ const STAGING_STYLES: Record<string, string> = {
     "Light: high-key 5800K diffuse daylight, almost shadowless, gentle warm bounce from the oak floor, soft fill from layered linen sheers. " +
     "Aesthetic anchor: a Kinfolk Magazine interior, a Norm Architects Stockholm apartment shoot. " +
     "Anti-AI: no plastic AI sheen on linen or oak, no flat lighting, no impossible reflections, no over-saturation.",
+  // ── USER-TESTED STYLES (May 24, 2026) ──
+  // Short prompt suffixes — the multi-style cycle templates rely on the
+  // STAGING_STYLE_KEYWORDS map rather than these long aesthetic clauses,
+  // but legacy single-style callers still consume the long form.
+  luxury_minimalist:
+    "Luxury minimalist palette: warm-white walls, oiled European oak floors, sculptural furniture, marble accents, restrained brass detailing, museum-grade negative space. " +
+    "Furniture: low-profile linen sofa, single marble plinth coffee table, sculptural oak chair angled in. " +
+    "Light: soft 5400K daylight, controlled shadows, gallery-bright. " +
+    "Anti-AI: no plastic AI sheen, no over-saturation.",
+  bohemian:
+    "Bohemian palette: layered earth tones, terracotta and rust, brass accents, abundant indoor plants. " +
+    "Furniture: low-slung velvet sofa, woven rattan armchair, layered Moroccan rug, brass coffee table. " +
+    "Accents: macramé wall hangings, scattered floor cushions, fiddle-leaf fig in a glazed pot. " +
+    "Light: warm 3200K filtered through linen curtains, golden hour glow. " +
+    "Anti-AI: no plastic AI sheen, no flat lighting.",
+  mediterranean:
+    "Mediterranean palette: warm plaster walls, terracotta tile floor, olive and ochre, archway detailing. " +
+    "Furniture: woven rattan and linen seating, dark walnut coffee table, ceramic vessels in earth tones. " +
+    "Accents: hand-thrown pottery, dried herbs, linen drapes, wrought iron light fixtures. " +
+    "Light: warm 3000K side-light through arched windows, painterly long shadows. " +
+    "Anti-AI: no plastic AI sheen, no flat lighting, no over-saturation.",
+  spanish:
+    "Spanish-revival palette: warm white plaster, dark wood ceiling beams, wrought iron, deep terracotta and burgundy accents. " +
+    "Furniture: leather club chairs, carved dark wood coffee table, layered hand-loomed wool rug. " +
+    "Accents: mosaic tile inlays, wrought iron candle sconces, ceramic vessels, oil paintings in dark frames. " +
+    "Light: warm 2900K interior light, deep shadows in the ceiling, motivated directional rakes. " +
+    "Anti-AI: no plastic AI sheen, no AI-flat lighting.",
+  empty:
+    "Empty room — furniture and decor removed, bare floors and walls, only architectural shell remains. " +
+    "Lighting matches the input photo's natural light. " +
+    "Anti-AI: no ghost furniture, no shadow remnants of removed items.",
 }
 
 async function pollReplicate(predictionId: string, maxAttempts = 120): Promise<string> {
@@ -1626,9 +1676,28 @@ serve(async (req) => {
     // Category: virtual_staging
     if (category === "virtual_staging") {
       const { staging_style, vibe } = body
+      // ── MULTI-STYLE STAGING (May 24, 2026) ──
+      // User Replicate-tested the simple template
+      //   "redesign the living room furniture decor into [s1] style then [s2],
+      //    then [s3] style while keeping the layout and the room intact only
+      //    changing furnitures and furniture placements, smooth transition
+      //    between changes furnitures spin to change"
+      // and a return-to-original variant. We now accept staging_styles[] and
+      // staging_mode and build the prompt from that template. Falls back to
+      // the legacy single staging_style for clients that haven't been updated.
+      const stagingMode: "single" | "cycle" | "cycle_return" = (body.staging_mode === "cycle" || body.staging_mode === "cycle_return") ? body.staging_mode : "single"
+      const stylesArr: string[] = Array.isArray(body.staging_styles) && body.staging_styles.length > 0
+        ? body.staging_styles
+        : (staging_style ? [staging_style] : [])
 
-      if (!staging_style || !STAGING_STYLES[staging_style]) {
-        throw new Error(`virtual_staging requires valid staging_style. Received: "${staging_style}"`)
+      if (!stylesArr.length) {
+        throw new Error(`virtual_staging requires staging_styles[] or staging_style. Received: "${JSON.stringify(body.staging_styles)}" / "${staging_style}"`)
+      }
+
+      // Validate each style maps to a known keyword
+      const unknownStyle = stylesArr.find((s) => !STAGING_STYLES[s])
+      if (unknownStyle) {
+        throw new Error(`virtual_staging: unknown style "${unknownStyle}". Valid: ${Object.keys(STAGING_STYLES).join(", ")}`)
       }
 
       if (!vibe) {
@@ -1636,23 +1705,36 @@ serve(async (req) => {
       }
 
       const emptyRoomUrl = photo_urls[0]
-      const stylePrompt = STAGING_STYLES[staging_style]
       const vibePromptSuffix = vibeSuffix(vibe)
-      // Single Seedance call handles the entire transformation — no separate
-      // gpt-image-2 staging step. The style prompt drives the furnishing.
+
+      // Build the user's tested-template prompt from the keyword list. We
+      // prefer the short keyword ("luxury minimalist", "bohemian") over the
+      // longer aesthetic clause because Seedance honors the layout-lock
+      // language more reliably with a terse prompt.
+      const keywordFor = (id: string) => STAGING_STYLE_KEYWORDS[id] || id.replace(/_/g, " ")
+      const keywordList = stylesArr.map(keywordFor)
+      const styleClause = keywordList.map((k, i) => i === 0 ? `into a ${k} style living room` : `then a ${k} style`).join(", ")
+
+      // Template variants — each verbatim from the user's Replicate tests.
+      let fullTransformPrompt: string
+      if (stagingMode === "single") {
+        fullTransformPrompt =
+          `redesign the living room furniture decor ${styleClause} while keeping the layout and the room intact only changing furnitures and furniture placements`
+      } else if (stagingMode === "cycle") {
+        fullTransformPrompt =
+          `redesign the living room furniture decor ${styleClause} while keeping the layout and the room intact only changing furnitures and furniture placements, smooth transition between changes furnitures spin to change`
+      } else {
+        // cycle_return
+        fullTransformPrompt =
+          `begin with original then redesign the living room furniture decor ${styleClause}, then back to original image while keeping the layout and the room intact only changing furnitures and furniture placements, smooth transition between changes furnitures spin to change`
+      }
 
       // ── STATIC-CAMERA STAGING (May 16, 2026) ──
-      // User direction: virtual staging should NOT move the camera. The user
-      // wants the furniture to simply appear inside the input still — locked-
-      // off frame, identical perspective, only the contents of the room
-      // change. Previous versions used a walkthrough at the end, which made
-      // the output diverge from the source photo. We now set
-      // `camera_fixed: true` and the prompt only describes furniture
-      // populating the existing frame.
-      const fullTransformPrompt =
-        `the empty room becomes furnished with ${stylePrompt}, with the camera locked off in the same position throughout. No camera movement, no zoom, no pan, no parallax. The framing is identical to the input image. Only the furniture and decor appear and remain in place once placed.`
+      // We keep camera_fixed:true so framing matches the input photo. The
+      // multi-style prompt only changes the furniture — the room itself
+      // and its perspective stay locked.
 
-      console.log("[virtual_staging] kicking off SINGLE 10s Seedance static-camera staging")
+      console.log(`[virtual_staging] kicking off Seedance staging — mode=${stagingMode} styles=${stylesArr.join(",")}`)
       const result = await startSeedanceFromImage(
         emptyRoomUrl,
         fullTransformPrompt,
@@ -1750,19 +1832,16 @@ serve(async (req) => {
         useDirectMorph = true
       }
 
-      // SINGLE 10s Seedance 2.0 clip. Two prompt variants depending on
-      // whether the sketch step succeeded:
-      //   - Normal: Seedance receives the sketch-on-desk image, morphs it.
-      //   - Direct fallback: Seedance receives the property photo and is
-      //     told to BEGIN with a sketch overlay that resolves into the photo.
-      // Minimal prompts win on Seedance — short, image-anchored.
-      const interiorMotion = "slow camera dolly forward through the room"
-      const exteriorMotion = "slow parallax pan across the building"
-      const motion = sketch_intent === "interior" ? interiorMotion : exteriorMotion
-      const subject = sketch_intent === "interior" ? "interior" : "house exterior"
+      // SINGLE 10s Seedance 2.0 clip. Prompt verbatim from the user's
+      // Replicate test (May 24, 2026):
+      //   "a hand drawing Architectural drawing of the exact house in the
+      //    exact position of the picture, with detail and precision then
+      //    renders to the real house in the same placement"
+      // We swap "house" → "interior" for interior sketches.
+      const subject = sketch_intent === "interior" ? "room" : "house"
       const fullSketchPrompt = useDirectMorph
-        ? `the image begins as a pencil sketch on paper then transforms into a photoreal ${subject}, then ${motion}`
-        : `pencil sketch on paper transforms into a photoreal ${subject}, then ${motion}`
+        ? `a hand drawing Architectural drawing of the exact ${subject} in the exact position of the picture, with detail and precision then renders to the real ${subject} in the same placement`
+        : `a hand drawing Architectural drawing of the exact ${subject} in the exact position of the picture, with detail and precision then renders to the real ${subject} in the same placement`
 
       console.log(`[sketch_to_real] kicking off SINGLE 10s Seedance ${useDirectMorph ? "direct-morph" : "morph+reveal"}`)
       const result = await startSeedanceFromImage(

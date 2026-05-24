@@ -185,14 +185,17 @@ export function TransformationFlow({ transformationCategory }: { transformationC
     return localStorage.getItem("seedance_banner_dismissed") === "true";
   });
 
-  // Credit costs per (category, beforeMode, duration). 15s = 10s + 50% surcharge.
+  // ── May 23, 2026 — REBALANCE (matches calculateListingCost in ListingVideoFlow) ──
+  // 10s setup/cleanup/transform: 15 cr (AI-generated before) or 12 cr (user-uploaded
+  // before). 5s = 60% of that, rounded. Old costs were 40–60 cr per clip which
+  // made the 60 free credits effectively useless.
   const creditCost = (() => {
     const tenSec =
       transformationCategory === "cleanup" || transformationCategory === "setup"
-        ? (beforeMode === "ai" ? 60 : 50)
-        : (beforeMode === "ai" ? 50 : 40);
+        ? (beforeMode === "ai" ? 15 : 12)
+        : (beforeMode === "ai" ? 15 : 12);
     if (duration === "10s") return tenSec;
-    return Math.round(tenSec * 0.6); // 5s
+    return Math.round(tenSec * 0.6); // 5s ≈ 7–9 cr
   })();
   const hasEnoughCredits = credits !== null && credits >= creditCost;
   const canGenerate = Boolean(afterImageUrl) && (beforeMode === "ai" || Boolean(beforeImageUrl));
@@ -1165,7 +1168,7 @@ export function TransformationFlow({ transformationCategory }: { transformationC
 
       {/* Bottom Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50" style={{ background: "var(--lux-bone)", borderTop: "1px solid var(--lux-hairline)" }}>
-        <div className="max-w-lg md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto flex items-center justify-between gap-4 p-4 px-4 sm:px-6 lg:px-8" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}>
+        <div className="w-full flex items-center justify-between gap-4 p-4 px-4 sm:px-6 lg:px-10 xl:px-16 2xl:px-24" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}>
           <div className="flex items-center gap-3">
             <Coins className="h-5 w-5" style={{ color: hasEnoughCredits ? "var(--lux-brass)" : "var(--lux-rust)" }} />
             <div className="flex flex-col">

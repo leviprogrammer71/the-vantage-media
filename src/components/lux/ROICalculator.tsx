@@ -73,8 +73,14 @@ const ROICalculator = ({
       const hours = listings * 2;
       return c.benefits(lift, hours);
     }
-    const lift = Math.round(listings * rate * 0.85); // 85% attach rate
-    const hours = Math.round(listings * 1.4);
+    // ── May 24, 2026 — defensible defaults ──
+    // Audit finding: 85% attach rate was implausible; skeptical buyers
+    // discount the entire page when the math looks too rosy. Dropped to a
+    // conservative 40% attach (still healthy — that's two in five shoots
+    // adding the cinematic upsell). Hours saved tightened to 0.8 hr / shoot
+    // since the calculator should describe realistic time wins, not best-case.
+    const lift = Math.round(listings * rate * 0.40);
+    const hours = Math.round(listings * 0.8);
     return c.benefits(lift, hours);
   }, [listings, rate, variant]);
 
@@ -145,7 +151,7 @@ const ROICalculator = ({
             </div>
           ))}
           <p className="lux-prose mt-6 text-sm" style={{ color: "var(--lux-ash)" }}>
-            Estimates only. Pulled from cohort data of active studios on The Vantage during Q1 2026.
+            Estimates only. Conservative default: 40% of shoots add the cinematic upsell. Adjust the sliders to match your studio.
           </p>
         </div>
       </div>

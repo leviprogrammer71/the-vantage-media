@@ -24,11 +24,16 @@ const EditorialHero = ({
   // frame, set in motion") were editorial-magazine fluff — beautiful but
   // told no visitor what the product actually does. The new defaults make
   // the value clear in the first second above the fold.
-  eyebrow = "AI LISTING REELS · ONE PHOTO IN · CINEMATIC MP4 OUT",
-  edition = "BUILT FOR REAL ESTATE PHOTOGRAPHERS · AGENTS · STUDIOS",
+  // ── May 24, 2026 — ICP-named hero copy ──
+  // Audit finding: previous hero pointed at "photographers, agents, builders"
+  // simultaneously; no buyer felt named. New copy names ONE buyer (listing
+  // agents) and leads with the specific job-to-be-done identified in research
+  // ("look like a top producer at 11pm the night you list").
+  eyebrow = "FOR LISTING AGENTS · MAKE A CINEMATIC REEL TONIGHT",
+  edition = "TIKTOK · REELS · MLS · ZILLOW · REALTOR.COM",
   title,
   italic,
-  subtitle = "Upload one listing photo. We render a 1080p vertical reel — Done-For-You, Virtual Staging, Day-to-Dusk, or Sketch-to-Reality — in three minutes. Ready to post on Reels, TikTok, and the MLS.",
+  subtitle = "Listing agents: post a scroll-stopping Reel the night you sign — not the week after. Upload one photo, get a 1080p vertical cinematic film in three minutes. Built for TikTok, Reels, and the MLS. MLS-safe with built-in AI-disclosure tag.",
   primaryCta,
   secondaryCta,
   backgroundImage = "/vantage/ranch-build/input.png",
@@ -76,7 +81,7 @@ const EditorialHero = ({
           <div className="lg:col-span-7">
             <div className="lux-eyebrow mb-4 flex items-center gap-3" style={{ color: "var(--lux-brass)" }}>
               <span style={{ display: "inline-block", width: 36, height: 1, background: "var(--lux-brass)" }} />
-              FOR THE WORLD'S MOST EXACTING PHOTOGRAPHERS, AGENTS & BUILDERS
+              BUILT FOR THE LISTING AGENT WHO POSTS THE SAME NIGHT THEY SIGN
             </div>
 
             {/* Social proof strip — CRO P0 #1.
@@ -99,7 +104,7 @@ const EditorialHero = ({
               >
                 <span style={{ fontSize: 14, letterSpacing: "0.04em" }}>★★★★★</span>
                 <span style={{ color: "var(--lux-ink)", opacity: 0.78 }}>
-                  Trusted by 1,200+ agents & photographers
+                  Built by ex-real-estate-marketing operators
                 </span>
               </div>
               <span style={{ color: "var(--lux-ash)", opacity: 0.55 }}>·</span>
@@ -123,7 +128,7 @@ const EditorialHero = ({
                   }}
                 />
                 <span className="lux-eyebrow" style={{ letterSpacing: "0.18em", fontSize: 11 }}>
-                  248 REELS RENDERED THIS WEEK
+                  MLS-SAFE · AI-DISCLOSURE TAG INCLUDED
                 </span>
               </div>
             </div>
@@ -142,11 +147,11 @@ const EditorialHero = ({
             >
               {title ?? (
                 <>
-                  Turn one photo
+                  Your next listing
                   <br />
-                  into a cinematic
+                  needs a Reel <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>tonight.</span>
                   <br />
-                  listing reel <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>in three minutes.</span>
+                  Here it is in three minutes.
                 </>
               )}
             </h1>
@@ -237,7 +242,7 @@ const EditorialHero = ({
             </div>
 
             <div className="mt-5 flex items-center justify-between">
-              <span className="lux-eyebrow" style={{ color: "var(--lux-ash)" }}>NO. 47 / OF 248 STUDIOS THIS WEEK</span>
+              <span className="lux-eyebrow" style={{ color: "var(--lux-ash)" }}>REAL CUSTOMER OUTPUT · GENERATED IN 3 MIN</span>
               <span className="lux-eyebrow" style={{ color: "var(--lux-rust)" }}>● LIVE</span>
             </div>
           </div>

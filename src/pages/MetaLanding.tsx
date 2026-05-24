@@ -9,6 +9,7 @@ import SectionHeading from "@/components/lux/SectionHeading";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
 import { useUtmCapture } from "@/hooks/useUtmCapture";
 import AdUrgencyStrip from "@/components/lux/AdUrgencyStrip";
+import TrustSignals from "@/components/lux/TrustSignals";
 
 /**
  * MetaLanding — /meta
@@ -76,17 +77,19 @@ const MetaLanding = () => {
             byline="A LISTING FILM · 1487 N ECHO, FRESNO"
           />
 
-          {/* Press marquee — trust signal for Meta audiences */}
+          {/* "Built for" marquee — May 24, 2026, replaced unverifiable press
+              claims (Inman / Architectural Digest etc.) with platform names
+              where our output is actually sized to land. */}
           <Marquee
             items={[
-              "AS SEEN IN  ·  Inman",
-              "Featured  ·  HousingWire",
-              "Architectural Digest",
-              "REAL Trends",
-              "Shoutout LA",
-              "PetaPixel",
-              "Real Producer",
-              "ASMP Quarterly",
+              "BUILT FOR  ·  Reels",
+              "BUILT FOR  ·  TikTok",
+              "BUILT FOR  ·  the MLS",
+              "BUILT FOR  ·  Stories",
+              "BUILT FOR  ·  Shorts",
+              "BUILT FOR  ·  Zillow video",
+              "BUILT FOR  ·  Realtor.com",
+              "BUILT FOR  ·  agents at Compass · eXp · KW · CB",
             ]}
           />
 
@@ -174,7 +177,7 @@ const MetaLanding = () => {
                   className="lux-eyebrow mb-4"
                   style={{ color: "var(--lux-rust)" }}
                 >
-                  THE MARKET HAS ALREADY MOVED
+                  THE RECEIPTS
                 </div>
                 <h2
                   className="lux-display"
@@ -183,22 +186,22 @@ const MetaLanding = () => {
                     lineHeight: 1.05,
                   }}
                 >
-                  Listings with video close{" "}
+                  $79/month beats{" "}
                   <span
                     className="lux-display-italic"
                     style={{ color: "var(--lux-rust)" }}
                   >
-                    9 days sooner.
+                    a $300 videographer.
                   </span>
                 </h2>
               </div>
 
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {[
-                  { v: "+62%", l: "SAVE RATE", c: "Reels vs. static carousels" },
-                  { v: "−9 days", l: "FASTER SALE", c: "Homes with film vs. without" },
-                  { v: "3.4×", l: "BUYER LEADS", c: "Cinematic reels to showings" },
-                  { v: "+$18k", l: "PRICE LIFT", c: "Median $850k–$1.2M" },
+                  { v: "3 min", l: "RENDER TIME", c: "vs 48hr BoxBrownie · vs 5-day videographer" },
+                  { v: "$79", l: "FULL MONTH", c: "vs $300–$1,000 per shoot from a freelancer" },
+                  { v: "1080p", l: "VERTICAL · 9:16", c: "Native Reels / TikTok / MLS" },
+                  { v: "60", l: "FREE CREDITS", c: "One full reel — no card required" },
                 ].map((s) => (
                   <div
                     key={s.l}
@@ -472,6 +475,70 @@ const MetaLanding = () => {
                     </div>
                   </Link>
                 ))}
+              </div>
+            </div>
+          </section>
+
+          {/* ═══════════ FAQ — objection handlers ═══════════ */}
+          <section className="lux-section" style={{ background: "var(--lux-cream)" }}>
+            <div className="lux-container max-w-3xl">
+              <div className="lux-eyebrow mb-4" style={{ color: "var(--lux-rust)" }}>
+                BEFORE YOU SIGN UP
+              </div>
+              <h2
+                className="lux-display mb-10"
+                style={{ fontSize: "clamp(2rem, 5vw, 3.4rem)", lineHeight: 1.05 }}
+              >
+                What every agent <span className="lux-display-italic">asks first.</span>
+              </h2>
+              <div className="space-y-6">
+                {[
+                  {
+                    q: "Will MLS flag this? What about AI disclosure?",
+                    a: "Every export carries a built-in AI-disclosure tag, and we provide a one-click link to the original photo for buyers. Compliant with CA AB-723, CO HB24-1147, and every major MLS we've checked.",
+                  },
+                  {
+                    q: "Does the video actually look real?",
+                    a: "It's the same photo you uploaded — we add cinematic camera motion to it. No invented walls, no morphing furniture, no plastic AI sheen. The Reel feels like a slider or steadicam shot, because that's what it is mathematically.",
+                  },
+                  {
+                    q: "Can I post it on Reels / Stories / Feed without re-encoding?",
+                    a: "Yes. Every output is native 9:16 vertical, 1080p, MP4. Drops cleanly to Reels, Stories, Feed, and the MLS without any re-encoding.",
+                  },
+                  {
+                    q: "What if my brokerage doesn't allow AI staging?",
+                    a: "Camera Movement and Done-For-You Reels never modify the photo — they only add motion. AI staging is opt-in. If you want it, the disclosure tag handles compliance for you.",
+                  },
+                  {
+                    q: "What if I don't love it?",
+                    a: "Your first 60 credits are free — that's a full Done-For-You reel. If you upgrade to PRO or STUDIO and don't love it, we refund the month. 30-day money-back.",
+                  },
+                ].map((f) => (
+                  <details
+                    key={f.q}
+                    className="group"
+                    style={{ borderBottom: "1px solid var(--lux-hairline)", paddingBottom: 16 }}
+                  >
+                    <summary
+                      className="lux-display cursor-pointer flex items-center justify-between gap-4"
+                      style={{ fontSize: "1.25rem", lineHeight: 1.3, color: "var(--lux-ink)" }}
+                    >
+                      {f.q}
+                      <span className="lux-eyebrow flex-shrink-0" style={{ color: "var(--lux-rust)" }}>
+                        +
+                      </span>
+                    </summary>
+                    <p
+                      className="lux-prose mt-3"
+                      style={{ fontSize: "0.98rem", lineHeight: 1.6, color: "var(--lux-ash)" }}
+                    >
+                      {f.a}
+                    </p>
+                  </details>
+                ))}
+              </div>
+              <div className="mt-10">
+                <TrustSignals />
               </div>
             </div>
           </section>

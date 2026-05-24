@@ -28,7 +28,7 @@ export function StickyBottomCTA({
         background: "#0A0A0A",
       }}
     >
-      <div className="max-w-lg md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto flex items-center justify-between gap-4 px-2 sm:px-4 lg:px-8">
+      <div className="w-full flex items-center justify-between gap-4 px-3 sm:px-4 lg:px-10 xl:px-16 2xl:px-24">
         {/* Left: Cost display */}
         <div className="flex items-center gap-2">
           <Coins className={cn(

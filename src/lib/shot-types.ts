@@ -333,13 +333,42 @@ export const SHOT_CATEGORY_LABELS: Record<ShotCategory, string> = {
   architectural: "Architectural",
 };
 
-export type StagingStyle = "modern" | "mid_century" | "coastal" | "farmhouse" | "luxury_modern" | "scandinavian";
+export type StagingStyle =
+  | "modern"
+  | "mid_century"
+  | "coastal"
+  | "farmhouse"
+  | "luxury_modern"
+  | "scandinavian"
+  | "luxury_minimalist"   // user-tested on Replicate May 24
+  | "bohemian"            // user-tested on Replicate May 24
+  | "mediterranean"       // user-tested on Replicate May 24
+  | "spanish"             // user-tested on Replicate May 24
+  | "empty";              // unfurnished baseline — anchors begin/end of cycles
+
+/**
+ * Staging "mode" controls how many transformations the video shows and
+ * whether it ends back at the original photo.
+ *
+ *  • single        — one transformation (original → chosen style)
+ *  • cycle         — sequence through 2–3 styles in one video
+ *  • cycle_return  — original → styles → back to original (loops cleanly)
+ *
+ * The cycle modes use the user's tested Replicate template:
+ *   "redesign the living room furniture decor into [s1] style, then [s2],
+ *    then [s3] while keeping the layout and the room intact only changing
+ *    furnitures and furniture placements, smooth transition between
+ *    changes furnitures spin to change"
+ */
+export type StagingMode = "single" | "cycle" | "cycle_return";
 
 export interface StagingStyleConfig {
   id: StagingStyle;
   label: string;
   description: string;
   promptSuffix: string;
+  /** A short keyword the prompt template uses (e.g. "luxury minimalist"). */
+  promptKeyword: string;
 }
 
 export const STAGING_STYLES: StagingStyleConfig[] = [
@@ -348,36 +377,77 @@ export const STAGING_STYLES: StagingStyleConfig[] = [
     label: "Modern",
     description: "Clean lines, neutral palette, brushed metal accents, mid-tone wood floors.",
     promptSuffix: "Clean lines, neutral palette, brushed metal accents, mid-tone wood floors.",
+    promptKeyword: "modern",
+  },
+  {
+    id: "luxury_minimalist",
+    label: "Luxury Minimalist",
+    description: "Sculptural furniture, marble and oak, restrained palette, museum-grade negative space.",
+    promptSuffix: "Sculptural furniture, marble and oak, restrained palette, museum-grade negative space.",
+    promptKeyword: "luxury minimalist",
+  },
+  {
+    id: "bohemian",
+    label: "Bohemian",
+    description: "Layered textiles, low-slung sofas, brass accents, warm earth tones, indoor plants.",
+    promptSuffix: "Layered textiles, low-slung sofas, brass accents, warm earth tones, indoor plants.",
+    promptKeyword: "bohemian",
+  },
+  {
+    id: "mediterranean",
+    label: "Mediterranean",
+    description: "Terracotta tile, plaster walls, woven rattan, olive and ochre, archways, linen drapes.",
+    promptSuffix: "Terracotta tile, plaster walls, woven rattan, olive and ochre, archways, linen drapes.",
+    promptKeyword: "mediterranean",
+  },
+  {
+    id: "spanish",
+    label: "Spanish",
+    description: "Wrought iron, dark wood beams, mosaic tile, deep reds and warm whites, hacienda detailing.",
+    promptSuffix: "Wrought iron, dark wood beams, mosaic tile, deep reds and warm whites, hacienda detailing.",
+    promptKeyword: "spanish",
   },
   {
     id: "mid_century",
     label: "Mid-Century",
     description: "Walnut tones, low-profile furniture, atomic-era accents, mustard and teal.",
     promptSuffix: "Walnut tones, low-profile furniture, atomic-era accents, mustard and teal.",
+    promptKeyword: "mid-century",
   },
   {
     id: "coastal",
     label: "Coastal",
     description: "White linen, weathered wood, soft blues and sandy beiges, woven textures.",
     promptSuffix: "White linen, weathered wood, soft blues and sandy beiges, woven textures.",
+    promptKeyword: "coastal",
   },
   {
     id: "farmhouse",
     label: "Farmhouse",
     description: "Shiplap accents, distressed wood furniture, vintage iron fixtures, cream and forest green.",
     promptSuffix: "Shiplap accents, distressed wood furniture, vintage iron fixtures, cream and forest green.",
+    promptKeyword: "farmhouse",
   },
   {
     id: "luxury_modern",
     label: "Luxury Modern",
     description: "Marble and brass, velvet sofa, sculptural lighting, deep navy and gold.",
     promptSuffix: "Marble and brass, velvet sofa, sculptural lighting, deep navy and gold.",
+    promptKeyword: "luxury modern",
   },
   {
     id: "scandinavian",
     label: "Scandinavian",
     description: "White walls, blonde wood, layered wool throws, minimal furniture, lots of light.",
     promptSuffix: "White walls, blonde wood, layered wool throws, minimal furniture, lots of light.",
+    promptKeyword: "scandinavian",
+  },
+  {
+    id: "empty",
+    label: "Empty / Unfurnished",
+    description: "Furniture removed entirely — bare floor and walls. Useful as the anchor frame for a multi-style cycle.",
+    promptSuffix: "Empty room — furniture and decor removed, bare floors and walls, only architectural shell remains.",
+    promptKeyword: "empty",
   },
 ];
 
@@ -386,3 +456,16 @@ export function getStagingStyleConfig(id: StagingStyle): StagingStyleConfig {
   if (!style) throw new Error(`Unknown staging style: ${id}`);
   return style;
 }
+
+/**
+ * Default fallback used when the user toggles "let AI choose for me" or
+ * doesn't pick a style. We default to luxury_minimalist for "single" mode
+ * because user-tested Replicate output showed it converts best for hero
+ * rooms, and to a 3-style cycle (modern → luxury_minimalist → bohemian)
+ * for "cycle" mode because that's the literal cycle the user tested.
+ */
+export const AI_PICKED_STAGING_STYLES: Record<StagingMode, StagingStyle[]> = {
+  single: ["luxury_minimalist"],
+  cycle: ["modern", "luxury_minimalist", "bohemian"],
+  cycle_return: ["empty", "luxury_minimalist", "bohemian"],
+};

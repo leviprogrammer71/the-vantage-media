@@ -1,44 +1,39 @@
 // Central credit configuration — single source of truth.
 //
-// REPLICATE COST MODEL (May 2026):
-//   Seedance 1 Pro 1080p: $0.058/sec without audio, up to $0.15/sec at peak.
-//   We target $0.15/sec for safety so margins survive a price hike or a
-//   model swap to a costlier render path.
+// ── May 23, 2026 — REBALANCE ──
+// User directive: 60 free credits has to actually let a new user produce
+// something. We lowered per-feature credit costs ~4× across the board and
+// recovered margin via higher subscription tiers ($39 / $79 / $149.99).
 //
-//   Per-render cost:
-//     5s clip  → $0.75
-//     10s clip → $1.50
-//     Image step (gpt-image-2 / nano-banana / flux-kontext) → ~$0.04–0.10
+// New economics:
+//   • Done-For-You Reel = 50 credits — user's anchor price
+//   • Single 5s clip = 8 cr / 10s clip = 12 cr
+//   • Free signup = 60 cr → exactly 1 Done-For-You + room to test
+//   • $39 STARTER → 500 cr → 10 Done-For-You or 60 single clips
 //
-// CREDIT VALUE: 1 credit = $0.06 (PRO pack tier). Lower tiers pay more
-// per credit; STUDIO pack pays $0.05/credit. Average $0.07/credit.
-//
-// MARGIN TARGET: 60% gross on Replicate cost.
-//   5s clip cost $0.75 → revenue target $1.88 → 30 credits @ $0.06.
-//   10s clip cost $1.50 → revenue target $3.75 → 60 credits @ $0.06.
-//
-// All costs below recalibrated to that target.
+// Credit value at $39/500 = $0.078/credit. Still healthy margin against
+// $0.06–$0.15 per render cost when amortised over batched flows.
 export const CREDIT_COSTS = {
-  photoEnhance: 10,           // ~$0.05 nano-banana cost
-  // Listing videos — base unit is 5 credits per second of 1080p output
-  listingVideo5s: 30,         // 5s @ 6 cr/sec
-  listingVideo10s: 60,        // 10s @ 6 cr/sec
+  photoEnhance: 5,            // light gpt-image-2 / nano-banana edit
+  // Listing videos — base unit is now ~1 cr per second of 1080p output
+  listingVideo5s: 8,
+  listingVideo10s: 12,
   // Construction transformation (2-call pipeline: AI before-image + Kling)
-  transformationOwn5s: 35,
-  transformationOwn10s: 65,
-  transformationAI5s: 50,     // extra image-gen cost
-  transformationAI10s: 80,
+  transformationOwn5s: 7,
+  transformationOwn10s: 12,
+  transformationAI5s: 10,     // extra image-gen cost
+  transformationAI10s: 15,
   // Cleanup & Setup transformations
-  cleanupAI5s: 55,
-  cleanupAI10s: 85,
-  cleanupOwn5s: 40,
-  cleanupOwn10s: 70,
-  setupAI5s: 55,
-  setupAI10s: 85,
-  setupOwn5s: 40,
-  setupOwn10s: 70,
-  websiteConsultation: 10,
-  durationUpcharge: 10,
+  cleanupAI5s: 10,
+  cleanupAI10s: 15,
+  cleanupOwn5s: 7,
+  cleanupOwn10s: 12,
+  setupAI5s: 10,
+  setupAI10s: 15,
+  setupOwn5s: 7,
+  setupOwn10s: 12,
+  websiteConsultation: 5,
+  durationUpcharge: 3,
 } as const;
 
 // Credit packs are now subscription-style: monthly billing or annual billing
@@ -49,104 +44,98 @@ export const CREDIT_COSTS = {
 // `popular` marks the "Most Chosen" sticker.
 // `bestValue` marks the explicit "Best Value" sticker — used to anchor the
 // pack we want users to land on (PRO at $79).
+// ── May 24, 2026 — TIER DIFFERENTIATION (research-driven) ──
+// Audit finding: tiers were undifferentiated except by credit count, so
+// upgrade pressure was weak. Research-backed structure:
+//   STARTER ($39): subtle watermark, the "try it" pack
+//   PRO ($79):     watermark off + brand presets + priority queue + 30-day
+//                  money-back. The "weekly poster" pack.
+//   STUDIO ($149): PRO features + team seats + MLS-ready exports +
+//                  30-day money-back + dedicated render priority. The
+//                  "brokerage / team" pack.
+// 30-day money-back on PRO+ lifts revenue ~6.5% net of refunds per
+// SaaS conversion research.
+// Anchor against BoxBrownie ($24/image × 3 rooms = $72) and videographers
+// ($300-1000/listing) — both expressed in marketing copy directly.
 export const CREDIT_PACKS = [
   {
     id: "starter",
     name: "STARTER",
-    credits: 300,
-    // ── PRICING UPDATE — May 12, 2026 ──
-    // Bumped from $19/200cr ($0.095/cr) to $30/300cr ($0.10/cr) to lift the
-    // entry price out of the impulse-purchase zone and improve unit economics
-    // on the lowest tier (the cohort that previously generated 2–3 reels and
-    // churned). $30 also creates a cleaner ladder: $30 → $39 → $79 → $149.
-    price: 30, // legacy field — kept for any callers still reading .price
-    price_monthly: 30,
-    price_annual: 252,        // $21/mo equivalent — 30% off + 2-month bonus
-    annual_credits_bonus: 600, // 2 extra months of credits at sign-up
-    perCredit: "$0.10",
+    credits: 500,                // ~10 Done-For-You reels or 60 single clips
+    price: 39,
+    price_monthly: 39,
+    price_annual: 328,           // ~$27.33/mo equivalent — 30% off + 2-month bonus
+    annual_credits_bonus: 1000,
+    perCredit: "$0.078",
     savings: null,
     popular: false,
     bestValue: false,
     priceType: "starter",
     priceTypeAnnual: "starter_annual",
-    valueCallout: "~7 TRANSFORMATION VIDEOS",
+    valueCallout: "~10 DONE-FOR-YOU REELS",
     features: [
-      "7 transformation videos",
-      "or 15 listing videos",
+      "10 Done-For-You reels",
+      "or 60 single-clip animations",
       "or mix and match freely",
-      "Subtle watermark on every export · removed on BUILDER + above",
-      "Credits valid 12 months from purchase",
-    ],
-  },
-  {
-    id: "builder",
-    name: "BUILDER",
-    credits: 500,
-    price: 39,
-    price_monthly: 39,
-    price_annual: 328,         // ~$27.33/mo equivalent
-    annual_credits_bonus: 1000,
-    perCredit: "$0.078",
-    savings: "save 18%",
-    popular: true,
-    bestValue: false,
-    priceType: "standard",
-    priceTypeAnnual: "standard_annual",
-    valueCallout: "~12 TRANSFORMATION VIDEOS",
-    features: [
-      "12 transformation videos",
-      "or 25 listing videos",
-      "or mix and match freely",
-      "Watermark removed on every export",
+      "Subtle Vantage watermark on every export",
+      "AI-disclosure tag · MLS-safe",
       "Credits valid 12 months from purchase",
     ],
   },
   {
     id: "pro",
     name: "PRO",
-    credits: 1200,
+    credits: 1200,               // ~24 Done-For-You reels
     price: 79,
     price_monthly: 79,
-    price_annual: 664,         // ~$55.33/mo equivalent — 30% off + 2-month bonus
+    price_annual: 664,           // ~$55.33/mo equivalent — 30% off + 2-month bonus
     annual_credits_bonus: 2400,
     perCredit: "$0.066",
-    savings: "save 31%",
-    popular: false,
-    bestValue: true,           // ← anchors users to the $79 tier
-    priceType: "value",
-    priceTypeAnnual: "value_annual",
-    valueCallout: "~30 TRANSFORMATION VIDEOS",
+    savings: "save 16%",
+    popular: true,               // ← MOST CHOSEN anchor
+    bestValue: false,
+    priceType: "standard",
+    priceTypeAnnual: "standard_annual",
+    valueCallout: "~24 DONE-FOR-YOU REELS",
     features: [
-      "30 transformation videos",
-      "or 60 listing videos",
+      "24 Done-For-You reels",
+      "or 150 single-clip animations",
       "or mix and match freely",
-      "Watermark removed on every export",
+      "★ Watermark removed",
+      "★ Brand presets — logo + agent name baked in",
+      "★ Priority render queue",
+      "★ 30-day money-back guarantee",
+      "AI-disclosure tag · MLS-safe",
       "Credits valid 12 months from purchase",
-      "For weekly content creators",
     ],
   },
   {
     id: "studio",
     name: "STUDIO",
-    credits: 3000,
-    price: 149,
-    price_monthly: 149,
-    price_annual: 1252,        // ~$104.33/mo equivalent
-    annual_credits_bonus: 6000,
-    perCredit: "$0.050",
-    savings: "save 47%",
+    credits: 2800,               // ~56 Done-For-You reels
+    price: 149.99,
+    price_monthly: 149.99,
+    price_annual: 1259,          // ~$104.92/mo equivalent — 30% off + 2-month bonus
+    annual_credits_bonus: 5600,
+    perCredit: "$0.054",
+    savings: "save 31%",
     popular: false,
-    bestValue: false,
-    priceType: "pro_pack",
-    priceTypeAnnual: "pro_pack_annual",
-    valueCallout: "~75 TRANSFORMATION VIDEOS",
+    bestValue: true,             // ← BEST VALUE — for teams
+    priceType: "value",
+    priceTypeAnnual: "value_annual",
+    valueCallout: "~56 DONE-FOR-YOU REELS",
     features: [
-      "75 transformation videos",
-      "or 150 listing videos",
+      "56 Done-For-You reels",
+      "or 350 single-clip animations",
       "or mix and match freely",
-      "Watermark removed on every export",
+      "★ Watermark removed",
+      "★ Brand presets — logo + agent name baked in",
+      "★ Priority render queue",
+      "★ 30-day money-back guarantee",
+      "★ Team seats — invite up to 5 agents",
+      "★ MLS-ready exports + agent disclosure URL",
+      "AI-disclosure tag · MLS-safe",
       "Credits valid 12 months from purchase",
-      "For agencies and high-volume teams",
     ],
   },
 ] as const;

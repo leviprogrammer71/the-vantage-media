@@ -110,10 +110,10 @@ const Auth = () => {
         return;
       }
     }
-    if (signupPassword !== signupConfirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
+    // May 24, 2026 — confirm-password field dropped per CRO audit.
+    // Mobile signups (TikTok-sourced) abandoned at 22% on this field alone.
+    // We still keep the state var so any callers that read it don't break.
+    void signupConfirmPassword;
     setIsSubmitting(true);
     const { error } = await signUp(signupEmail, signupPassword, signupName);
     setIsSubmitting(false);
@@ -127,7 +127,7 @@ const Auth = () => {
       toast.success("Account created — 60 free credits ready. Let's make your first reel.");
       // CRO P0 #4 — Skip the /welcome detour. Every extra page between signup
       // and the first render costs ~10% of activation. Land users straight on
-      // the render flow with their 50 free credits already granted.
+      // the render flow with their 60 free credits already granted.
       navigate(returnUrl);
     }
   };
@@ -291,7 +291,7 @@ const Auth = () => {
                   <form onSubmit={handleSignup} className="space-y-4">
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20 mb-4">
                       <Gift className="h-5 w-5 text-primary shrink-0" />
-                      <span className="text-sm text-primary font-medium">Get 50 free credits when you sign up!</span>
+                      <span className="text-sm text-primary font-medium">Get 60 free credits when you sign up — no card required.</span>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-name">Full Name</Label>
@@ -303,12 +303,11 @@ const Auth = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-password">Password</Label>
-                      <Input id="signup-password" type="password" placeholder="••••••••" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required />
+                      <Input id="signup-password" type="password" placeholder="•••••••• · 8+ chars" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required minLength={8} />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-confirm-password">Confirm Password</Label>
-                      <Input id="signup-confirm-password" type="password" placeholder="••••••••" value={signupConfirmPassword} onChange={(e) => setSignupConfirmPassword(e.target.value)} required />
-                    </div>
+                    {/* May 24, 2026 — confirm-password field dropped per CRO audit
+                        (mobile signup abandonment killer). Visible password toggle
+                        is a future improvement but unblocks signup today. */}
                     <Button type="submit" className="w-full" disabled={isSubmitting}>
                       {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating account...</> : "Create Account"}
                     </Button>

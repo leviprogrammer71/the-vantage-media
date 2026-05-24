@@ -48,14 +48,17 @@ const AgenciesLanding = () => {
             byline="THE HOUSE PLAN · CUSTOM DEPLOYMENT"
           />
 
+          {/* May 24, 2026 — replaced unverifiable brokerage-marketing-arm
+              claims with platform-fit copy. Brokerage logos return only when
+              we have signed permission. */}
           <Marquee
             items={[
-              "TRUSTED BY  ·  Compass Studios",
-              "Sotheby's International Marketing Group",
-              "The Agency Creative",
-              "Douglas Elliman Studios",
-              "Coldwell Banker Global Luxury",
-              "Side Marketing Lab",
+              "BUILT FOR  ·  brokerages on the MLS",
+              "BUILT FOR  ·  Compass · eXp · KW · CB agents",
+              "BUILT FOR  ·  team listings · multi-agent seats",
+              "BUILT FOR  ·  MLS-ready exports + disclosure URL",
+              "BUILT FOR  ·  the night you list",
+              "BUILT FOR  ·  Reels · TikTok · Stories · Shorts",
             ]}
           />
 
@@ -77,7 +80,7 @@ const AgenciesLanding = () => {
                   { tag: "III", h: "Bulk MLS handoff", b: "Vertical, square, and horizontal renders shipped simultaneously. Drop into any MLS field, any platform, any time." },
                   { tag: "IV", h: "Brokerage-branded gallery", b: "A bespoke micro-site for the entire brokerage. Agents share with sellers, sellers share with their network. Your brand, every touchpoint." },
                   { tag: "V", h: "Dedicated studio liaison", b: "A single point of contact for the office. Quarterly reviews, training for new hires, agent onboarding sessions." },
-                  { tag: "VI", h: "API & integrations", b: "Native integrations with Compass tools, Side Inc., kvCORE, Sierra, Realvolve, BoomTown, and the major MLS platforms." },
+                  { tag: "VI", h: "API & integrations", b: "REST API for bulk render automation. Webhook on completion. Zapier-friendly. CRM hookups available — talk to us about your stack." },
                 ].map((f) => (
                   <div key={f.tag} className="lux-bg-bone p-8 md:p-10">
                     <div className="lux-display-italic mb-6" style={{ fontSize: 32, color: "var(--lux-rust)", lineHeight: 1 }}>
@@ -97,9 +100,9 @@ const AgenciesLanding = () => {
                 eyebrow="WHITE-LABEL DELIVERY · REAL CUSTOMER OUTPUT"
                 title="Films, branded as yours."
                 clips={[
-                  { src: "/vantage/ranch-build/result.mp4", label: "Compass Coastal · NYC", byline: "DELIVERED · Q1 2026" },
-                  { src: "/vantage/sketch/result.mp4", label: "The Agency · Beverly Hills", byline: "DELIVERED · Q1 2026" },
-                  { src: "/vantage/backyard-slow-reveal/result.mp4", label: "Cedar Estate Group · NE", byline: "DELIVERED · Q2 2026" },
+                  { src: "/vantage/ranch-build/result.mp4", label: "Coastal estate · ranch build", byline: "RENDERED IN 3 MINUTES" },
+                  { src: "/vantage/sketch/result.mp4", label: "Sketch-to-real reveal", byline: "ONE PHOTO → CINEMATIC FILM" },
+                  { src: "/vantage/backyard-slow-reveal/result.mp4", label: "Backyard slow reveal", byline: "VERTICAL · 1080p · MLS-SAFE" },
                 ]}
               />
             </div>
@@ -108,10 +111,10 @@ const AgenciesLanding = () => {
           <StatStrip
             variant="cream"
             stats={[
-              { value: "37", label: "BROKERAGES ON HOUSE PLAN" },
-              { value: "2,800+", label: "AGENTS WITH SEATS" },
-              { value: "$1.4M", label: "Q1 BROKERAGE REVENUE" },
-              { value: "1", label: "DEDICATED LIAISON" },
+              { value: "$149.99", label: "STUDIO · 5 SEATS" },
+              { value: "2,800 cr", label: "PER MONTH · UNLIMITED MIX" },
+              { value: "MLS-safe", label: "DISCLOSURE TAG · COMPLIANT" },
+              { value: "3 min", label: "RENDER TIME · EVERY REEL" },
             ]}
           />
 

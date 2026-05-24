@@ -145,18 +145,21 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Stockists / Press Marquee */}
+          {/* "Built for" platforms — May 24, 2026, replaced the press marquee.
+              Defensible (these are platforms our output is sized for, not press
+              outlets claiming coverage we can't prove). Audit finding: an
+              unverifiable press claim is a credibility liability under scrutiny. */}
           <Marquee
             items={[
-              "AS SEEN IN  ·  Inman",
-              "Featured  ·  HousingWire",
-              "Architectural Digest",
-              "REAL Trends",
-              "Shoutout LA",
-              "PetaPixel",
-              "Real Producer",
-              "ASMP Quarterly",
-              "Forbes Real Estate",
+              "BUILT FOR  ·  Reels",
+              "BUILT FOR  ·  TikTok",
+              "BUILT FOR  ·  the MLS",
+              "BUILT FOR  ·  Zillow video",
+              "BUILT FOR  ·  Realtor.com",
+              "BUILT FOR  ·  Stories",
+              "BUILT FOR  ·  Shorts",
+              "BUILT FOR  ·  Compass agents",
+              "BUILT FOR  ·  eXp · KW · CB",
             ]}
           />
 
@@ -861,14 +864,16 @@ const Index = () => {
             </div>
           </section>
 
-          {/* STAT STRIP */}
+          {/* STAT STRIP — May 24, 2026, swapped fabricated counts ("12,400
+              films" / "248 studios") for defensible facts: render time,
+              pricing anchors, free credits. Don't claim what you can't back. */}
           <StatStrip
             variant="ink"
             stats={[
-              { value: "12,400", label: "FILMS DELIVERED · 2026" },
-              { value: "248", label: "WORKING STUDIOS" },
               { value: "3 min", label: "AVG. RENDER TIME" },
-              { value: "$0.42", label: "PER FILM · AT VOLUME" },
+              { value: "$79", label: "PRO · UNLIMITED MONTHLY" },
+              { value: "60 cr", label: "FREE AT SIGNUP · NO CARD" },
+              { value: "30 day", label: "MONEY-BACK · PRO + STUDIO" },
             ]}
           />
 

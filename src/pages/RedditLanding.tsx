@@ -304,7 +304,7 @@ slow camera dolly towards still house        → magazine push-in`}
                 <li>
                   <strong>Infra:</strong> Supabase (auth, storage, edge
                   functions), Vercel (hosting), Replicate (model inference),
-                  Stripe (subscriptions, $30/$39/$79/$149 tiers).
+                  Stripe (subscriptions, $39/$79/$149.99 tiers).
                 </li>
               </ul>
 
@@ -361,7 +361,7 @@ slow camera dolly towards still house        → magazine push-in`}
                   },
                   {
                     q: "60 free credits is one full reel — what's the catch?",
-                    a: "No catch. 60 credits = one Done-For-You Reel OR two Animate Single videos OR one Virtual Staging. If you like it, the lowest paid tier is $30/mo for 300 credits. If you don't, you don't pay. The free tier costs us ~$1.50 per signup in Replicate fees and we're fine with that.",
+                    a: "No catch. 60 credits = one Done-For-You Reel plus a couple of Animate Single clips, or four Virtual Stagings. If you like it, the lowest paid tier is $39/mo for 500 credits. If you don't, you don't pay. The free tier costs us ~$1.50 per signup in Replicate fees and we're fine with that.",
                   },
                   {
                     q: "What if my photo is bad?",
@@ -375,7 +375,7 @@ slow camera dolly towards still house        → magazine push-in`}
                   },
                   {
                     q: "Is the output watermarked?",
-                    a: "Free tier and $30 STARTER: subtle bone-paper watermark in the bottom-right corner. $39 BUILDER and above: removed. The watermark is small and on-brand, not Wish.com-style.",
+                    a: "Free tier and $39 STARTER: subtle bone-paper watermark in the bottom-right corner. $79 PRO and above: removed. The watermark is small and on-brand, not Wish.com-style.",
                   },
                   {
                     q: "Where does the output live?",

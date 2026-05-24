@@ -57,16 +57,19 @@ const AgentsLanding = () => {
             byline="A LISTING FILM · 1132 ELM CT., AUSTIN"
           />
 
+          {/* May 24, 2026 — replaced unverifiable brokerage claims with the
+              platforms our output is sized for. Audit finding: claiming
+              named brokerages without contracts is legal/credibility risk. */}
           <Marquee
             items={[
-              "TRUSTED BY AGENTS AT  ·  Compass",
-              "Sotheby's International Realty",
-              "The Agency",
-              "Douglas Elliman",
-              "Coldwell Banker Global Luxury",
-              "Side Inc.",
-              "Pacaso",
-              "EXP Realty",
+              "BUILT FOR  ·  Reels",
+              "BUILT FOR  ·  TikTok",
+              "BUILT FOR  ·  the MLS",
+              "BUILT FOR  ·  Stories",
+              "BUILT FOR  ·  Zillow video",
+              "BUILT FOR  ·  Realtor.com",
+              "BUILT FOR  ·  Compass · eXp · KW · CB agents",
+              "BUILT FOR  ·  the night you list",
             ]}
           />
 
@@ -75,19 +78,19 @@ const AgentsLanding = () => {
             <div className="lux-container grid lg:grid-cols-12 gap-12 lg:gap-20 items-start">
               <div className="lg:col-span-5">
                 <SectionHeading
-                  eyebrow="THE MARKET MOMENTUM"
-                  title="Motion is outrunning"
-                  italic="still photographs."
-                  lede="Homes with video close 9 days faster. Reels get 3.4× more buyer leads. By Q3 2026, video will be 70% of search results. Lead now or follow later."
+                  eyebrow="THE NUMBERS THAT MATTER"
+                  title="Faster than BoxBrownie."
+                  italic="Cheaper than a videographer."
+                  lede="One BoxBrownie staged room is $24 with a 48-hour wait. One videographer shoot is $300–$1,000 and takes a week. The Vantage is 3 minutes and $79 a month, unlimited."
                 />
               </div>
               <div className="lg:col-span-7">
                 <div className="grid sm:grid-cols-2 gap-6">
                   {[
-                    { v: "+62%", l: "SAVE RATE ON REELS", c: "vs. static carousel photos" },
-                    { v: "−9 days", l: "FASTER SALE VELOCITY", c: "Homes with film vs. without" },
-                    { v: "3.4×", l: "BUYER INQUIRIES", c: "Cinematic listing film to showings" },
-                    { v: "+$18k", l: "SALE PRICE LIFT", c: "$850k–$1.2M median homes" },
+                    { v: "3 min", l: "RENDER TIME", c: "vs 48hr BoxBrownie · vs 5-day videographer" },
+                    { v: "$79", l: "FULL MONTH", c: "vs $300–$1,000 per shoot from a freelancer" },
+                    { v: "1080p", l: "VERTICAL · 9:16", c: "Native Reels · TikTok · MLS · Zillow" },
+                    { v: "60", l: "FREE CREDITS", c: "One full Done-For-You reel — no card" },
                   ].map((s) => (
                     <div key={s.l} className="p-8 lux-bg-cream" style={{ border: "1px solid var(--lux-hairline)" }}>
                       <div className="lux-display" style={{ fontSize: "clamp(2.4rem, 4vw, 3.4rem)", lineHeight: 1 }}>{s.v}</div>
@@ -165,10 +168,10 @@ const AgentsLanding = () => {
           <StatStrip
             variant="cream"
             stats={[
-              { value: "12k+", label: "AGENTS ON THE PLATFORM" },
-              { value: "−9 days", label: "AVG. DOM" },
-              { value: "3.4×", label: "INBOUND LEADS" },
-              { value: "$0.85", label: "PER FILM · LISTING TIER" },
+              { value: "3 min", label: "RENDER TIME · EVERY REEL" },
+              { value: "$79", label: "PRO · UNLIMITED MONTHLY" },
+              { value: "60 cr", label: "FREE AT SIGNUP · NO CARD" },
+              { value: "30 day", label: "MONEY-BACK · PRO + STUDIO" },
             ]}
           />
 

@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   SHOT_TYPES,
   SHOT_CATEGORY_LABELS,
@@ -8,7 +8,8 @@ import {
   type ShotCategory,
   type ShotTypeConfig,
 } from "@/lib/shot-types";
-import { Coins, PlayCircle } from "lucide-react";
+import { Coins } from "lucide-react";
+import { ShotMotionPreview } from "./ShotMotionPreview";
 
 interface ShotTypePickerProps {
   value: ShotType;
@@ -78,6 +79,11 @@ function ShotCard({
   const altSources = alternatePreviewVideos(shot);
   const posterSrc = resolvePosterImage(shot);
 
+  // If *no* preview video successfully loaded (we never dropped per-shot
+  // files), we fall back to the animated SVG motion indicator. Track that
+  // here so the indicator stays visible.
+  const [videoLoaded, setVideoLoaded] = useState(false);
+
   const handleHoverStart = () => {
     const v = videoRef.current;
     if (!v) return;
@@ -120,11 +126,13 @@ function ShotCard({
             }
       }
     >
-      {/* Preview media — always rendered. Tries the convention-derived video
-          path first, falls back to the poster image, and if neither exists,
-          the browser shows an empty ink panel that still respects the layout.
-          User uploads videos to /public/videos/shots/{shot_id}.mp4 and they
-          appear automatically — no code changes per shot. */}
+      {/* Preview media — always rendered. We always paint the animated
+          SVG motion indicator first so the user *immediately* understands
+          what the camera does. If a per-shot preview video file actually
+          exists at /vantage/animate-single/{id}.mp4 (or any of the
+          alternate paths), it autoplays on top of the SVG on hover.
+          Without that file, the SVG keeps animating — no black panels,
+          no broken icons. */}
       <div
         className="relative w-full overflow-hidden"
         style={{
@@ -136,6 +144,10 @@ function ShotCard({
             : "1px solid var(--lux-hairline)",
         }}
       >
+        {/* Animated camera-motion indicator — always-on visual that
+            explains the move with no asset dependency. */}
+        <ShotMotionPreview shotId={shot.id} isSelected={isSelected} />
+
         <video
           ref={videoRef}
           poster={posterSrc}
@@ -143,12 +155,15 @@ function ShotCard({
           loop
           playsInline
           preload="metadata"
-          // Hide the element entirely if EVERY source 404s so the panel
-          // just shows ink — cleaner than a broken <video> icon.
+          onLoadedData={() => setVideoLoaded(true)}
+          // Hide the element entirely if EVERY source 404s so the SVG
+          // indicator behind it stays the visible preview.
           onError={(e) => {
             (e.currentTarget as HTMLVideoElement).style.opacity = "0";
+            setVideoLoaded(false);
           }}
           className="absolute inset-0 w-full h-full object-cover transition-opacity"
+          style={{ opacity: videoLoaded ? 1 : 0 }}
         >
           {/* Primary path — the vantage/animate-single folder. */}
           <source src={previewSrc} type="video/mp4" />
@@ -158,16 +173,6 @@ function ShotCard({
             <source key={src} src={src} type="video/mp4" />
           ))}
         </video>
-        {/* Play affordance — visible only when a preview is actually loaded */}
-        <div
-          className="absolute bottom-2 right-2 p-1.5 pointer-events-none"
-          style={{
-            background: "rgba(14,14,12,0.55)",
-            color: "#F4EFE6",
-          }}
-        >
-          <PlayCircle className="h-3.5 w-3.5" />
-        </div>
       </div>
 
       <div className="p-5 flex flex-col flex-1">

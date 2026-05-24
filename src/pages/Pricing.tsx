@@ -308,11 +308,34 @@ const Pricing = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 max-w-6xl mx-auto">
+              {/* Money-back guarantee banner — research shows this lifts
+                  conversion ~6.5% net of refunds and addresses the #1 cold-
+                  paid objection ("what if I hate it?"). */}
+              <div
+                className="max-w-6xl mx-auto mb-8 flex items-center justify-center gap-3 px-4 py-3"
+                style={{
+                  background: "var(--lux-cream)",
+                  border: "1px solid var(--lux-hairline)",
+                  fontFamily: "'Space Mono', ui-monospace, monospace",
+                  fontSize: "0.78rem",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "var(--lux-ink)",
+                  textAlign: "center",
+                }}
+              >
+                <span style={{ color: "var(--lux-rust)", fontWeight: 700 }}>★</span>
+                <span>
+                  30-day money-back guarantee on PRO &amp; STUDIO · refund the month if you don't love it, no questions
+                </span>
+                <span style={{ color: "var(--lux-rust)", fontWeight: 700 }}>★</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
                 {CREDIT_PACKS.map((p) => {
-                  // PRO at $79 is the explicit "Best Value" anchor; BUILDER
-                  // at $39 carries the legacy "Most Chosen" sticker. Either
-                  // can highlight a card with the lux-ink dark background.
+                  // STUDIO at $149.99 is the explicit "Best Value" anchor;
+                  // PRO at $79 carries the "Most Chosen" sticker. STARTER
+                  // at $39 is the entry point.
                   const featured = p.bestValue || p.popular;
                   const isAnnual = billingCycle === "annual";
                   const displayPrice = isAnnual ? p.price_annual : p.price_monthly;
@@ -438,13 +461,10 @@ const Pricing = () => {
                         {p.perCredit} per credit{p.savings ? ` · ${p.savings}` : ""}
                       </div>
 
-                      {/* CRO P0 #5 — Value anchor on PRO (best-value tier).
-                          The single biggest lever for AOV: visitors gravitate
-                          to STARTER ($30) without context. Showing the per-reel
-                          cost next to the cheapest competitor reframes PRO as
-                          the obvious deal — "$2.60 per reel vs $300 from a
-                          videographer." Only renders on the bestValue tier so
-                          it doesn't distract elsewhere. */}
+                      {/* Value anchor on STUDIO (best-value tier).
+                          $149.99 / 56 reels = ~$2.68 per reel. Shows the
+                          per-reel cost vs the cheapest videographer to
+                          reframe STUDIO as the obvious deal. */}
                       {p.bestValue && (
                         <div
                           className="mt-3"
@@ -463,7 +483,7 @@ const Pricing = () => {
                           }}
                         >
                           <span style={{ color: "var(--lux-champagne)", fontWeight: 700 }}>
-                            $2.60 / reel
+                            $2.68 / reel
                           </span>
                           <span style={{ opacity: 0.55 }}>·</span>
                           <span style={{ opacity: 0.78 }}>
@@ -480,32 +500,43 @@ const Pricing = () => {
                         }}
                       />
 
-                      {/* Features */}
+                      {/* Features — show all so ★ items (watermark removal,
+                          brand presets, money-back, team seats, MLS exports)
+                          actually render. Truncating to 4 hid the upgrade
+                          reasons that drive PRO/STUDIO conversion. */}
                       <ul className="flex flex-col gap-2.5 flex-1">
-                        {p.features.slice(0, 4).map((f, i) => (
-                          <li
-                            key={i}
-                            className="flex items-start gap-2"
-                            style={{
-                              color: featured ? "rgba(244,239,230,0.92)" : "var(--lux-ink)",
-                              fontFamily: "Inter, sans-serif",
-                              fontSize: "0.85rem",
-                              lineHeight: 1.45,
-                            }}
-                          >
-                            <span
-                              className="flex-shrink-0"
+                        {p.features.map((f, i) => {
+                          const isHighlight = f.startsWith("★");
+                          const text = isHighlight ? f.replace(/^★\s*/, "") : f;
+                          return (
+                            <li
+                              key={i}
+                              className="flex items-start gap-2"
                               style={{
-                                color: featured ? "var(--lux-champagne)" : "var(--lux-rust)",
-                                marginTop: 2,
-                                fontWeight: 700,
+                                color: featured ? "rgba(244,239,230,0.92)" : "var(--lux-ink)",
+                                fontFamily: "Inter, sans-serif",
+                                fontSize: "0.85rem",
+                                lineHeight: 1.45,
+                                fontWeight: isHighlight ? 600 : 400,
                               }}
                             >
-                              —
-                            </span>
-                            <span>{f}</span>
-                          </li>
-                        ))}
+                              <span
+                                className="flex-shrink-0"
+                                style={{
+                                  color: isHighlight
+                                    ? (featured ? "var(--lux-champagne)" : "var(--lux-rust)")
+                                    : (featured ? "rgba(244,239,230,0.55)" : "var(--lux-ash)"),
+                                  marginTop: 2,
+                                  fontWeight: 700,
+                                  minWidth: 14,
+                                }}
+                              >
+                                {isHighlight ? "★" : "·"}
+                              </span>
+                              <span>{text}</span>
+                            </li>
+                          );
+                        })}
                       </ul>
 
                       {/* CTA */}

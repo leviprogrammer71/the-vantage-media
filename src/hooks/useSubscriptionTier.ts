@@ -1,15 +1,15 @@
 /**
  * Returns the user's tier and the resulting watermark policy.
  *
- * Watermark gating (current policy):
+ * Watermark gating (May 23, 2026 — three-tier ladder):
  *   - Free (no purchase):     watermark BAKED IN, no toggle
- *   - STARTER ($30 pack):     watermark BAKED IN, no toggle
- *   - BUILDER ($39 pack) +:   watermark OFF by default, user can opt back in
- *   - PRO / STUDIO + annuals: same as BUILDER (off by default)
+ *   - STARTER ($39 pack):     watermark BAKED IN, no toggle
+ *   - PRO ($79 pack) +:       watermark OFF by default, user can opt back in
+ *   - STUDIO ($149.99) +:     same as PRO (off by default)
  *
  * We determine the tier from the user's credit_transactions ledger — every
  * Stripe purchase logs a row with description `Credit purchase: <priceType>`.
- * Any historical purchase of BUILDER ($39 / "standard") or higher removes the
+ * Any historical purchase of PRO ($79 / "standard") or higher removes the
  * watermark gate permanently (credits never expire-out the entitlement).
  */
 import { useEffect, useState } from "react";

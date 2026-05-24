@@ -404,7 +404,7 @@ export function ListingVideoForm() {
 
       {/* Bottom Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border p-4 pb-safe">
-        <div className="max-w-lg md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <div className="w-full flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-10 xl:px-16 2xl:px-24">
           <div className="flex items-center gap-2">
             <Coins className={cn("h-5 w-5", hasEnoughCredits ? "text-amber-500" : "text-destructive")} />
             <span className={cn(

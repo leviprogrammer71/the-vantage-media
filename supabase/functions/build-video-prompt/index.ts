@@ -20,6 +20,8 @@ const OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
 // already sees the end image — the prompt just tells it WHEN to get there
 // (by the final second) and HOW to interpolate (smoothly, no jitter).
 // All negatives stripped per user directive: "simple, no negatives".
+const CONSTRUCTION_VIDEO_SYSTEM_PROMPT = `You write transformation video prompts for Kling 2.5 Turbo Pro. Kling sees the START frame (empty/before) and the END frame (finished result) directly — your prompt only describes the motion between them.
+
 RULES:
 1. Maximum 50 words total.
 2. End the prompt with the exact phrase: "ending fully at the second image".
@@ -30,8 +32,8 @@ RULES:
 FORMAT (exactly this shape):
 "<one short sentence describing the time-lapse build action>. <one short sentence describing the camera move>. Ending fully at the second image."
 
-EXAMPLE for a house build:
-"Time-lapse of crews framing, sheathing, roofing, siding, and finishing the house from foundation to completion. Slow dolly forward. Ending fully at the second image."
+EXAMPLE for a house build (user-tested on Replicate, verbatim — match this register exactly):
+"a sped up timelapse of a group of workers building the house from the ground up, from the foundation to the final painting job with the complete house as the final frame. Ending fully at the second image."
 
 Output ONLY the prompt — no headings, no commentary.`
 
@@ -48,8 +50,8 @@ RULES:
 FORMAT:
 "<one short sentence describing the time-lapse cleanup>. <one short sentence describing the camera move>. Ending fully at the second image."
 
-EXAMPLE:
-"Time-lapse of crews removing clutter, bagging waste, and wiping every surface until the room is fully clean. Slow pull back. Ending fully at the second image."
+EXAMPLE (user-tested register — match this exactly):
+"a sped up timelapse of a cleaning crew removing every piece of clutter, bagging trash, and wiping every surface until the room is fully clean as the final frame. Ending fully at the second image."
 
 Output ONLY the prompt.`
 
@@ -66,8 +68,8 @@ RULES:
 FORMAT:
 "<one short sentence describing the time-lapse staging>. <one short sentence describing the camera move>. Ending fully at the second image."
 
-EXAMPLE:
-"Time-lapse of stylists placing furniture, rugs, lighting, and decor until the room is fully staged. Slow dolly forward. Ending fully at the second image."
+EXAMPLE (user-tested register — match this exactly):
+"a sped up timelapse of a staging crew placing furniture, rugs, lighting, and decor piece by piece until the room is fully staged as the final frame. Ending fully at the second image."
 
 Output ONLY the prompt.`
 
