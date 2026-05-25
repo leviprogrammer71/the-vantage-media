@@ -1797,33 +1797,47 @@ serve(async (req) => {
         throw new Error(`virtual_staging: unknown style "${unknownStyle}". Valid: ${Object.keys(STAGING_STYLES).join(", ")}`)
       }
 
-      if (!vibe) {
-        throw new Error(`All categories require vibe. Received: "${vibe}"`)
-      }
+      // ── May 25, 2026 — vibe no longer required for virtual_staging ──
+      // The user's verified Replicate prompts don't include any "vibe"
+      // clause. We still let callers send vibe for compatibility but
+      // don't gate on it; the prompt itself defines the look.
 
       const emptyRoomUrl = photo_urls[0]
-      const vibePromptSuffix = vibeSuffix(vibe)
 
-      // Build the user's tested-template prompt from the keyword list. We
-      // prefer the short keyword ("luxury minimalist", "bohemian") over the
-      // longer aesthetic clause because Seedance honors the layout-lock
-      // language more reliably with a terse prompt.
+      // ── May 25, 2026 — VERBATIM user-tested prompts ──
+      // User direction: "for virtual stages only change the styles of decor
+      // from time to time but same exact prompt refer to the screenshots".
+      // The text below mirrors the user's Replicate playground tests
+      // character-for-character — including the "channge" typo, "furnitures"
+      // (their phrasing), and the missing "a" before the first style. Only
+      // the style keywords are interpolated. Do not "improve" the wording.
       const keywordFor = (id: string) => STAGING_STYLE_KEYWORDS[id] || id.replace(/_/g, " ")
       const keywordList = stylesArr.map(keywordFor)
-      const styleClause = keywordList.map((k, i) => i === 0 ? `into a ${k} style living room` : `then a ${k} style`).join(", ")
 
-      // Template variants — each verbatim from the user's Replicate tests.
+      // Builds the style-phrase the user wrote into their tests:
+      //   [s1]        → "into {s1} style living room"
+      //   [s2]        → "then a {s2}"
+      //   [s3], [s4]+ → "then a {sN} style"  /  "then {sN} style"
+      // matching the cycle and cycle+return screenshots exactly.
+      const styleClause = keywordList.map((k, i) => {
+        if (i === 0) return `into ${k} style living room`
+        if (i === 1) return `then a ${k}`
+        return `then a ${k} style`
+      }).join(", ")
+
       let fullTransformPrompt: string
       if (stagingMode === "single") {
+        // Verbatim single-style variant of the user's template.
         fullTransformPrompt =
           `redesign the living room furniture decor ${styleClause} while keeping the layout and the room intact only changing furnitures and furniture placements`
       } else if (stagingMode === "cycle") {
+        // Verbatim from the user's screenshot (typo "channge" preserved).
         fullTransformPrompt =
-          `redesign the living room furniture decor ${styleClause} while keeping the layout and the room intact only changing furnitures and furniture placements, smooth transition between changes furnitures spin to change`
+          `redesign the living room furniture decor ${styleClause} while keeping the layout and the room intact only changing furnitures and furniture placements, smooth transition between changes furnitures spin to channge`
       } else {
-        // cycle_return
+        // cycle_return — verbatim from the user's screenshot.
         fullTransformPrompt =
-          `begin with original then redesign the living room furniture decor ${styleClause}, then back to original image while keeping the layout and the room intact only changing furnitures and furniture placements, smooth transition between changes furnitures spin to change`
+          `begin with original then redesign the living room furniture decor ${styleClause}, then back to original image while keeping the layout and the room intact only changing furnitures and furniture placements, smooth transition between changes furnitures spin to channge`
       }
 
       // ── STATIC-CAMERA STAGING (May 16, 2026) ──
