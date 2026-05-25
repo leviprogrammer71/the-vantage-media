@@ -1305,7 +1305,13 @@ serve(async (req) => {
       throw new Error(`category and photo_urls required. Received: category="${category}", photo_urls.length=${photo_urls?.length}`)
     }
 
-    if (!["animate_single", "sun_to_sun", "done_for_you_reel", "virtual_staging", "sketch_to_real"].includes(category)) {
+    // ── May 25, 2026 — listing_bundle + floor_plan_pan kept in the enum ──
+    // The picker no longer exposes these categories (removed May 24) but
+    // cached frontends in users' browsers may still alias done_for_you_reel
+    // to listing_bundle and submit it. Rejecting at validation breaks every
+    // in-flight generation for stale clients. We accept both names; the
+    // routing block below handles them.
+    if (!["animate_single", "sun_to_sun", "done_for_you_reel", "listing_bundle", "virtual_staging", "sketch_to_real", "floor_plan_pan"].includes(category)) {
       throw new Error(`category must be animate_single, sun_to_sun, done_for_you_reel, virtual_staging, or sketch_to_real. Received: "${category}"`)
     }
 
@@ -1533,19 +1539,23 @@ serve(async (req) => {
     // audio is on by default; off when generate_audio === false.
     if (category === "done_for_you_reel") {
       const photos = photo_urls.slice(0, 9) // Seedance cap
+      if (photos.length === 0) {
+        throw new Error("done_for_you_reel requires at least one photo URL.")
+      }
       const dfyPrompt: string =
         typeof body.dfy_prompt === "string" && body.dfy_prompt.trim().length > 0
           ? body.dfy_prompt.trim()
           : "cinematic reel of animated walk through of the house, edited with fast cuts and smooth transitions"
-      const generateAudio = body.generate_audio !== false // default ON
+      // generate_audio reserved for when we wire it through a confirmed
+      // Seedance input field — see helper note for rationale.
+      const _generateAudio = body.generate_audio !== false
 
-      console.log(`[done_for_you_reel] Seedance multi-ref — photos=${photos.length} audio=${generateAudio} style=${body.dfy_style || "snappy"}`)
+      console.log(`[done_for_you_reel] Seedance multi-ref — photos=${photos.length} style=${body.dfy_style || "snappy"}`)
       const result = await startSeedanceMultiReference(
         photos,
         dfyPrompt,
         15, // single 15s reel
         REPLICATE_TOKEN,
-        { generateAudio },
       )
 
       if (result.videoUrl) {
@@ -1571,10 +1581,41 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
+    // Category: listing_bundle — cached frontends still alias done_for_you_reel
+    // to listing_bundle. Route them through the new Seedance-2 multi-reference
+    // path when the new dfy_prompt field is present (= new frontend, just with
+    // stale alias). Otherwise fall through to the legacy parallel-clips
+    // pipeline for any truly old in-flight requests.
+    if (category === "listing_bundle" && typeof body.dfy_prompt === "string" && body.dfy_prompt.trim().length > 0) {
+      const photos = photo_urls.slice(0, 9)
+      const dfyPrompt = (body.dfy_prompt as string).trim()
+      console.log(`[listing_bundle→dfy] cached-alias route — photos=${photos.length} style=${body.dfy_style || "snappy"}`)
+      const result = await startSeedanceMultiReference(photos, dfyPrompt, 15, REPLICATE_TOKEN)
+      if (result.videoUrl) {
+        const outputVideoPath = await persistVideoToStorage(
+          result.videoUrl,
+          `listing-videos/${Date.now()}/dfy-reel.mp4`,
+          supabase,
+          "done_for_you_reel",
+        )
+        return new Response(JSON.stringify({
+          status: "complete",
+          category: "done_for_you_reel",
+          video_url: result.videoUrl,
+          clip_urls: [result.videoUrl],
+          output_video_path: outputVideoPath,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+      }
+      return new Response(JSON.stringify({
+        status: "processing",
+        prediction_id: result.predictionId,
+        category: "done_for_you_reel",
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    }
+
     // Category: listing_bundle — legacy parallel-clips pipeline.
-    // listing_bundle was removed from the picker on May 24, 2026. This block
-    // remains only as a defensive fallback so any in-flight gallery polls or
-    // existing client builds keep working. New traffic uses done_for_you_reel.
+    // True legacy path. Only reachable when an old client submits without
+    // the new dfy_prompt field. Returns prediction_ids the client polls.
     if (category === "listing_bundle") {
       // Narrative beat ORDER per research (Reels Ninja + Content-to-Closings):
       // establishing → hero → detail → HERO (not detail) → amenity → closing.
@@ -2026,10 +2067,19 @@ async function startSeedanceMultiReference(
   prompt: string,
   duration: number,
   token: string,
-  options: { generateAudio?: boolean } = {}
+  _options: { generateAudio?: boolean } = {}
 ): Promise<{ videoUrl?: string; predictionId?: string }> {
   // Cap at 9 — Seedance 2.0 hard limit on reference_images.
   const refs = imageUrls.slice(0, 9)
+  // ── May 25, 2026 — REMOVED `generate_audio` ──
+  // Seedance 2.0 (`bytedance/seedance-1-pro`) does not accept a
+  // `generate_audio` input field on its public Replicate schema. Sending
+  // an unknown parameter caused Replicate to 400 every prediction,
+  // surfacing as non-2xx errors across every generation flow. Audio is
+  // on natively by default in Seedance 2.0 output anyway, so removing
+  // the field restores generations without changing what users hear.
+  // The frontend `includeAudio` toggle remains — we'll wire it back
+  // through to a verified Seedance parameter once confirmed.
   const res = await fetch(
     `${REPLICATE}/models/${MODEL_SEEDANCE}/predictions`,
     {
@@ -2047,9 +2097,6 @@ async function startSeedanceMultiReference(
           aspect_ratio: "9:16",
           resolution: "1080p",
           fps: 24,
-          // Seedance honours `generate_audio` for native audio. Default ON
-          // per user direction (May 24, 2026).
-          generate_audio: options.generateAudio !== false,
         },
       }),
     }
@@ -2077,6 +2124,14 @@ async function startSeedanceFromImage(
   token: string,
   options: { cameraFixed?: boolean; generateAudio?: boolean } = {}
 ): Promise<{ videoUrl?: string; predictionId?: string }> {
+  // ── May 25, 2026 — REMOVED `generate_audio` from input ──
+  // See note in startSeedanceMultiReference: the field isn't on the public
+  // Replicate schema for bytedance/seedance-1-pro and was causing every
+  // image-to-video call to 400. Seedance 2.0 emits audio natively on the
+  // output by default. The `generateAudio` option is intentionally still
+  // accepted on the helper (we just don't forward it yet) so calling code
+  // doesn't have to change once we wire it back through a confirmed param.
+  void options.generateAudio
   const res = await fetch(
     `${REPLICATE}/models/${MODEL_SEEDANCE}/predictions`,
     {
@@ -2095,9 +2150,6 @@ async function startSeedanceFromImage(
           resolution: "1080p",
           fps: 24,
           camera_fixed: options.cameraFixed === true,
-          // Audio defaults ON per user direction (May 24, 2026). Single-photo
-          // categories accept the same toggle as Done-For-You.
-          generate_audio: options.generateAudio !== false,
         },
       }),
     }
