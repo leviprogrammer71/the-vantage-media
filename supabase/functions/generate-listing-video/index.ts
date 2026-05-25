@@ -15,10 +15,17 @@ const REPLICATE = "https://api.replicate.com/v1"
 
 // ── Model registry ──
 // Replicate model slugs. Centralised so we can swap a model in one place.
-// Seedance 2.0 ("seedance-1-pro" is ByteDance's current Seedance Pro release on
-// Replicate; the marketing name is Seedance 2.0).
 const MODEL_KLING = "kwaivgi/kling-v2.5-turbo-pro"
+// Seedance 1 Pro — single-image / image-to-video. The legacy `image`
+// field works here. Used by Animate Single, Sun-to-Dusk, Virtual
+// Staging, and Sketch-to-Real.
 const MODEL_SEEDANCE = "bytedance/seedance-1-pro"
+// ── May 25, 2026 — Seedance 2.0 for multimodal reference inputs ──
+// Done-For-You reels send up to 9 photos via `reference_images`. That
+// field is a v2.0 feature and is NOT supported by seedance-1-pro, so
+// every Done-For-You call to v1-pro 400'd from Replicate. Verified
+// against https://replicate.com/bytedance/seedance-2.0 docs.
+const MODEL_SEEDANCE_V2 = "bytedance/seedance-2.0"
 
 // Force Seedance 2.0 for every clip. Quality over snap — users complained about
 // Kling output and we standardise on the higher-quality model.
@@ -2071,17 +2078,15 @@ async function startSeedanceMultiReference(
 ): Promise<{ videoUrl?: string; predictionId?: string }> {
   // Cap at 9 — Seedance 2.0 hard limit on reference_images.
   const refs = imageUrls.slice(0, 9)
-  // ── May 25, 2026 — REMOVED `generate_audio` ──
-  // Seedance 2.0 (`bytedance/seedance-1-pro`) does not accept a
-  // `generate_audio` input field on its public Replicate schema. Sending
-  // an unknown parameter caused Replicate to 400 every prediction,
-  // surfacing as non-2xx errors across every generation flow. Audio is
-  // on natively by default in Seedance 2.0 output anyway, so removing
-  // the field restores generations without changing what users hear.
-  // The frontend `includeAudio` toggle remains — we'll wire it back
-  // through to a verified Seedance parameter once confirmed.
+  // ── May 25, 2026 — Use seedance-2.0 + supported resolution ──
+  //   • Multi-reference (`reference_images`) is a v2.0-only feature.
+  //     Previously this called seedance-1-pro → 400 on every request.
+  //   • The Seedance 2.0 docs list 480p and 720p as supported
+  //     resolutions; 1080p is NOT supported and would also 400.
+  //   • generate_audio is on natively in Seedance 2.0 output, no field
+  //     needs to be sent. Audio toggle TBD once we verify the param.
   const res = await fetch(
-    `${REPLICATE}/models/${MODEL_SEEDANCE}/predictions`,
+    `${REPLICATE}/models/${MODEL_SEEDANCE_V2}/predictions`,
     {
       method: "POST",
       headers: {
@@ -2095,7 +2100,7 @@ async function startSeedanceMultiReference(
           reference_images: refs,
           duration,
           aspect_ratio: "9:16",
-          resolution: "1080p",
+          resolution: "720p",
           fps: 24,
         },
       }),
@@ -2105,6 +2110,7 @@ async function startSeedanceMultiReference(
   const prediction = await res.json()
   if (!res.ok || !prediction.id) {
     const detail = prediction?.detail || prediction?.error?.message || JSON.stringify(prediction).slice(0, 400)
+    console.error(`[seedance-2.0 multi-ref] HTTP ${res.status}: ${detail}`)
     throw new Error(`Seedance 2.0 multi-ref rejected (HTTP ${res.status}): ${detail}`)
   }
 
