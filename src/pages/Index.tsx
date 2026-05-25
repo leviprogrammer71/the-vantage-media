@@ -12,7 +12,6 @@ import CaseStudy from "@/components/lux/CaseStudy";
 import PreviewVideo from "@/components/lux/PreviewVideo";
 import ROICalculator from "@/components/lux/ROICalculator";
 import SectionHeading from "@/components/lux/SectionHeading";
-import DfyShowcase from "@/components/lux/DfyShowcase";
 import VirtualStagingShowcase from "@/components/lux/VirtualStagingShowcase";
 import OAuthReturnHandler from "@/components/OAuthReturnHandler";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
@@ -168,11 +167,15 @@ const Index = () => {
             ]}
           />
 
-          {/* ── ANIMATE SINGLE SHOWCASE (May 24, 2026) ──
-              Replaces the "one-stop shop" pitch + static format-grid block.
-              The right column now plays SIX real customer-output animate-
-              single videos so visitors see actual product output instead of
-              decorative photos. */}
+          {/* ── VIRTUAL STAGING SHOWCASE (May 24, 2026) ──
+              Uses the user-supplied virtualdtaging.mp4 customer-output. */}
+          <VirtualStagingShowcase />
+
+          {/* ── ANIMATE SINGLE SHOWCASE (May 25, 2026 — moved below staging) ──
+              Six real animate_single shot videos play in the right column so
+              visitors see actual customer output, not decorative photos.
+              Videos are the user-supplied /vantage/animate_single_features
+              clips, now in /vantage/animate-single/{shot_id}.mp4. */}
           <section className="lux-section lux-bg-ink lux-grain" style={{ color: "var(--lux-bone)" }}>
             <div className="lux-container">
               <div className="grid lg:grid-cols-12 gap-10 lg:gap-16 items-center">
@@ -190,7 +193,7 @@ const Index = () => {
                     className="lux-prose mt-8"
                     style={{ color: "rgba(244,239,230,0.86)", maxWidth: 520, fontSize: "1.05rem", lineHeight: 1.6 }}
                   >
-                    Pick a camera move, a setup transformation, a cleanup, or a full ground-up build. Every clip is real customer output — rendered in three minutes, 1080p vertical, MLS-safe.
+                    Pick a camera move — push, parallax, slide, tilt, pedestal, orbit, or architectural. Every clip is real customer output — rendered in three minutes, 1080p vertical, MLS-safe.
                   </p>
                   <div className="mt-10 flex flex-wrap gap-4 items-center">
                     <Link to={destinationFor("animate_single")} className="lux-btn lux-btn-bone">
@@ -207,19 +210,20 @@ const Index = () => {
                   </div>
                 </div>
 
-                {/* Right column — 6 real animate-single output videos.
-                    Each autoplays muted on loop so visitors see real moves. */}
+                {/* Right column — 6 real animate_single shot videos. Each is
+                    the actual Seedance output for that camera move, dropped
+                    in by the user into /vantage/animate_single_features. */}
                 <div className="lg:col-span-7">
                   <div
                     className="grid grid-cols-3 gap-2.5"
                   >
                     {[
-                      { src: "/vantage/animate-single/result.mp4",       label: "PUSH IN" },
-                      { src: "/vantage/backyard-slow-reveal/result.mp4", label: "SLOW REVEAL" },
-                      { src: "/vantage/build/result.mp4",                label: "BUILD UP" },
-                      { src: "/vantage/cleanup/result.mp4",              label: "CLEANUP" },
-                      { src: "/vantage/setup/video.mp4",                 label: "SETUP" },
-                      { src: "/vantage/sun-cycle/final.mp4",             label: "SUN→DUSK" },
+                      { src: "/vantage/animate-single/push_in.mp4",         label: "PUSH IN" },
+                      { src: "/vantage/animate-single/parallax_left.mp4",   label: "PARALLAX" },
+                      { src: "/vantage/animate-single/orbit_right.mp4",     label: "ORBIT" },
+                      { src: "/vantage/animate-single/tilt_up.mp4",         label: "TILT UP" },
+                      { src: "/vantage/animate-single/establishing.mp4",    label: "ESTABLISHING" },
+                      { src: "/vantage/animate-single/architectural.mp4",   label: "ARCHITECTURAL" },
                     ].map((v) => (
                       <div
                         key={v.src}
@@ -260,15 +264,6 @@ const Index = () => {
               </div>
             </div>
           </section>
-
-          {/* ── DONE-FOR-YOU SHOWCASE (May 24, 2026) ──
-              7 photos in → 1 reel out. Uses house3 imagery + the luxury-
-              minimal edit demo. */}
-          <DfyShowcase />
-
-          {/* ── VIRTUAL STAGING SHOWCASE (May 24, 2026) ──
-              Uses the user-supplied virtualdtaging.mp4 customer-output. */}
-          <VirtualStagingShowcase />
 
           {/* THE PROOF — A real Done-For-You reel built from one customer's
               listing photos. Nine source photos in, one stitched cinematic
