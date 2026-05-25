@@ -12,6 +12,8 @@ import CaseStudy from "@/components/lux/CaseStudy";
 import PreviewVideo from "@/components/lux/PreviewVideo";
 import ROICalculator from "@/components/lux/ROICalculator";
 import SectionHeading from "@/components/lux/SectionHeading";
+import DfyShowcase from "@/components/lux/DfyShowcase";
+import VirtualStagingShowcase from "@/components/lux/VirtualStagingShowcase";
 import OAuthReturnHandler from "@/components/OAuthReturnHandler";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
 import { useUtmCapture } from "@/hooks/useUtmCapture";
@@ -121,18 +123,13 @@ const Index = () => {
         <LuxuryHeader variant="bone" />
 
         <main id="main-content">
-          {/* ── HERO ROTATION (May 24, 2026) ──
-              User direction: open every page with snappy, alternating with
-              done-for-you. We pick deterministically by hour-of-day so the
-              same visitor doesn't always see the same opener but our split
-              stays 50/50 across the audience. */}
+          {/* ── HERO (May 24, 2026) ──
+              User direction: every landing-page top-CTA hero uses the
+              luxury-minimal Done-For-You edit. It's the highest-converting
+              edit style and matches the brand tone. */}
           <EditorialHero
-            rightImage="/vantage/ranch-build/input.png"
-            rightVideo={
-              (new Date().getUTCHours() % 2 === 0)
-                ? "/vantage/done-for-you/snappy.mp4"
-                : "/vantage/done-for-you/result.mp4"
-            }
+            rightImage="/vantage/done-for-you/house3/1.png"
+            rightVideo="/vantage/done-for-you/luxuryminimal.mp4"
           />
 
           {/* Trust Badges */}
@@ -171,67 +168,72 @@ const Index = () => {
             ]}
           />
 
-          {/* THE PITCH — One-stop shop for social listing content. The whole company in one paragraph. */}
+          {/* ── ANIMATE SINGLE SHOWCASE (May 24, 2026) ──
+              Replaces the "one-stop shop" pitch + static format-grid block.
+              The right column now plays SIX real customer-output animate-
+              single videos so visitors see actual product output instead of
+              decorative photos. */}
           <section className="lux-section lux-bg-ink lux-grain" style={{ color: "var(--lux-bone)" }}>
             <div className="lux-container">
               <div className="grid lg:grid-cols-12 gap-10 lg:gap-16 items-center">
-                <div className="lg:col-span-7">
+                <div className="lg:col-span-5">
                   <div className="lux-eyebrow mb-6 flex items-center gap-3" style={{ color: "var(--lux-champagne)" }}>
                     <span style={{ display: "inline-block", width: 36, height: 1, background: "var(--lux-champagne)" }} />
-                    THE PITCH · ONE-STOP SHOP
+                    ANIMATE SINGLE · ONE PHOTO, EVERY MODE
                   </div>
-                  <h2 className="lux-display" style={{ fontSize: "clamp(2.5rem, 7vw, 6rem)", lineHeight: 0.94, letterSpacing: "-0.022em", color: "var(--lux-bone)" }}>
-                    Your listing photos.
+                  <h2 className="lux-display" style={{ fontSize: "clamp(2.5rem, 6.5vw, 5.5rem)", lineHeight: 0.94, letterSpacing: "-0.022em", color: "var(--lux-bone)" }}>
+                    One listing photo.
                     <br />
-                    <span className="lux-display-italic" style={{ color: "var(--lux-champagne)" }}>Every social format,</span>
-                    <br />
-                    in three minutes.
+                    <span className="lux-display-italic" style={{ color: "var(--lux-champagne)" }}>Six cinematic moves.</span>
                   </h2>
                   <p
                     className="lux-prose mt-8"
-                    style={{ color: "rgba(244,239,230,0.86)", maxWidth: 560, fontSize: "1.05rem", lineHeight: 1.6 }}
+                    style={{ color: "rgba(244,239,230,0.86)", maxWidth: 520, fontSize: "1.05rem", lineHeight: 1.6 }}
                   >
-                    You shoot the listing. We turn each photo into a scroll-stopping cinematic clip — vertical, 1080p, ready to <span style={{ color: "var(--lux-champagne)", fontStyle: "italic" }}>post on your story, push to your feed, paste into your Reels grid, send to your client.</span> One photo, six camera moves. Six photos, one stitched reel. A done-for-you video package every time you list.
+                    Pick a camera move, a setup transformation, a cleanup, or a full ground-up build. Every clip is real customer output — rendered in three minutes, 1080p vertical, MLS-safe.
                   </p>
                   <div className="mt-10 flex flex-wrap gap-4 items-center">
-                    <Link to={destinationFor("done_for_you_reel")} className="lux-btn lux-btn-bone">
-                      START WITH DONE-FOR-YOU REEL →
+                    <Link to={destinationFor("animate_single")} className="lux-btn lux-btn-bone">
+                      ANIMATE A PHOTO →
                     </Link>
                     <Link
-                      to={destination}
+                      to={destinationFor("done_for_you_reel")}
                       className="lux-eyebrow inline-flex items-center gap-3"
                       style={{ color: "var(--lux-bone)" }}
                     >
                       <span style={{ display: "inline-block", width: 24, height: 1, background: "var(--lux-bone)" }} />
-                      EXPLORE ALL FEATURES
+                      OR · DONE-FOR-YOU REEL
                     </Link>
                   </div>
                 </div>
 
-                {/* Right column — vertical phone-mockup grid showing where the videos live */}
-                <div className="lg:col-span-5">
+                {/* Right column — 6 real animate-single output videos.
+                    Each autoplays muted on loop so visitors see real moves. */}
+                <div className="lg:col-span-7">
                   <div
-                    className="grid grid-cols-3 gap-2"
-                    style={{ aspectRatio: "3/4" }}
+                    className="grid grid-cols-3 gap-2.5"
                   >
                     {[
-                      { label: "STORY",  poster: "/vantage/listing-bundle/1.webp" },
-                      { label: "REELS",  poster: "/vantage/listing-bundle/2.webp" },
-                      { label: "FEED",   poster: "/vantage/listing-bundle/3.webp" },
-                      { label: "TIKTOK", poster: "/vantage/listing-bundle/4.webp" },
-                      { label: "DM",     poster: "/vantage/listing-bundle/5.webp" },
-                      { label: "MLS",    poster: "/vantage/listing-bundle/6.webp" },
-                    ].map((p, i) => (
+                      { src: "/vantage/animate-single/result.mp4",       label: "PUSH IN" },
+                      { src: "/vantage/backyard-slow-reveal/result.mp4", label: "SLOW REVEAL" },
+                      { src: "/vantage/build/result.mp4",                label: "BUILD UP" },
+                      { src: "/vantage/cleanup/result.mp4",              label: "CLEANUP" },
+                      { src: "/vantage/setup/video.mp4",                 label: "SETUP" },
+                      { src: "/vantage/sun-cycle/final.mp4",             label: "SUN→DUSK" },
+                    ].map((v) => (
                       <div
-                        key={i}
+                        key={v.src}
                         className="relative overflow-hidden"
                         style={{ aspectRatio: "9/16", background: "var(--lux-ink)", border: "1px solid rgba(244,239,230,0.12)" }}
                       >
-                        <img
-                          src={p.poster}
-                          alt={`${p.label} placement`}
+                        <video
+                          src={v.src}
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          preload="metadata"
                           className="absolute inset-0 w-full h-full object-cover"
-                          loading="lazy"
                         />
                         <span
                           className="lux-eyebrow absolute bottom-1 left-1 px-1.5 py-0.5"
@@ -243,7 +245,7 @@ const Index = () => {
                             backdropFilter: "blur(4px)",
                           }}
                         >
-                          {p.label}
+                          {v.label}
                         </span>
                       </div>
                     ))}
@@ -252,12 +254,21 @@ const Index = () => {
                     className="lux-eyebrow mt-4 text-center"
                     style={{ color: "rgba(244,239,230,0.5)", fontSize: "0.6rem", letterSpacing: "0.2em" }}
                   >
-                    SAME SOURCE PHOTOS · SIX SOCIAL FORMATS · ONE UPLOAD
+                    REAL CUSTOMER OUTPUT · SIX MODES · ONE FEATURE
                   </p>
                 </div>
               </div>
             </div>
           </section>
+
+          {/* ── DONE-FOR-YOU SHOWCASE (May 24, 2026) ──
+              7 photos in → 1 reel out. Uses house3 imagery + the luxury-
+              minimal edit demo. */}
+          <DfyShowcase />
+
+          {/* ── VIRTUAL STAGING SHOWCASE (May 24, 2026) ──
+              Uses the user-supplied virtualdtaging.mp4 customer-output. */}
+          <VirtualStagingShowcase />
 
           {/* THE PROOF — A real Done-For-You reel built from one customer's
               listing photos. Nine source photos in, one stitched cinematic
@@ -383,40 +394,34 @@ const Index = () => {
             <div className="lux-container">
               <SectionHeading
                 eyebrow="THE PRODUCT MENU · CLICK ANY CARD TO BEGIN"
-                title="Six films."
+                title="Five films."
                 italic="One upload each."
                 lede="Pick the moment your listing needs. Every card below is a one-click entry into a finished cinematic clip."
                 align="center"
                 className="mb-14"
               />
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
+              <div
+                className="grid gap-6 lg:gap-8"
+                style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}
+              >
                 {[
                   {
                     id: "done_for_you_reel" as const,
-                    eyebrow: "AUTO-STITCHED · 4 STYLES",
+                    eyebrow: "ONE 15s REEL · 4 EDIT STYLES · AUDIO INCLUDED",
                     title: "Done-For-You Reel",
-                    description: "Upload 3–6 photos. We render each as a cinematic clip then auto-stitch into a finished MP4 with your price and realtor name. Editorial, Snappy, Cinema, or Minimal style. The order you upload is the order they play.",
-                    cost: "From 200 credits",
-                    media: "/vantage/done-for-you/result.mp4",
-                    poster: "/vantage/listing-bundle/1.webp",
+                    description: "Upload 3–6 photos in the order you want them to play. Pick an edit style — Snappy, Fast Cuts, Creative, or Luxury Minimal — and Seedance renders the whole reel in one pass with native audio.",
+                    cost: "From 50 credits",
+                    media: "/vantage/done-for-you/luxuryminimal.mp4",
+                    poster: "/vantage/done-for-you/house3/1.png",
                     featured: true,
                   },
                   {
-                    id: "listing_bundle" as const,
-                    eyebrow: "MULTI-PHOTO REEL",
-                    title: "The Listing Bundle",
-                    description: "Upload 3–6 photos. Per-clip delivery — six 5-second cinematic clips with rotating camera moves. Mix in your editor or post individually.",
-                    cost: "From 180 credits",
-                    media: "/vantage/listing-bundle/4.mp4",
-                    poster: "/vantage/listing-bundle/4.webp",
-                  },
-                  {
                     id: "virtual_staging" as const,
-                    eyebrow: "EMPTY ROOM TO FULLY FURNISHED",
+                    eyebrow: "EMPTY ROOM TO FULLY FURNISHED · 11 STYLES",
                     title: "Virtual Staging",
-                    description: "Upload one empty room. The room dresses itself in your chosen style — modern, mid-century, coastal, farmhouse, luxury, or scandi — then the camera glides through.",
-                    cost: "From 60 credits",
-                    media: "/vantage/setup/video.mp4",
+                    description: "Upload one empty room. The camera locks off and the room dresses itself — Luxury Minimal, Bohemian, Mediterranean, and more. Pick one, cycle three, or begin-and-return.",
+                    cost: "From 15 credits",
+                    media: "/vantage/virtual-staging/result.mp4",
                     poster: "/vantage/setup/after.jpeg",
                   },
                   {
@@ -424,7 +429,7 @@ const Index = () => {
                     eyebrow: "DAY-TO-DUSK TIMELAPSE",
                     title: "Sun-Up to Sundown",
                     description: "Upload one daytime exterior. We render a static-camera time-lapse through sunrise, golden hour, and dusk in a single 10-second clip.",
-                    cost: "From 60 credits",
+                    cost: "From 15 credits",
                     media: "/vantage/sun-cycle/final.mp4",
                     poster: "/vantage/ranch-build/input.png",
                   },
@@ -433,16 +438,16 @@ const Index = () => {
                     eyebrow: "HAND-DRAWN REVEAL",
                     title: "Sketch to Reality",
                     description: "Upload your property photo. A pencil sketch on a wooden desk transforms into the real photo, then the camera reveals the finished space. The signature reveal moment.",
-                    cost: "From 60 credits",
+                    cost: "From 15 credits",
                     media: "/vantage/sketch/result.mp4",
                     poster: "/vantage/sketch/original.webp",
                   },
                   {
                     id: "animate_single" as const,
-                    eyebrow: "ONE PHOTO · ONE SHOT",
+                    eyebrow: "ONE PHOTO · EVERY MODE",
                     title: "Animate Single",
-                    description: "Pick any hero shot. Choose from six camera moves — slow push, drone orbit, parallax pan, crane reveal, architectural slider, pull-back establishing.",
-                    cost: "From 30 credits",
+                    description: "Animate one photo your way. Pick a camera move — push, parallax, orbit, pan, tilt, pedestal — or turn it into a Setup, Cleanup, or Transformation morph.",
+                    cost: "From 10 credits",
                     media: "/vantage/animate-single/result.mp4",
                     poster: "/vantage/ranch-build/input.png",
                   },

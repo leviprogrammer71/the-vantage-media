@@ -186,7 +186,7 @@ const TRANSFORMATION_LABELS: Record<string, string> = {
   interior: "Interior",
   animate_single: "Animate Single",
   sun_to_sun: "Sun-Up to Sundown",
-  listing_bundle: "Listing Bundle",
+  listing_bundle: "Reel (Legacy)", // Category retired May 24, 2026 — kept here so historical gallery records still render with a friendly label.
   done_for_you_reel: "Done-For-You Reel",
   virtual_staging: "Virtual Staging",
   sketch_to_real: "Sketch to Reality",

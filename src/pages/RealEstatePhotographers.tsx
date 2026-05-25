@@ -28,9 +28,9 @@ const px = {
 };
 
 const RealEstatePhotographers = () => {
-  // Photographers ship most volume through the Listing Bundle (per-clip
-  // delivery they edit themselves), so this audience CTA's destination is
-  // the bundle. Done-For-You is still surfaced via the secondary CTA.
+  // Photographers ship Done-For-You reels (single Seedance render with native
+  // audio) as their primary deliverable now. The legacy "Listing Bundle"
+  // per-clip path was retired May 24, 2026.
   const { destination, destinationFor, isLoggedIn } = useSmartCTA("photographer");
 
   return (

@@ -39,7 +39,7 @@ const groups = [
       },
       {
         q: "What does a typical render cost in credits?",
-        a: "Done-For-You Reel: 50 credits. Animate Single (one camera move on one photo): 10 credits. Virtual Staging / Sun-to-Dusk / Sketch-to-Real / Floor Plan: 15 credits each. Listing Bundle (6 clips, delivered separately): 45 credits. Setup / Cleanup / Transformation: 12–15 credits.",
+        a: "Done-For-You Reel: 50 credits. Animate Single (one camera move on one photo): 10 credits. Virtual Staging / Sun-to-Dusk / Sketch-to-Real: 15 credits each. Setup / Cleanup / Transformation: 12–15 credits.",
       },
       {
         q: "Can I get a refund?",

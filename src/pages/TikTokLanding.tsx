@@ -178,8 +178,8 @@ const TikTokLanding = () => {
                     }}
                   >
                     <PreviewVideo
-                      src="/vantage/done-for-you/result.mp4"
-                      poster="/vantage/listing-bundle/1.webp"
+                      src="/vantage/done-for-you/luxuryminimal.mp4"
+                      poster="/vantage/done-for-you/house3/1.png"
                       alt="A real listing reel from The Vantage"
                       containerClassName="absolute inset-0 w-full h-full"
                       className="absolute inset-0 w-full h-full object-cover"

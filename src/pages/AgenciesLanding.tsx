@@ -44,7 +44,7 @@ const AgenciesLanding = () => {
             primaryCta={{ label: "SPEAK TO A LIAISON →", to: "/contact" }}
             secondaryCta={{ label: "ENTER A DEMO STUDIO", to: destination }}
             rightImage={agx.hero}
-            rightVideo="/vantage/done-for-you/snappy.mp4"
+            rightVideo="/vantage/done-for-you/luxuryminimal.mp4"
             byline="THE HOUSE PLAN · CUSTOM DEPLOYMENT"
           />
 

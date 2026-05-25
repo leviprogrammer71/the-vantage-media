@@ -188,7 +188,7 @@ export default function VideoPage() {
                     </h2>
                     <p className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)" }}>EVERY MOVE, EVERY EFFECT</p>
                     <p className="lux-prose text-sm leading-relaxed mb-3" style={{ color: "var(--lux-ash)" }}>
-                      Turn one or more photos into cinematic Reels. Animate single, sun-to-sun, virtual staging, sketch-to-real, floor plan walkthroughs, multi-photo listing bundles, done-for-you reels. Every camera move and effect we offer.
+                      Turn one or more photos into cinematic Reels. Animate single, sun-to-sun, virtual staging, sketch-to-real, done-for-you reels. Every camera move and effect we offer.
                     </p>
                     <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--lux-hairline)" }}>
                       <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--lux-brass)" }}>PHOTOGRAPHERS · AGENTS · BROKERAGES</span>

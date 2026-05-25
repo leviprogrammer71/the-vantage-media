@@ -73,7 +73,7 @@ const MetaLanding = () => {
             }}
             secondaryCta={{ label: "SEE THE GALLERY", to: "/gallery" }}
             rightImage="/vantage/ranch-build/input.png"
-            rightVideo="/vantage/done-for-you/result.mp4"
+            rightVideo="/vantage/done-for-you/luxuryminimal.mp4"
             byline="A LISTING FILM · 1487 N ECHO, FRESNO"
           />
 
@@ -442,11 +442,6 @@ const MetaLanding = () => {
                     id: "sketch_to_real",
                     title: "Sketch to Reality",
                     sub: "Signature reveal",
-                  },
-                  {
-                    id: "listing_bundle",
-                    title: "Listing Bundle",
-                    sub: "Per-clip delivery",
                   },
                 ].map((p) => (
                   <Link
