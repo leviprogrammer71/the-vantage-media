@@ -121,10 +121,18 @@ const Index = () => {
         <LuxuryHeader variant="bone" />
 
         <main id="main-content">
-          {/* Hero plays the BUILD reel — the strongest catch-all loop, real customer output */}
+          {/* ── HERO ROTATION (May 24, 2026) ──
+              User direction: open every page with snappy, alternating with
+              done-for-you. We pick deterministically by hour-of-day so the
+              same visitor doesn't always see the same opener but our split
+              stays 50/50 across the audience. */}
           <EditorialHero
             rightImage="/vantage/ranch-build/input.png"
-            rightVideo="/vantage/build/result.mp4"
+            rightVideo={
+              (new Date().getUTCHours() % 2 === 0)
+                ? "/vantage/done-for-you/snappy.mp4"
+                : "/vantage/done-for-you/result.mp4"
+            }
           />
 
           {/* Trust Badges */}

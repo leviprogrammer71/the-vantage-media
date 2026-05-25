@@ -1305,8 +1305,8 @@ serve(async (req) => {
       throw new Error(`category and photo_urls required. Received: category="${category}", photo_urls.length=${photo_urls?.length}`)
     }
 
-    if (!["animate_single", "sun_to_sun", "listing_bundle", "virtual_staging", "sketch_to_real", "floor_plan_pan"].includes(category)) {
-      throw new Error(`category must be animate_single, sun_to_sun, listing_bundle, virtual_staging, sketch_to_real, or floor_plan_pan. Received: "${category}"`)
+    if (!["animate_single", "sun_to_sun", "done_for_you_reel", "virtual_staging", "sketch_to_real"].includes(category)) {
+      throw new Error(`category must be animate_single, sun_to_sun, done_for_you_reel, virtual_staging, or sketch_to_real. Received: "${category}"`)
     }
 
     if (category === "animate_single" && !shot_type) {
@@ -1525,7 +1525,56 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
-    // Category: listing_bundle — fire N Seedance predictions in parallel, return prediction_ids
+    // ── Category: done_for_you_reel (May 24, 2026 — single Seedance call) ──
+    // User direction: no more stitching. We send the user-uploaded photos as
+    // reference_images IN UPLOAD ORDER to Seedance 2.0, which produces one
+    // 15s reel cycling through them. The prompt is one of four user-tested
+    // edit styles (Snappy / Fast Cuts / Creative / Luxury Minimal). Native
+    // audio is on by default; off when generate_audio === false.
+    if (category === "done_for_you_reel") {
+      const photos = photo_urls.slice(0, 9) // Seedance cap
+      const dfyPrompt: string =
+        typeof body.dfy_prompt === "string" && body.dfy_prompt.trim().length > 0
+          ? body.dfy_prompt.trim()
+          : "cinematic reel of animated walk through of the house, edited with fast cuts and smooth transitions"
+      const generateAudio = body.generate_audio !== false // default ON
+
+      console.log(`[done_for_you_reel] Seedance multi-ref — photos=${photos.length} audio=${generateAudio} style=${body.dfy_style || "snappy"}`)
+      const result = await startSeedanceMultiReference(
+        photos,
+        dfyPrompt,
+        15, // single 15s reel
+        REPLICATE_TOKEN,
+        { generateAudio },
+      )
+
+      if (result.videoUrl) {
+        const outputVideoPath = await persistVideoToStorage(
+          result.videoUrl,
+          `listing-videos/${Date.now()}/dfy-reel.mp4`,
+          supabase,
+          "done_for_you_reel",
+        )
+        return new Response(JSON.stringify({
+          status: "complete",
+          category,
+          video_url: result.videoUrl,
+          clip_urls: [result.videoUrl],
+          output_video_path: outputVideoPath,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+      }
+
+      return new Response(JSON.stringify({
+        status: "processing",
+        prediction_id: result.predictionId,
+        category,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    }
+
+    // Category: listing_bundle — legacy parallel-clips pipeline.
+    // listing_bundle was removed from the picker on May 24, 2026. This block
+    // remains only as a defensive fallback so any in-flight gallery polls or
+    // existing client builds keep working. New traffic uses done_for_you_reel.
     if (category === "listing_bundle") {
       // Narrative beat ORDER per research (Reels Ninja + Content-to-Closings):
       // establishing → hero → detail → HERO (not detail) → amenity → closing.
@@ -1961,12 +2010,72 @@ serve(async (req) => {
 // Single image input + descriptive prompt. Use for sun-cycles, sketch reveals,
 // floor plan transformations — anything where Seedance's single-image cinematic
 // motion handles the transformation better than Kling's start+end interpolation.
+/**
+ * Seedance 2.0 multi-reference call. Used by Done-For-You reels: send up
+ * to 9 reference images in upload order and Seedance produces ONE 15-second
+ * reel that cycles through them — no client-side stitching, no parallel
+ * predictions, no glue frames.
+ *
+ * `generateAudio: true` (default) lets Seedance produce a native music bed.
+ * False ships a silent file.
+ *
+ * Verified working in the user's Replicate tests (May 24, 2026).
+ */
+async function startSeedanceMultiReference(
+  imageUrls: string[],
+  prompt: string,
+  duration: number,
+  token: string,
+  options: { generateAudio?: boolean } = {}
+): Promise<{ videoUrl?: string; predictionId?: string }> {
+  // Cap at 9 — Seedance 2.0 hard limit on reference_images.
+  const refs = imageUrls.slice(0, 9)
+  const res = await fetch(
+    `${REPLICATE}/models/${MODEL_SEEDANCE}/predictions`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${token}`,
+        "Content-Type": "application/json",
+        Prefer: "wait=60",
+      },
+      body: JSON.stringify({
+        input: {
+          prompt,
+          reference_images: refs,
+          duration,
+          aspect_ratio: "9:16",
+          resolution: "1080p",
+          fps: 24,
+          // Seedance honours `generate_audio` for native audio. Default ON
+          // per user direction (May 24, 2026).
+          generate_audio: options.generateAudio !== false,
+        },
+      }),
+    }
+  )
+
+  const prediction = await res.json()
+  if (!res.ok || !prediction.id) {
+    const detail = prediction?.detail || prediction?.error?.message || JSON.stringify(prediction).slice(0, 400)
+    throw new Error(`Seedance 2.0 multi-ref rejected (HTTP ${res.status}): ${detail}`)
+  }
+
+  if (prediction.status === "succeeded" && prediction.output) {
+    const out = prediction.output
+    const url = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : null)
+    if (url) return { videoUrl: url }
+  }
+
+  return { predictionId: prediction.id }
+}
+
 async function startSeedanceFromImage(
   imageUrl: string,
   prompt: string,
   duration: number,
   token: string,
-  options: { cameraFixed?: boolean } = {}
+  options: { cameraFixed?: boolean; generateAudio?: boolean } = {}
 ): Promise<{ videoUrl?: string; predictionId?: string }> {
   const res = await fetch(
     `${REPLICATE}/models/${MODEL_SEEDANCE}/predictions`,
@@ -1986,6 +2095,9 @@ async function startSeedanceFromImage(
           resolution: "1080p",
           fps: 24,
           camera_fixed: options.cameraFixed === true,
+          // Audio defaults ON per user direction (May 24, 2026). Single-photo
+          // categories accept the same toggle as Done-For-You.
+          generate_audio: options.generateAudio !== false,
         },
       }),
     }

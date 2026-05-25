@@ -53,7 +53,7 @@ const AgentsLanding = () => {
             primaryCta={{ label: isLoggedIn ? "ENTER THE STUDIO →" : "BEGIN FREE — 50 CREDITS →", to: destination }}
             secondaryCta={{ label: "SEE A LIVE LISTING REEL", to: "/gallery" }}
             rightImage={ax.hero}
-            rightVideo="/vantage/build/result.mp4"
+            rightVideo="/vantage/done-for-you/snappy.mp4"
             byline="A LISTING FILM · 1132 ELM CT., AUSTIN"
           />
 

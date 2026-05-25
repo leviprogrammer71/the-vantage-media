@@ -31,58 +31,61 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
+// ── May 24, 2026 — REMOVED listing_bundle + floor_plan_pan ──
+// User direction: kill these two categories. listing_bundle was a "raw
+// clips, no stitch" niche that confused buyers; floor_plan_pan was a
+// specialty feature with low usage. Both removed from the picker and
+// the edge function routing.
 type ListingCategory =
   | "animate_single"
   | "sun_to_sun"
-  | "listing_bundle"
   | "done_for_you_reel"
   | "virtual_staging"
-  | "sketch_to_real"
-  | "floor_plan_pan";
+  | "sketch_to_real";
 
-type DfyStyle = "editorial" | "snappy" | "cinema" | "minimal";
+// ── DONE-FOR-YOU EDIT STYLES (May 24, 2026 — user-tested on Replicate) ──
+// Four edit styles drawn straight from the user's /1a folder. Each style
+// is a prompt the user verified on Replicate's Seedance 2.0 playground.
+// The video name in /public/vantage/done-for-you/ becomes the option name.
+type DfyStyle = "snappy" | "fastcuts" | "creative" | "luxuryminimal";
 
 interface DfyStylePreset {
   id: DfyStyle;
   title: string;
   description: string;
-  // Shot rotation tuned for this style — different camera language per style
-  shotRotation: ShotType[];
+  previewVideo: string;
+  /** The exact Seedance prompt the user tested for this edit style. */
+  prompt: string;
 }
 
-// ── SHOT ROTATIONS (May 12, 2026 — drone_orbit removed) ──
-// drone_orbit got pulled from every DFY rotation. Seedance interprets the
-// word "drone" literally and renders an actual drone in the frame, which
-// users hate on residential listings ("why is there a drone in my sky"
-// reports came in repeatedly). The shot is still available as a per-shot
-// pick in animate_single for users who specifically want aerial footage,
-// but no auto-rotation includes it. Replaced with truck_right (smooth
-// lateral, magazine-grade) which is what users wanted "drone orbit" for
-// anyway — a sense of the property's footprint from outside.
 const DFY_STYLES: DfyStylePreset[] = [
-  {
-    id: "editorial",
-    title: "Editorial",
-    description: "Refined fashion-house typography. Serif price reveal. Slow magazine-grade pacing.",
-    shotRotation: ["push_in", "architectural", "pedestal_up", "establishing", "parallax_left", "truck_right"],
-  },
   {
     id: "snappy",
     title: "Snappy",
-    description: "Bold caps, high-contrast yellow price, sharp wipe-left transitions. Built for TikTok and Reels feed.",
-    shotRotation: ["parallax_right", "truck_right", "push_in", "pedestal_up", "slide_left", "architectural"],
+    description: "Fast-paced walk-through with snappy cuts and smooth transitions. Built for the TikTok / Reels scroll.",
+    previewVideo: "/vantage/done-for-you/snappy.mp4",
+    prompt: "cinematic reel of animated walk through of the house, edited with fast cuts and smooth transitions",
   },
   {
-    id: "cinema",
-    title: "Cinema",
-    description: "Letterboxed crops, restrained type, fade-through-black transitions. Looks like a luxury auto ad.",
-    shotRotation: ["establishing", "truck_right", "push_in", "architectural", "pedestal_up", "parallax_left"],
+    id: "fastcuts",
+    title: "Fast Cuts",
+    description: "Room-by-room lifestyle walk-through — like you're touring the home yourself, with brisk transitions.",
+    previewVideo: "/vantage/done-for-you/fastcuts.mp4",
+    prompt: "cinematic reel of animated walk through of the house, lifestyle style as if walking through the house room by room speeding through transition well",
   },
   {
-    id: "minimal",
-    title: "Minimal",
-    description: "Slow camera moves only — gentle dolly, architectural slider, pull-back. Cubic-eased dissolves between every shot. Nothing snaps. Just price, just elegance.",
-    shotRotation: ["push_in", "architectural", "establishing", "pull_out", "architectural", "establishing"],
+    id: "creative",
+    title: "Creative",
+    description: "Step-by-step walk-through, every photo animated and edited together as one composed reel.",
+    previewVideo: "/vantage/done-for-you/creative.mp4",
+    prompt: "a real estate reel of a walk through of the house with smooth transitions from one animated video of every photo edited together as a reel, filmed as if walking step by step through the house",
+  },
+  {
+    id: "luxuryminimal",
+    title: "Luxury Minimal",
+    description: "Slow cuts, natural movements, refined and calm — the magazine-grade luxury edit.",
+    previewVideo: "/vantage/done-for-you/luxuryminimal.mp4",
+    prompt: "cinematic reel of animated walk through of the house, edited with slow cuts, natural movements and feeling of a refined calm luxury",
   },
 ];
 type EffectId = "none" | "just_listed" | "open_house" | "for_sale" | "sold";
@@ -106,10 +109,10 @@ const CATEGORY_CARDS = [
   {
     id: "done_for_you_reel" as const,
     title: "Done-For-You Reel",
-    eyebrow: "★ MOST POPULAR · AUTO-STITCHED · 4 STYLES",
-    description: "Upload 3-6 photos in the order you want them to play. We render each as a cinematic clip then auto-stitch into one finished MP4 with your price and realtor name baked in. Editorial, Snappy, Cinema, or Minimal style.",
-    details: "15-30s · 50 credits · Auto-stitched · Pick a style",
-    previewUrl: "/vantage/done-for-you/result.mp4",
+    eyebrow: "★ MOST POPULAR · 4 EDIT STYLES · UPLOAD ORDER = REEL ORDER",
+    description: "Upload 3–6 photos in the exact order you want them to appear. Pick an edit style — Snappy, Fast Cuts, Creative, or Luxury Minimal — and Seedance renders the whole reel in one pass. Audio included by default.",
+    details: "15s reel · 50 credits · 4 edit styles · Audio included",
+    previewUrl: "/vantage/done-for-you/snappy.mp4",
   },
   {
     id: "animate_single" as const,
@@ -120,20 +123,12 @@ const CATEGORY_CARDS = [
     previewUrl: "/vantage/animate-single/result.mp4",
   },
   {
-    id: "listing_bundle" as const,
-    title: "The Listing Bundle",
-    eyebrow: "MULTI-PHOTO REEL · PER-CLIP DELIVERY",
-    description: "Upload 3-6 photos. We render each as a Seedance 2.0 cinematic clip and hand back the individual clips for you to mix in your editor.",
-    details: "15-30s · From 45 credits · Per-clip delivery",
-    previewUrl: "/vantage/listing-bundle/1.mp4",
-  },
-  {
     id: "virtual_staging" as const,
     title: "Virtual Staging",
-    eyebrow: "EMPTY ROOM TO FULLY FURNISHED",
-    description: "Upload one empty room photo. The room dresses itself in your chosen style — locked-off camera, identical framing. Furniture appears, settles, stays.",
+    eyebrow: "EMPTY ROOM TO FULLY FURNISHED · 11 STYLES",
+    description: "Upload one empty room photo. The room dresses itself in your chosen style — locked-off camera, identical framing. Pick 1, cycle 2–3 styles, or run a begin-and-return showcase.",
     details: "10s film · Single download · 15 credits",
-    previewUrl: "/vantage/build/result.mp4",
+    previewUrl: "/vantage/virtual-staging/result.mp4",
   },
   {
     id: "sun_to_sun" as const,
@@ -150,14 +145,6 @@ const CATEGORY_CARDS = [
     description: "Upload your property photo. One 10-second cinematic film: a pencil sketch on a desk transforms into the real photo, then the camera reveals the space.",
     details: "10s film · Single download · 15 credits",
     previewUrl: "/vantage/sketch/result.mp4",
-  },
-  {
-    id: "floor_plan_pan" as const,
-    title: "Floor Plan to Walkthrough",
-    eyebrow: "FLOOR PLAN · PHOTOREAL WALK-THROUGH",
-    description: "Upload a floor plan or axonometric drawing. One 10-second cinematic film: the plan transforms into a photoreal interior, then the camera moves through the space.",
-    details: "10s film · Single download · 15 credits",
-    previewUrl: "/vantage/ranch-build/result.mp4",
   },
 ];
 
@@ -202,14 +189,12 @@ function calculateListingCost(category: ListingCategory, effectId: EffectId): nu
   let base = 0;
   if (category === "animate_single") base = 10;
   else if (category === "sun_to_sun") base = 15;
-  else if (category === "listing_bundle") base = 45;
   else if (category === "done_for_you_reel") base = 50;
   else if (category === "virtual_staging") base = 15;
   else if (category === "sketch_to_real") base = 15;
-  else if (category === "floor_plan_pan") base = 15;
 
   // Realistic effect (gpt-image-2 sign overlay) adds an image-gen call.
-  if (effectId !== "none" && (category === "animate_single" || category === "listing_bundle" || category === "done_for_you_reel" || category === "sun_to_sun")) {
+  if (effectId !== "none" && (category === "animate_single" || category === "done_for_you_reel" || category === "sun_to_sun")) {
     base += 5;
   }
   return base;
@@ -225,11 +210,9 @@ interface ListingVideoFlowProps {
 const VALID_INITIAL_CATEGORIES: ListingCategory[] = [
   "animate_single",
   "sun_to_sun",
-  "listing_bundle",
   "done_for_you_reel",
   "virtual_staging",
   "sketch_to_real",
-  "floor_plan_pan",
 ];
 
 export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}) {
@@ -291,6 +274,16 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   const [stagingStyles, setStagingStyles] = useState<StagingStyle[]>(["luxury_minimalist"]);
   const [stagingAiPick, setStagingAiPick] = useState<boolean>(false);
   const [sketchIntent, setSketchIntent] = useState<"interior" | "exterior">("interior");
+  // ── Done-For-You edit style (May 24, 2026) ──
+  // Four user-tested edit styles drawn from /1a. Default to Snappy — that's
+  // the highest-traffic style on the user's TikTok ads and is the one we
+  // alternate as the homepage hero.
+  const [dfyStyle, setDfyStyle] = useState<DfyStyle>("snappy");
+  // ── Audio toggle (May 24, 2026) ──
+  // Seedance 2.0 generates audio natively. Default ON because the user
+  // direction is "create with audio by default and without audio if they
+  // decide". Forwarded to the edge function as generate_audio.
+  const [includeAudio, setIncludeAudio] = useState<boolean>(true);
 
   // Form state (Step 3) — every field is OPTIONAL. Users have profiles, so
   // we pre-fill from there. The "Generate" CTA works even with all fields
@@ -377,11 +370,11 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
         newPhotos.push({ file, preview, url, path });
       }
 
-      if (category === "animate_single" || category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan") {
+      if (category === "animate_single" || category === "virtual_staging" || category === "sketch_to_real") {
         setPhotos([newPhotos[0]]);
-      } else if ((category === "listing_bundle" || category === "done_for_you_reel")) {
+      } else if (category === "done_for_you_reel") {
         if (newPhotos.length < 3) {
-          toast.error("Bundle requires at least 3 photos");
+          toast.error("Done-For-You Reel requires at least 3 photos");
           return;
         }
         setPhotos(newPhotos.slice(0, 6));
@@ -422,15 +415,25 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
 
     try {
       const photoUrls = photos.map((p) => p.url!);
-      // Done-For-You Reel reuses the listing_bundle backend pipeline — same
-      // 3-6 photos → 6 Seedance clips. The frontend then auto-stitches into a
-      // single MP4 with the user's chosen style preset.
-      const backendCategory = category === "done_for_you_reel" ? "listing_bundle" : category;
+      // ── DONE-FOR-YOU ARCHITECTURE (May 24, 2026) ──
+      // Switched off client-stitching. Done-For-You now sends one straight
+      // Seedance 2.0 multi-reference call that produces the full reel in
+      // one pass — same as the user's verified Replicate tests.
       const response = await supabase.functions.invoke("generate-listing-video", {
         body: {
-          category: backendCategory,
+          category,
           photo_urls: photoUrls,
-          shot_type: category === "animate_single" ? shotType : category === "virtual_staging" ? "push_in" : category === "floor_plan_pan" ? shotType : undefined,
+          shot_type: category === "animate_single" ? shotType : category === "virtual_staging" ? "push_in" : undefined,
+          // Done-For-You edit-style prompt + its index — picked from the 4
+          // user-tested options (Snappy / Fast Cuts / Creative / Luxury Minimal).
+          dfy_style: category === "done_for_you_reel" ? dfyStyle : undefined,
+          dfy_prompt: category === "done_for_you_reel"
+            ? (DFY_STYLES.find((s) => s.id === dfyStyle)?.prompt || DFY_STYLES[0].prompt)
+            : undefined,
+          // Audio toggle — default ON. Forwarded to Seedance modelInput so
+          // it generates a music bed natively rather than requiring the
+          // user to bolt their own track on after.
+          generate_audio: includeAudio,
           staging_style: category === "virtual_staging" ? stagingStyle : undefined,
           // ── MULTI-STYLE STAGING (May 24, 2026) ──
           // Forwarded only for virtual_staging. AI-pick mode swaps in the
@@ -446,13 +449,13 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
           effect_mode: effectId !== "none" ? "realistic" : undefined,
           vibe,
           listing: {
-            realtor_name: (category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan") ? undefined : realtorName,
-            location: (category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan") ? undefined : location,
-            show_price: (category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan") ? undefined : showPrice,
-            price: (category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan") ? undefined : (showPrice ? price : undefined),
-            brokerage: (category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan") ? undefined : brokerage,
-            caption: (category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan") ? undefined : caption,
-            music_vibe: (category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan") ? undefined : musicVibe,
+            realtor_name: (category === "virtual_staging" || category === "sketch_to_real") ? undefined : realtorName,
+            location: (category === "virtual_staging" || category === "sketch_to_real") ? undefined : location,
+            show_price: (category === "virtual_staging" || category === "sketch_to_real") ? undefined : showPrice,
+            price: (category === "virtual_staging" || category === "sketch_to_real") ? undefined : (showPrice ? price : undefined),
+            brokerage: (category === "virtual_staging" || category === "sketch_to_real") ? undefined : brokerage,
+            caption: (category === "virtual_staging" || category === "sketch_to_real") ? undefined : caption,
+            music_vibe: (category === "virtual_staging" || category === "sketch_to_real") ? undefined : musicVibe,
           },
           // ── DURATION ROUTING (May 15, 2026) ──
           // Single-clip categories respect the user's 10s/15s pick.
@@ -464,8 +467,8 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             : category === "sun_to_sun" ? singleClipDuration
             : category === "virtual_staging" ? singleClipDuration
             : category === "sketch_to_real" ? singleClipDuration
-            : category === "floor_plan_pan" ? singleClipDuration
-            : 5, // bundle per-clip (listing_bundle, done_for_you_reel)
+            : category === "done_for_you_reel" ? 15 // single 15s Seedance reel
+            : 5,
           credits_cost: creditCost,
           // Burn-in title overlay — only sent when enabled and non-empty.
           // Suppressed for done_for_you_reel (the auto-stitch adds its own
@@ -1184,7 +1187,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             onMouseEnter={(e) => { e.currentTarget.style.background = "var(--lux-ink)"; e.currentTarget.style.color = "var(--lux-bone)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "var(--lux-cream)"; e.currentTarget.style.color = "var(--lux-ink)"; }}
           >
-            ← Browse all 7 films
+            ← Browse all 5 films
           </button>
 
           <div className="mb-12">
@@ -1277,7 +1280,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             onMouseEnter={(e) => { e.currentTarget.style.background = "var(--lux-ink)"; e.currentTarget.style.color = "var(--lux-bone)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "var(--lux-cream)"; e.currentTarget.style.color = "var(--lux-ink)"; }}
           >
-            ← Browse all 7 films
+            ← Browse all 5 films
           </button>
 
           <div className="mb-10">
@@ -1507,7 +1510,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             onMouseEnter={(e) => { e.currentTarget.style.background = "var(--lux-ink)"; e.currentTarget.style.color = "var(--lux-bone)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "var(--lux-cream)"; e.currentTarget.style.color = "var(--lux-ink)"; }}
           >
-            ← Browse all 7 films
+            ← Browse all 5 films
           </button>
           <div className="mb-10">
             <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-rust)" }}>
@@ -1581,14 +1584,34 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-10">
+          {/* ── EDIT STYLE PICKER (May 24, 2026) ──
+              Four user-tested styles from /1a. Each card shows a real
+              autoplay preview of that edit style's Seedance output so
+              users can see what they're choosing — no guessing from copy
+              alone. */}
+          <div
+            className="grid gap-5 mb-10"
+            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}
+          >
             {DFY_STYLES.map((s) => {
-              const isSelected = stitchStyle === s.id;
+              const isSelected = dfyStyle === s.id;
               return (
                 <button
                   key={s.id}
-                  onClick={() => setStitchStyle(s.id)}
-                  className="text-left p-6 rounded-none transition-all relative"
+                  type="button"
+                  onClick={() => {
+                    setDfyStyle(s.id);
+                    // Keep the legacy stitchStyle in sync — used by gallery
+                    // metadata + record_listing_video persistence.
+                    if (s.id === "snappy" || s.id === "luxuryminimal") {
+                      setStitchStyle(s.id === "snappy" ? "snappy" : "minimal");
+                    } else if (s.id === "fastcuts") {
+                      setStitchStyle("editorial");
+                    } else {
+                      setStitchStyle("cinema");
+                    }
+                  }}
+                  className="text-left rounded-none transition-all relative overflow-hidden flex flex-col"
                   style={isSelected ? {
                     background: "var(--lux-ink)",
                     color: "var(--lux-bone)",
@@ -1602,7 +1625,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                 >
                   {isSelected && (
                     <div
-                      className="lux-eyebrow absolute -top-2.5 left-6 px-2.5 py-1"
+                      className="lux-eyebrow absolute top-2 left-2 z-10 px-2.5 py-1"
                       style={{
                         background: "var(--lux-champagne)",
                         color: "var(--lux-ink)",
@@ -1613,31 +1636,79 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                       ✦ SELECTED
                     </div>
                   )}
+                  {/* Preview video — autoplays muted on hover and loops always */}
                   <div
-                    className="lux-eyebrow mb-2"
-                    style={{ color: isSelected ? "var(--lux-champagne)" : "var(--lux-rust)", fontSize: "0.65rem" }}
+                    className="relative w-full"
+                    style={{ aspectRatio: "9 / 16", maxHeight: 240, background: "#0E0E0C", overflow: "hidden" }}
                   >
-                    {s.id.toUpperCase()}
+                    <video
+                      src={s.previewVideo}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
                   </div>
-                  <h3
-                    className="lux-display mb-2"
-                    style={{ fontSize: "1.6rem", lineHeight: 1.05, color: isSelected ? "var(--lux-bone)" : "var(--lux-ink)" }}
-                  >
-                    {s.title}
-                  </h3>
-                  <p
-                    className="lux-prose"
-                    style={{
-                      fontSize: "0.875rem",
-                      lineHeight: 1.5,
-                      color: isSelected ? "rgba(244,239,230,0.85)" : "var(--lux-ink)",
-                    }}
-                  >
-                    {s.description}
-                  </p>
+                  <div className="p-5 flex-1">
+                    <div
+                      className="lux-eyebrow mb-2"
+                      style={{ color: isSelected ? "var(--lux-champagne)" : "var(--lux-rust)", fontSize: "0.65rem" }}
+                    >
+                      {s.id.replace("_", " ").toUpperCase()}
+                    </div>
+                    <h3
+                      className="lux-display mb-2"
+                      style={{ fontSize: "1.5rem", lineHeight: 1.05, color: isSelected ? "var(--lux-bone)" : "var(--lux-ink)" }}
+                    >
+                      {s.title}
+                    </h3>
+                    <p
+                      className="lux-prose"
+                      style={{
+                        fontSize: "0.85rem",
+                        lineHeight: 1.5,
+                        color: isSelected ? "rgba(244,239,230,0.85)" : "var(--lux-ink)",
+                      }}
+                    >
+                      {s.description}
+                    </p>
+                  </div>
                 </button>
               );
             })}
+          </div>
+
+          {/* ── AUDIO TOGGLE ──
+              Default ON per user direction. Seedance 2.0 generates audio
+              natively. Users who want silent reels (so they can pair with
+              their own track in their editor) opt out here. */}
+          <div
+            className="flex items-center gap-4 p-4 mb-10"
+            style={{
+              background: includeAudio ? "var(--lux-ink)" : "var(--lux-cream)",
+              color: includeAudio ? "var(--lux-bone)" : "var(--lux-ink)",
+              border: "1px solid var(--lux-hairline-strong)",
+            }}
+          >
+            <input
+              id="dfy-audio"
+              type="checkbox"
+              checked={includeAudio}
+              onChange={(e) => setIncludeAudio(e.target.checked)}
+              style={{ width: 18, height: 18, accentColor: "var(--lux-rust)" }}
+            />
+            <label htmlFor="dfy-audio" className="flex-1 cursor-pointer">
+              <div className="lux-display text-base mb-0.5">
+                {includeAudio ? "♫ Audio included" : "Silent reel"}
+              </div>
+              <div className="text-xs" style={{ opacity: 0.75, lineHeight: 1.5 }}>
+                {includeAudio
+                  ? "Seedance generates a music bed sized to the reel. Uncheck if you want a silent file to drop into your editor."
+                  : "We'll deliver a silent reel — add your own track in Reels, TikTok, or your editor."}
+              </div>
+            </label>
           </div>
 
           <button
@@ -1654,8 +1725,8 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
 
   // STEP 2: Photo upload
   if (step === 2 && category) {
-    const maxPhotos = (category === "listing_bundle" || category === "done_for_you_reel") ? 6 : 1;
-    const minPhotos = (category === "listing_bundle" || category === "done_for_you_reel") ? 3 : 1;
+    const maxPhotos = (category === "done_for_you_reel") ? 6 : 1;
+    const minPhotos = (category === "done_for_you_reel") ? 3 : 1;
     const isComplete = photos.length >= minPhotos;
 
     return (
@@ -1682,23 +1753,21 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             onMouseEnter={(e) => { e.currentTarget.style.background = "var(--lux-ink)"; e.currentTarget.style.color = "var(--lux-bone)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "var(--lux-cream)"; e.currentTarget.style.color = "var(--lux-ink)"; }}
           >
-            ← Browse all 7 films
+            ← Browse all 5 films
           </button>
 
           <div className="mb-12">
             <h2 className="lux-display mb-2" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
               {category === "animate_single" && "Upload your hero shot"}
               {category === "sun_to_sun" && "Upload exterior photo"}
-              {(category === "listing_bundle" || category === "done_for_you_reel") && "Upload 3-6 property photos"}
+              {(category === "done_for_you_reel") && "Upload 3-6 property photos"}
               {category === "sketch_to_real" && "Upload the property photo"}
-              {category === "floor_plan_pan" && "Upload your floor plan or axonometric drawing"}
             </h2>
             <p className="lux-prose" style={{ color: "var(--lux-ash)" }}>
               {category === "animate_single" && "High-res horizontal or vertical photos work best."}
               {category === "sun_to_sun" && "A bright daytime exterior. We'll render it at sunrise, golden hour, and dusk."}
-              {(category === "listing_bundle" || category === "done_for_you_reel") && "Mix of exterior, interior, and detail shots. The order you upload is the order they'll play in the final reel — start with your strongest exterior, end with your statement room."}
+              {(category === "done_for_you_reel") && "★ The order you upload your photos is the exact order they'll appear in your reel. Start with your strongest exterior, end with your statement room. Mix of exterior, interior, and detail shots works best."}
               {category === "sketch_to_real" && "Upload the actual property photo (interior or exterior). We'll render a pencil sketch of the same scene being hand-drawn on a desk, then animate the sketch becoming real. Best with sharp, well-lit photos."}
-              {category === "floor_plan_pan" && "Floor plans, axonometric drawings, or 3D-isometric room views all work. We'll render the plan as a photoreal interior, then move the camera through it."}
             </p>
           </div>
 
@@ -1736,7 +1805,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
           <input
             ref={fileInputRef}
             type="file"
-            multiple={(category === "listing_bundle" || category === "done_for_you_reel")}
+            multiple={(category === "done_for_you_reel")}
             accept="image/jpeg,image/png,image/heic,image/heif,image/webp"
             onChange={(e) => handlePhotoSelect(e.target.files)}
             className="hidden"
@@ -1747,7 +1816,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
               <div className="flex items-center justify-between mb-6">
                 <p className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>
                   {photos.length} PHOTO{photos.length !== 1 ? "S" : ""} SELECTED
-                  {(category === "listing_bundle" || category === "done_for_you_reel") && " · ORDER MATTERS"}
+                  {(category === "done_for_you_reel") && " · ORDER MATTERS"}
                 </p>
                 {photos.length > 1 && (
                   <button
@@ -1778,7 +1847,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                         SEE the order their photos will play in. Previously
                         hidden, which made photographers re-upload in the
                         wrong order. */}
-                    {(category === "listing_bundle" || category === "done_for_you_reel") && (
+                    {(category === "done_for_you_reel") && (
                       <div
                         className="absolute top-2 left-2 lux-display flex items-center justify-center"
                         style={{
@@ -1845,9 +1914,9 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
 
   // STEP 3: Listing details form / vibe picker
   if (step === 3 && category) {
-    const showListingMetadata = category === "animate_single" || category === "sun_to_sun" || (category === "listing_bundle" || category === "done_for_you_reel");
+    const showListingMetadata = category === "animate_single" || category === "sun_to_sun" || (category === "done_for_you_reel");
     const showShotPicker = category === "animate_single";
-    const showEffectPicker = category === "animate_single" || category === "sun_to_sun" || (category === "listing_bundle" || category === "done_for_you_reel");
+    const showEffectPicker = category === "animate_single" || category === "sun_to_sun" || (category === "done_for_you_reel");
     const showVibePicker = true;
 
     return (
@@ -2054,15 +2123,14 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             )}
 
             {/* ── DURATION PICKER (single-clip categories only) ──
-                Bundle paths (listing_bundle, done_for_you_reel) use a
-                fixed 5s per clip — the bundle total is already 25-30s
-                without an explicit picker. Single-clip categories let
+                Done-For-You is fixed at 15s (the duration cap on Seedance
+                2.0 multi-reference reels). Single-clip categories let
                 the user pick 10s vs 15s, per May 15 direction. */}
             {(category === "animate_single"
               || category === "sun_to_sun"
               || category === "virtual_staging"
               || category === "sketch_to_real"
-              || category === "floor_plan_pan") && (
+             ) && (
               <div className="mt-8 pt-6" style={{ borderTop: "1px solid var(--lux-hairline)" }}>
                 <h3 className="lux-eyebrow mb-4" style={{ color: "var(--lux-ink)", fontWeight: 700 }}>
                   DURATION
@@ -2167,7 +2235,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     const photoThumbnail = photos[0]?.preview;
     const isVirtualStaging = category === "virtual_staging";
     const isSketchToReal = category === "sketch_to_real";
-    const isFloorPlanPan = category === "floor_plan_pan";
+    const isFloorPlanPan = false; // floor_plan_pan deleted May 24, 2026
 
     return (
       <div className="lux-section lux-bg-bone">
@@ -2308,9 +2376,9 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
               disabled={!hasEnoughCredits || isGenerating}
               className="lux-btn flex-1"
               style={{
-                background: (hasEnoughCredits && !isGenerating && (category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan" || (realtorName && location))) ? "var(--lux-ink)" : "var(--lux-ash)",
+                background: (hasEnoughCredits && !isGenerating && (category === "virtual_staging" || category === "sketch_to_real" || (realtorName && location))) ? "var(--lux-ink)" : "var(--lux-ash)",
                 color: "var(--lux-bone)",
-                cursor: (hasEnoughCredits && !isGenerating && (category === "virtual_staging" || category === "sketch_to_real" || category === "floor_plan_pan" || (realtorName && location))) ? "pointer" : "not-allowed",
+                cursor: (hasEnoughCredits && !isGenerating && (category === "virtual_staging" || category === "sketch_to_real" || (realtorName && location))) ? "pointer" : "not-allowed",
                 padding: "16px 24px",
               }}
             >
@@ -2396,7 +2464,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
               className="w-full h-full object-cover"
             />
             {/* Listing metadata overlay (price, location, brokerage) — matches Reels-style branding */}
-            {((category === "listing_bundle" || category === "done_for_you_reel") || category === "animate_single" || category === "sun_to_sun") && (location || (showPrice && price) || brokerage) && (
+            {((category === "done_for_you_reel") || category === "animate_single" || category === "sun_to_sun") && (location || (showPrice && price) || brokerage) && (
               <>
                 {/* Top-left location badge */}
                 {location && (
