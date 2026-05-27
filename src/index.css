@@ -376,6 +376,22 @@ All colors MUST be HSL.
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
+
+/* ── Loading spinner (May 25, 2026) ──
+   Single rotation keyframe shared by every loading indicator across the
+   app. Photo-upload overlays, "Uploading photos…" banners, gallery
+   skeletons, and any future ad-hoc spinners all use this. */
+@keyframes lux-spin {
+  to { transform: rotate(360deg); }
+}
+.lux-spin { animation: lux-spin 0.9s linear infinite; }
+
+/* Subtle pulse for skeleton placeholders (gallery list, etc.). */
+@keyframes lux-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.lux-pulse { animation: lux-pulse 1.6s ease-in-out infinite; }
 .lux-marquee {
   display: flex;
   gap: 4rem;

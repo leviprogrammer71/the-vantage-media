@@ -343,8 +343,48 @@ export type StagingStyle =
   | "luxury_minimalist"   // user-tested on Replicate May 24
   | "bohemian"            // user-tested on Replicate May 24
   | "mediterranean"       // user-tested on Replicate May 24
-  | "spanish"             // user-tested on Replicate May 24
-  | "empty";              // unfurnished baseline — anchors begin/end of cycles
+  | "spanish";            // user-tested on Replicate May 24
+// "empty" removed as a STYLE option (May 25, 2026) — it's now a separate
+// photo-state toggle (empty vs already furnished), not a target aesthetic.
+
+/**
+ * Room type the user is staging. The chosen word is interpolated directly
+ * into the user's tested prompt template, e.g. "redesign the {roomType}
+ * furniture decor into [style]...". Defaults to "living room" because
+ * that's what every one of the user's verified Replicate tests used.
+ */
+export type RoomType =
+  | "living room"
+  | "bedroom"
+  | "master bedroom"
+  | "kitchen"
+  | "dining room"
+  | "bathroom"
+  | "home office"
+  | "family room"
+  | "den"
+  | "sun room"
+  | "foyer"
+  | "patio"
+  | "nursery"
+  | "guest room";
+
+export const ROOM_TYPES: { id: RoomType; label: string }[] = [
+  { id: "living room",    label: "Living Room" },
+  { id: "bedroom",        label: "Bedroom" },
+  { id: "master bedroom", label: "Master Bedroom" },
+  { id: "kitchen",        label: "Kitchen" },
+  { id: "dining room",    label: "Dining Room" },
+  { id: "bathroom",       label: "Bathroom" },
+  { id: "home office",    label: "Home Office" },
+  { id: "family room",    label: "Family Room" },
+  { id: "den",            label: "Den" },
+  { id: "sun room",       label: "Sun Room" },
+  { id: "foyer",          label: "Foyer" },
+  { id: "patio",          label: "Patio" },
+  { id: "nursery",        label: "Nursery" },
+  { id: "guest room",     label: "Guest Room" },
+];
 
 /**
  * Staging "mode" controls how many transformations the video shows and
@@ -442,13 +482,6 @@ export const STAGING_STYLES: StagingStyleConfig[] = [
     promptSuffix: "White walls, blonde wood, layered wool throws, minimal furniture, lots of light.",
     promptKeyword: "scandinavian",
   },
-  {
-    id: "empty",
-    label: "Empty / Unfurnished",
-    description: "Furniture removed entirely — bare floor and walls. Useful as the anchor frame for a multi-style cycle.",
-    promptSuffix: "Empty room — furniture and decor removed, bare floors and walls, only architectural shell remains.",
-    promptKeyword: "empty",
-  },
 ];
 
 export function getStagingStyleConfig(id: StagingStyle): StagingStyleConfig {
@@ -467,5 +500,5 @@ export function getStagingStyleConfig(id: StagingStyle): StagingStyleConfig {
 export const AI_PICKED_STAGING_STYLES: Record<StagingMode, StagingStyle[]> = {
   single: ["luxury_minimalist"],
   cycle: ["modern", "luxury_minimalist", "bohemian"],
-  cycle_return: ["empty", "luxury_minimalist", "bohemian"],
+  cycle_return: ["modern", "luxury_minimalist", "bohemian"],
 };

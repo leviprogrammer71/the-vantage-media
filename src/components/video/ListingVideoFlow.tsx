@@ -18,7 +18,7 @@ import { normalizeImageForUpload } from "@/lib/normalize-image";
 import { withFreshAuth } from "@/lib/auth-refresh";
 import { stitchClipsClientSide, downloadBlobOrUrl } from "@/lib/client-stitch";
 import { stitchMp4Lossless, ffmpegWasmAvailable } from "@/lib/ffmpeg-stitch";
-import { SHOT_TYPES, STAGING_STYLES, AI_PICKED_STAGING_STYLES, type StagingMode } from "@/lib/shot-types";
+import { SHOT_TYPES, STAGING_STYLES, AI_PICKED_STAGING_STYLES, ROOM_TYPES, type StagingMode, type RoomType } from "@/lib/shot-types";
 import { VIBES } from "@/lib/vibes";
 import { SUNO_PRESETS, type SunoPreset, defaultSongForStyle } from "@/lib/suno-presets";
 import { SunoMusicPicker } from "./SunoMusicPicker";
@@ -93,8 +93,10 @@ type EffectId = "none" | "just_listed" | "open_house" | "for_sale" | "sold";
 interface Photo {
   file: File;
   preview: string;
-  url?: string;   // signed URL for Replicate (24h)
-  path?: string;  // storage path for gallery persistence (never expires)
+  url?: string;       // signed URL for Replicate (24h)
+  path?: string;      // storage path for gallery persistence (never expires)
+  uploading?: boolean; // true while normalize+upload in flight — UI shows spinner
+  uploadError?: string; // populated if upload failed; user can retry
 }
 
 // Category order is the marketing order: Done-For-You headlines, then the
@@ -273,6 +275,13 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   const [stagingMode, setStagingMode] = useState<StagingMode>("single");
   const [stagingStyles, setStagingStyles] = useState<StagingStyle[]>(["luxury_minimalist"]);
   const [stagingAiPick, setStagingAiPick] = useState<boolean>(false);
+  // ── Room-type + photo-state (May 25, 2026) ──
+  // Per user direction: people choose the room they're uploading and whether
+  // the photo is empty or already furnished. Both feed the prompt:
+  //   • roomType replaces "living room" in the verbatim template
+  //   • isEmpty=false prepends "remove existing furniture, then …"
+  const [stagingRoomType, setStagingRoomType] = useState<RoomType>("living room");
+  const [stagingIsEmpty, setStagingIsEmpty] = useState<boolean>(true);
   const [sketchIntent, setSketchIntent] = useState<"interior" | "exterior">("interior");
   // ── Done-For-You edit style (May 24, 2026) ──
   // Four user-tested edit styles drawn from /1a. Default to Snappy — that's
@@ -362,30 +371,105 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
 
   const handlePhotoSelect = async (files: FileList | null) => {
     if (!files) return;
-    try {
-      const newPhotos: Photo[] = [];
-      for (const file of Array.from(files)) {
-        const preview = URL.createObjectURL(file);
-        const { url, path } = await uploadFile(file);
-        newPhotos.push({ file, preview, url, path });
-      }
+    const fileList = Array.from(files);
+    if (fileList.length === 0) return;
 
-      if (category === "animate_single" || category === "virtual_staging" || category === "sketch_to_real") {
-        setPhotos([newPhotos[0]]);
-      } else if (category === "done_for_you_reel") {
-        if (newPhotos.length < 3) {
-          toast.error("Done-For-You Reel requires at least 3 photos");
-          return;
+    // ── May 25, 2026 — VISIBLE PHOTO UPLOAD UX ──
+    // Previously: sequential `await uploadFile` per photo with no UI
+    // feedback. Users saw a frozen screen for 10–30s while 3–6 photos
+    // uploaded. Now we (a) show every photo's preview immediately,
+    // (b) mark each photo as `uploading` so the grid renders a spinner
+    // overlay, (c) run uploads IN PARALLEL, and (d) flip `uploading`
+    // off per-photo as each upload completes. The Continue/Generate
+    // buttons disable while ANY photo is still uploading.
+
+    if (category === "done_for_you_reel" && fileList.length < 3) {
+      toast.error("Done-For-You Reel requires at least 3 photos");
+      return;
+    }
+
+    // Pick the slice the chosen category accepts.
+    const acceptedFiles = (() => {
+      if (category === "done_for_you_reel") return fileList.slice(0, 6);
+      return [fileList[0]];
+    })();
+
+    // 1. Immediately surface preview thumbnails so the user sees their
+    //    photos in place. uploading:true triggers the spinner overlay.
+    const initialPhotos: Photo[] = acceptedFiles.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+      uploading: true,
+    }));
+    setPhotos(initialPhotos);
+
+    // Advance to the next step immediately so the user sees the photo
+    // grid + upload progress (instead of staring at the drop zone).
+    // ── Bug fix May 25, 2026 ──
+    // virtual_staging now stays on step 2 so the staging-style picker
+    // (rendered at step===2 && photos.length>0) actually shows. The
+    // previous setStep(3) bypassed the picker entirely and dropped the
+    // user straight into the listing-details form.
+    setStep(2);
+
+    // 2. Friendly toast — single source of truth on total upload count.
+    const toastId = toast.loading(
+      acceptedFiles.length === 1
+        ? "Uploading your photo…"
+        : `Uploading ${acceptedFiles.length} photos — they'll appear as each one finishes.`
+    );
+
+    // 3. Parallel upload. Each completion immediately updates THAT photo's
+    //    entry in the photos[] array, so the grid clears the spinner
+    //    progressively rather than all-at-once at the end.
+    let completed = 0;
+    const settled = await Promise.allSettled(
+      acceptedFiles.map(async (file, idx) => {
+        try {
+          const { url, path } = await uploadFile(file);
+          completed += 1;
+          setPhotos((prev) => {
+            const next = [...prev];
+            next[idx] = { ...next[idx], url, path, uploading: false };
+            return next;
+          });
+          if (acceptedFiles.length > 1) {
+            toast.loading(`Uploaded ${completed} of ${acceptedFiles.length}…`, { id: toastId });
+          }
+          return { idx, ok: true };
+        } catch (err) {
+          completed += 1;
+          const msg = (err as Error).message;
+          setPhotos((prev) => {
+            const next = [...prev];
+            next[idx] = { ...next[idx], uploading: false, uploadError: msg };
+            return next;
+          });
+          return { idx, ok: false, msg };
         }
-        setPhotos(newPhotos.slice(0, 6));
-      } else {
-        setPhotos([newPhotos[0]]);
-      }
-      setStep(category === "virtual_staging" ? 3 : 2);
-    } catch (err) {
-      toast.error(`Upload failed: ${(err as Error).message}`);
+      })
+    );
+
+    const failed = settled.filter((s) => s.status === "fulfilled" && !(s.value as { ok: boolean }).ok).length;
+    if (failed === 0) {
+      toast.success(
+        acceptedFiles.length === 1 ? "Photo uploaded." : `All ${acceptedFiles.length} photos uploaded.`,
+        { id: toastId }
+      );
+    } else {
+      toast.error(
+        `${failed} of ${acceptedFiles.length} photos failed to upload. Try removing and re-adding the failed ones.`,
+        { id: toastId }
+      );
     }
   };
+
+  // ── May 25, 2026 — Loading-state derivations ──
+  // anyPhotoUploading: true while at least one photo is still uploading
+  // to storage. Used to disable Continue / Generate so a user can't
+  // submit before signed URLs are ready (which would 400 the edge fn).
+  const anyPhotoUploading = photos.some((p) => p.uploading === true);
+  const anyPhotoFailed = photos.some((p) => !!p.uploadError);
 
   const handleGenerate = async () => {
     // Only two genuine requirements: a category picked and at least one
@@ -397,6 +481,14 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
     }
     if (!photos.length) {
       toast.error("Upload at least one photo");
+      return;
+    }
+    if (anyPhotoUploading) {
+      toast.error("Still uploading your photos — give it a moment.");
+      return;
+    }
+    if (anyPhotoFailed) {
+      toast.error("One or more photos failed to upload. Remove and re-add them before generating.");
       return;
     }
 
@@ -444,6 +536,9 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
               ? (stagingAiPick ? AI_PICKED_STAGING_STYLES[stagingMode] : stagingStyles)
               : undefined,
           staging_ai_pick: category === "virtual_staging" ? stagingAiPick : undefined,
+          // Room-type + photo-state (May 25, 2026)
+          staging_room_type: category === "virtual_staging" ? stagingRoomType : undefined,
+          staging_is_empty: category === "virtual_staging" ? stagingIsEmpty : undefined,
           sketch_intent: category === "sketch_to_real" ? sketchIntent : undefined,
           effect_id: effectId,
           effect_mode: effectId !== "none" ? "realistic" : undefined,
@@ -1292,6 +1387,77 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             </p>
           </div>
 
+          {/* ── ROOM TYPE + PHOTO STATE (May 25, 2026) ──
+              Per user direction: people pick the room they're uploading
+              (the word goes straight into the prompt) and tell us whether
+              their photo is empty or already furnished (changes whether
+              we prepend a "remove existing furniture, then …" clause). */}
+          <div className="grid gap-5 sm:grid-cols-2 mb-10">
+            {/* Room type — dropdown */}
+            <div>
+              <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-brass)", fontWeight: 700 }}>
+                ✦ WHICH ROOM IS THIS?
+              </div>
+              <select
+                value={stagingRoomType}
+                onChange={(e) => setStagingRoomType(e.target.value as RoomType)}
+                className="w-full px-4 py-3 lux-prose"
+                style={{
+                  background: "var(--lux-bone)",
+                  border: "1px solid var(--lux-hairline-strong)",
+                  color: "var(--lux-ink)",
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: "0.95rem",
+                  appearance: "auto",
+                }}
+              >
+                {ROOM_TYPES.map((r) => (
+                  <option key={r.id} value={r.id}>{r.label}</option>
+                ))}
+              </select>
+              <p className="text-xs mt-2" style={{ color: "var(--lux-ash)", lineHeight: 1.5 }}>
+                We use this exact word in the prompt — e.g. "redesign the {stagingRoomType} furniture decor…"
+              </p>
+            </div>
+
+            {/* Empty vs furnished — radio */}
+            <div>
+              <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-brass)", fontWeight: 700 }}>
+                ✦ IS YOUR PHOTO EMPTY OR FURNISHED?
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { id: true,  label: "Empty room",     desc: "Bare walls + floor. We add the furniture." },
+                  { id: false, label: "Not empty",      desc: "Already furnished. We replace what's there." },
+                ].map((opt) => {
+                  const isSel = stagingIsEmpty === opt.id;
+                  return (
+                    <button
+                      key={String(opt.id)}
+                      type="button"
+                      onClick={() => setStagingIsEmpty(opt.id)}
+                      className="text-left p-4 border transition-all"
+                      style={isSel ? {
+                        background: "var(--lux-ink)",
+                        borderColor: "var(--lux-ink)",
+                        color: "var(--lux-bone)",
+                      } : {
+                        background: "var(--lux-bone)",
+                        borderColor: "var(--lux-hairline-strong)",
+                        color: "var(--lux-ink)",
+                      }}
+                    >
+                      <div className="lux-display text-base mb-1">{opt.label}</div>
+                      <div className="text-xs" style={{ opacity: isSel ? 0.75 : 0.65, lineHeight: 1.5 }}>
+                        {opt.desc}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           {/* ── MODE PICKER ──
               Three modes mirror the user's Replicate-tested prompts:
                 • single      → one style transformation
@@ -1459,24 +1625,55 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
               {(() => {
                 const picks = stagingAiPick ? AI_PICKED_STAGING_STYLES[stagingMode] : stagingStyles;
                 const labels = picks.map((id) => STAGING_STYLES.find((x) => x.id === id)?.promptKeyword).filter(Boolean) as string[];
+                const room = stagingRoomType;
+                const replaceClause = stagingIsEmpty ? "" : "Existing furniture is fully replaced. ";
                 if (stagingMode === "single") {
-                  return `Redesign the room into a ${labels[0] || "luxury minimalist"} style, keeping the layout and the room intact. Only the furniture and decor change.`;
+                  return `${replaceClause}Redesign the ${room} into a ${labels[0] || "luxury minimalist"} style, keeping the layout and the room intact. Only the furniture and decor change.`;
                 }
                 if (stagingMode === "cycle") {
-                  return `Redesign the room — ${labels.join(" → ")} — keeping the layout and the room intact. Furniture spins to change between each style. Smooth transitions.`;
+                  return `${replaceClause}Redesign the ${room} — ${labels.join(" → ")} — keeping the layout and the room intact. Furniture spins to change between each style. Smooth transitions.`;
                 }
-                return `Begin with the original room, then redesign — ${labels.join(" → ")} — then return to the original. The layout stays intact; only furniture and decor change.`;
+                return `${replaceClause}Begin with the original ${room}, then redesign — ${labels.join(" → ")} — then return to the original. The layout stays intact; only furniture and decor change.`;
               })()}
             </p>
           </div>
 
+          {anyPhotoUploading && (
+            <div
+              className="mb-4 p-3 lux-eyebrow flex items-center gap-3"
+              style={{
+                background: "var(--lux-cream)",
+                border: "1px solid var(--lux-hairline-strong)",
+                color: "var(--lux-ink)",
+                fontSize: "0.7rem",
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 14,
+                  height: 14,
+                  border: "2px solid var(--lux-hairline-strong)",
+                  borderTopColor: "var(--lux-rust)",
+                  borderRadius: "50%",
+                  animation: "lux-spin 0.9s linear infinite",
+                }}
+              />
+              UPLOADING YOUR PHOTO · ONE MOMENT
+            </div>
+          )}
           <button
             onClick={() => setStep(3)}
             className="lux-btn w-full"
-            style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "18px 24px" }}
-            disabled={!stagingAiPick && stagingStyles.length === 0}
+            style={{
+              background: (anyPhotoUploading || anyPhotoFailed) ? "var(--lux-ash)" : "var(--lux-ink)",
+              color: "var(--lux-bone)",
+              padding: "18px 24px",
+              cursor: (anyPhotoUploading || anyPhotoFailed) ? "not-allowed" : "pointer",
+            }}
+            disabled={anyPhotoUploading || anyPhotoFailed || (!stagingAiPick && stagingStyles.length === 0)}
           >
-            Continue to Details →
+            {anyPhotoUploading ? "Uploading your photo…" : "Continue to Details →"}
           </button>
         </div>
       </div>
@@ -1566,6 +1763,40 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                     className="absolute inset-0 w-full h-full object-cover"
                     style={{ border: "1px solid var(--lux-hairline)" }}
                   />
+                  {/* Per-photo upload spinner overlay — visible while
+                      this photo is being uploaded to storage. */}
+                  {photo.uploading && (
+                    <div
+                      className="absolute inset-0 flex flex-col items-center justify-center text-center"
+                      style={{ background: "rgba(14,14,12,0.7)", color: "var(--lux-bone)" }}
+                    >
+                      <div
+                        className="lux-spinner mb-1"
+                        style={{
+                          width: 22,
+                          height: 22,
+                          border: "2px solid rgba(244,239,230,0.25)",
+                          borderTopColor: "var(--lux-champagne)",
+                          borderRadius: "50%",
+                          animation: "lux-spin 0.9s linear infinite",
+                        }}
+                      />
+                      <span className="lux-eyebrow" style={{ fontSize: "0.55rem", letterSpacing: "0.18em" }}>
+                        UPLOADING
+                      </span>
+                    </div>
+                  )}
+                  {photo.uploadError && (
+                    <div
+                      className="absolute inset-0 flex items-center justify-center text-center p-2"
+                      style={{ background: "rgba(168,93,58,0.85)", color: "var(--lux-bone)" }}
+                      title={photo.uploadError}
+                    >
+                      <span className="lux-eyebrow" style={{ fontSize: "0.55rem", letterSpacing: "0.18em" }}>
+                        UPLOAD FAILED
+                      </span>
+                    </div>
+                  )}
                   <div
                     className="absolute top-1 left-1 lux-display flex items-center justify-center"
                     style={{
@@ -1711,12 +1942,45 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             </label>
           </div>
 
+          {/* Per-button upload status — disables Continue while any photo
+              is still uploading so users can't push forward into a state
+              that would 400 the generation request. */}
+          {anyPhotoUploading && (
+            <div
+              className="mb-4 p-3 lux-eyebrow flex items-center gap-3"
+              style={{
+                background: "var(--lux-cream)",
+                border: "1px solid var(--lux-hairline-strong)",
+                color: "var(--lux-ink)",
+                fontSize: "0.7rem",
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 14,
+                  height: 14,
+                  border: "2px solid var(--lux-hairline-strong)",
+                  borderTopColor: "var(--lux-rust)",
+                  borderRadius: "50%",
+                  animation: "lux-spin 0.9s linear infinite",
+                }}
+              />
+              UPLOADING PHOTOS · ONE MOMENT
+            </div>
+          )}
           <button
             onClick={() => setStep(3)}
+            disabled={anyPhotoUploading || anyPhotoFailed}
             className="lux-btn w-full"
-            style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "18px 24px" }}
+            style={{
+              background: anyPhotoUploading || anyPhotoFailed ? "var(--lux-ash)" : "var(--lux-ink)",
+              color: "var(--lux-bone)",
+              padding: "18px 24px",
+              cursor: anyPhotoUploading || anyPhotoFailed ? "not-allowed" : "pointer",
+            }}
           >
-            Continue to Listing Details →
+            {anyPhotoUploading ? "Uploading photos…" : "Continue to Listing Details →"}
           </button>
         </div>
       </div>
@@ -1766,10 +2030,39 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             <p className="lux-prose" style={{ color: "var(--lux-ash)" }}>
               {category === "animate_single" && "High-res horizontal or vertical photos work best."}
               {category === "sun_to_sun" && "A bright daytime exterior. We'll render it at sunrise, golden hour, and dusk."}
-              {(category === "done_for_you_reel") && "★ The order you upload your photos is the exact order they'll appear in your reel. Start with your strongest exterior, end with your statement room. Mix of exterior, interior, and detail shots works best."}
+              {(category === "done_for_you_reel") && "Mix of exterior, interior, and detail shots works best. Start with your strongest exterior, end with your statement room."}
               {category === "sketch_to_real" && "Upload the actual property photo (interior or exterior). We'll render a pencil sketch of the same scene being hand-drawn on a desk, then animate the sketch becoming real. Best with sharp, well-lit photos."}
             </p>
           </div>
+
+          {/* ── DFY upload-order notice (May 25, 2026) ──
+              Per user direction: make "upload order = reel order" impossible
+              to miss. Bold callout above the drop zone — ink background,
+              champagne accent, large. Users were missing this before because
+              it was buried in regular paragraph copy. */}
+          {category === "done_for_you_reel" && (
+            <div
+              className="mb-6 p-5 lux-bg-ink lux-grain"
+              style={{ color: "var(--lux-bone)", border: "1px solid var(--lux-ink)" }}
+            >
+              <div
+                className="lux-eyebrow mb-2"
+                style={{ color: "var(--lux-champagne)", fontWeight: 700 }}
+              >
+                ✦ IMPORTANT · READ BEFORE UPLOADING
+              </div>
+              <p className="lux-display" style={{ fontSize: "clamp(1.1rem, 2.2vw, 1.5rem)", lineHeight: 1.25 }}>
+                The order you upload your photos
+                <br />
+                <span className="lux-display-italic" style={{ color: "var(--lux-champagne)" }}>
+                  is the order they appear in your reel.
+                </span>
+              </p>
+              <p className="text-sm mt-3" style={{ color: "rgba(244,239,230,0.78)", lineHeight: 1.55 }}>
+                Pick your photos one at a time in the order you want them to play — first photo plays first. You can also drag-and-drop them in batches; the file-system order is preserved.
+              </p>
+            </div>
+          )}
 
           <div
             className="border border-dashed p-16 text-center cursor-pointer transition rounded-sm"
@@ -1843,6 +2136,40 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                       className="absolute inset-0 w-full h-full object-cover"
                       style={{ border: "1px solid var(--lux-hairline)" }}
                     />
+                    {/* Per-photo upload spinner overlay — visible until the
+                        photo's signed URL comes back from storage. */}
+                    {photo.uploading && (
+                      <div
+                        className="absolute inset-0 flex flex-col items-center justify-center text-center"
+                        style={{ background: "rgba(14,14,12,0.7)", color: "var(--lux-bone)" }}
+                      >
+                        <div
+                          style={{
+                            width: 30,
+                            height: 30,
+                            border: "3px solid rgba(244,239,230,0.25)",
+                            borderTopColor: "var(--lux-champagne)",
+                            borderRadius: "50%",
+                            animation: "lux-spin 0.9s linear infinite",
+                            marginBottom: 6,
+                          }}
+                        />
+                        <span className="lux-eyebrow" style={{ fontSize: "0.6rem", letterSpacing: "0.2em" }}>
+                          UPLOADING
+                        </span>
+                      </div>
+                    )}
+                    {photo.uploadError && (
+                      <div
+                        className="absolute inset-0 flex items-center justify-center text-center p-2"
+                        style={{ background: "rgba(168,93,58,0.85)", color: "var(--lux-bone)" }}
+                        title={photo.uploadError}
+                      >
+                        <span className="lux-eyebrow" style={{ fontSize: "0.65rem", letterSpacing: "0.18em" }}>
+                          UPLOAD FAILED · TAP X TO REMOVE
+                        </span>
+                      </div>
+                    )}
                     {/* Always-visible playback-order number — users need to
                         SEE the order their photos will play in. Previously
                         hidden, which made photographers re-upload in the

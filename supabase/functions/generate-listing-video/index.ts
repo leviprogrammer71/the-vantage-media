@@ -1814,13 +1814,28 @@ serve(async (req) => {
       const keywordFor = (id: string) => STAGING_STYLE_KEYWORDS[id] || id.replace(/_/g, " ")
       const keywordList = stylesArr.map(keywordFor)
 
+      // ── Room type + photo state (May 25, 2026) ──
+      // Per user direction: the chosen room word goes directly into the
+      // prompt (replacing the hardcoded "living room" in the template).
+      // If the photo isn't empty, prepend a "remove existing furniture"
+      // clause so Seedance fully replaces rather than layers on top.
+      const roomRaw: string = typeof body.staging_room_type === "string" && body.staging_room_type.trim()
+        ? body.staging_room_type.trim().toLowerCase()
+        : "living room"
+      // Sanitise to letters, spaces, hyphens — no prompt-injection.
+      const room = roomRaw.replace(/[^a-z\s-]/g, "").slice(0, 32) || "living room"
+      const isEmpty: boolean = body.staging_is_empty !== false // default true
+      const removePrefix = isEmpty
+        ? ""
+        : `remove the existing furniture and decor from the ${room}, then `
+
       // Builds the style-phrase the user wrote into their tests:
-      //   [s1]        → "into {s1} style living room"
+      //   [s1]        → "into {s1} style {room}"
       //   [s2]        → "then a {s2}"
       //   [s3], [s4]+ → "then a {sN} style"  /  "then {sN} style"
       // matching the cycle and cycle+return screenshots exactly.
       const styleClause = keywordList.map((k, i) => {
-        if (i === 0) return `into ${k} style living room`
+        if (i === 0) return `into ${k} style ${room}`
         if (i === 1) return `then a ${k}`
         return `then a ${k} style`
       }).join(", ")
@@ -1829,15 +1844,15 @@ serve(async (req) => {
       if (stagingMode === "single") {
         // Verbatim single-style variant of the user's template.
         fullTransformPrompt =
-          `redesign the living room furniture decor ${styleClause} while keeping the layout and the room intact only changing furnitures and furniture placements`
+          `${removePrefix}redesign the ${room} furniture decor ${styleClause} while keeping the layout and the room intact only changing furnitures and furniture placements`
       } else if (stagingMode === "cycle") {
         // Verbatim from the user's screenshot (typo "channge" preserved).
         fullTransformPrompt =
-          `redesign the living room furniture decor ${styleClause} while keeping the layout and the room intact only changing furnitures and furniture placements, smooth transition between changes furnitures spin to channge`
+          `${removePrefix}redesign the ${room} furniture decor ${styleClause} while keeping the layout and the room intact only changing furnitures and furniture placements, smooth transition between changes furnitures spin to channge`
       } else {
         // cycle_return — verbatim from the user's screenshot.
         fullTransformPrompt =
-          `begin with original then redesign the living room furniture decor ${styleClause}, then back to original image while keeping the layout and the room intact only changing furnitures and furniture placements, smooth transition between changes furnitures spin to channge`
+          `${removePrefix}begin with original then redesign the ${room} furniture decor ${styleClause}, then back to original image while keeping the layout and the room intact only changing furnitures and furniture placements, smooth transition between changes furnitures spin to channge`
       }
 
       // ── STATIC-CAMERA STAGING (May 16, 2026) ──
