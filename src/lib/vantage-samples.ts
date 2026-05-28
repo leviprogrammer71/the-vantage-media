@@ -80,13 +80,15 @@ export const VANTAGE_SAMPLES: VantageSample[] = [
 ];
 
 /**
- * The 6-photo Listing Bundle sample. Each entry is one source photo + its
- * 5-second cinematic clip. Wire these into a slider to demo the bundle flow.
+ * Done-For-You sample photos. (May 25, 2026 — repointed from the retired
+ * /vantage/listing-bundle folder to the house3 set used everywhere else.)
+ * The single finished reel is the luxury-minimal edit; per-clip delivery
+ * no longer exists.
  */
 export const VANTAGE_LISTING_BUNDLE = Array.from({ length: 6 }, (_, i) => ({
   index: i + 1,
-  photo: `/vantage/listing-bundle/${i + 1}.webp`,
-  clip: `/vantage/listing-bundle/${i + 1}.mp4`,
+  photo: `/vantage/done-for-you/house3/${i + 1}.png`,
+  clip: `/vantage/done-for-you/luxuryminimal.mp4`,
 }));
 
 /** Quick-access lookups */

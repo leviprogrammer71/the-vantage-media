@@ -122,12 +122,12 @@ const MetaLanding = () => {
                 <div className="lg:col-span-6">
                   <div className="grid grid-cols-3 gap-2">
                     {[
-                      { label: "STORY", poster: "/vantage/listing-bundle/1.webp" },
-                      { label: "REELS", poster: "/vantage/listing-bundle/2.webp" },
-                      { label: "FEED", poster: "/vantage/listing-bundle/3.webp" },
-                      { label: "DMs", poster: "/vantage/listing-bundle/4.webp" },
-                      { label: "FB FEED", poster: "/vantage/listing-bundle/5.webp" },
-                      { label: "MLS", poster: "/vantage/listing-bundle/6.webp" },
+                      { label: "STORY", poster: "/vantage/done-for-you/house3/1.png" },
+                      { label: "REELS", poster: "/vantage/done-for-you/house3/2.png" },
+                      { label: "FEED", poster: "/vantage/done-for-you/house3/3.png" },
+                      { label: "DMs", poster: "/vantage/done-for-you/house3/4.png" },
+                      { label: "FB FEED", poster: "/vantage/done-for-you/house3/5.png" },
+                      { label: "MLS", poster: "/vantage/done-for-you/house3/6.png" },
                     ].map((p, i) => (
                       <div
                         key={i}
@@ -263,7 +263,7 @@ const MetaLanding = () => {
                   >
                     <PreviewVideo
                       src="/vantage/done-for-you/result.mp4"
-                      poster="/vantage/listing-bundle/1.webp"
+                      poster="/vantage/done-for-you/house3/1.png"
                       alt="A real customer's Done-For-You listing reel"
                       containerClassName="absolute inset-0 w-full h-full"
                       className="absolute inset-0 w-full h-full object-cover"
@@ -372,12 +372,12 @@ const MetaLanding = () => {
                         style={{ aspectRatio: "3/4" }}
                       >
                         {[
-                          "/vantage/listing-bundle/1.webp",
-                          "/vantage/listing-bundle/2.webp",
-                          "/vantage/listing-bundle/3.webp",
-                          "/vantage/listing-bundle/4.webp",
-                          "/vantage/listing-bundle/5.webp",
-                          "/vantage/listing-bundle/6.webp",
+                          "/vantage/done-for-you/house3/1.png",
+                          "/vantage/done-for-you/house3/2.png",
+                          "/vantage/done-for-you/house3/3.png",
+                          "/vantage/done-for-you/house3/4.png",
+                          "/vantage/done-for-you/house3/5.png",
+                          "/vantage/done-for-you/house3/6.png",
                         ].map((src, i) => (
                           <div
                             key={i}

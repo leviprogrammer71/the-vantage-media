@@ -135,7 +135,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description: "What is a Done-For-You listing reel, when to use it, what it costs, and how the auto-stitch pipeline works. Plus the four style presets that determine the entire visual language.",
     publishedAt: "2026-05-06",
     readTime: 7,
-    cover: "/vantage/listing-bundle/1.webp",
+    cover: "/vantage/done-for-you/house3/1.png",
     coverVideo: "/trenton/321-e-drumont-final-cut.mp4",
     category: "DONE-FOR-YOU · STITCH",
     keywords: [
@@ -279,7 +279,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description: "What music actually retains viewers on listing reels. Genre matrix by property type. Plus 30 copy-paste Suno prompts grouped by reel style — luxury, cinema, snappy, minimal.",
     publishedAt: "2026-05-06",
     readTime: 6,
-    cover: "/vantage/listing-bundle/3.webp",
+    cover: "/vantage/done-for-you/house3/3.png",
     category: "MUSIC · LISTING REELS",
     keywords: [
       "music for real estate videos",

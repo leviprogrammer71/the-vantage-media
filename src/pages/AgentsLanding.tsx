@@ -17,7 +17,7 @@ const ax = {
   empty1: "/vantage/setup/before.webp",
   empty2: "/vantage/ranch-clean/before.webp",
   staged1: "/vantage/setup/after.jpeg",
-  staged2: "/vantage/listing-bundle/1.webp",
+  staged2: "/vantage/done-for-you/house3/1.png",
   exterior: "/vantage/backyard-slow-reveal/input.jpg",
 };
 

@@ -14,7 +14,7 @@ import { useSmartCTA } from "@/hooks/useSmartCTA";
 const bx = {
   hero: "/vantage/backyard-slow-reveal/input.jpg",
   emptyA: "/vantage/ranch-clean/before.webp",
-  stagedA: "/vantage/listing-bundle/2.webp",
+  stagedA: "/vantage/done-for-you/house3/2.png",
   emptyB: "/vantage/setup/before.webp",
   stagedB: "/vantage/setup/after.jpeg",
   pool: "/vantage/backyard-slow-reveal/input.jpg",

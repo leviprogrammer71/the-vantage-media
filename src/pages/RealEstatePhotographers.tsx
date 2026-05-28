@@ -20,11 +20,11 @@ const px = {
   empty2: "/vantage/ranch-clean/before.webp",
   empty3: "/vantage/backyard-slow-reveal/before.jpg",
   staged1: "/vantage/setup/after.jpeg",
-  staged2: "/vantage/listing-bundle/1.webp",
-  staged3: "/vantage/listing-bundle/2.webp",
+  staged2: "/vantage/done-for-you/house3/1.png",
+  staged3: "/vantage/done-for-you/house3/2.png",
   exterior: "/vantage/backyard-slow-reveal/input.jpg",
   studio: "/vantage/ranch-clean/input.png",
-  bedroom: "/vantage/listing-bundle/3.webp",
+  bedroom: "/vantage/done-for-you/house3/3.png",
 };
 
 const RealEstatePhotographers = () => {
@@ -239,7 +239,7 @@ const RealEstatePhotographers = () => {
                   { src: "/vantage/ranch-build/result.mp4", poster: "/vantage/ranch-build/input.png", fallback: "/vantage/ranch-build/input.png", label: "The Beacon Residence", byline: "ATWOOD STUDIO · BOSTON" },
                   { src: "/vantage/sketch/result.mp4", poster: "/vantage/sketch/original.webp", fallback: "/vantage/sketch/original.webp", label: "Olive & 14th — Sketch Reveal", byline: "MERIDIAN · LOS ANGELES" },
                   { src: "/vantage/backyard-slow-reveal/result.mp4", poster: "/vantage/backyard-slow-reveal/input.jpg", fallback: "/vantage/backyard-slow-reveal/input.jpg", label: "Cedar Crest Estate", byline: "VANTAGE STUDIO · NORTHEAST" },
-                  { src: "/vantage/just-listed/video.mp4", poster: "/vantage/listing-bundle/1.webp", fallback: "/vantage/listing-bundle/1.webp", label: "Open House — Just Listed", byline: "MASS. · BADGE OVERLAY" },
+                  { src: "/vantage/just-listed/video.mp4", poster: "/vantage/done-for-you/house3/1.png", fallback: "/vantage/done-for-you/house3/1.png", label: "Open House — Just Listed", byline: "MASS. · BADGE OVERLAY" },
                 ]}
               />
             </div>

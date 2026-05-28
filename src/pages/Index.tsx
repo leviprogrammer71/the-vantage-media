@@ -26,13 +26,13 @@ const ux = {
   exterior2: "/vantage/backyard-slow-reveal/input.jpg",
   empty1: "/vantage/setup/before.webp",
   empty2: "/vantage/ranch-clean/before.webp",
-  kitchen1: "/vantage/listing-bundle/1.webp",
-  kitchen2: "/vantage/listing-bundle/2.webp",
-  bathroom: "/vantage/listing-bundle/3.webp",
+  kitchen1: "/vantage/done-for-you/house3/1.png",
+  kitchen2: "/vantage/done-for-you/house3/2.png",
+  bathroom: "/vantage/done-for-you/house3/3.png",
   bathroomBefore: "/vantage/backyard-slow-reveal/before.jpg",
-  livingRoom: "/vantage/listing-bundle/4.webp",
-  living2: "/vantage/listing-bundle/5.webp",
-  bedroom: "/vantage/listing-bundle/6.webp",
+  livingRoom: "/vantage/done-for-you/house3/4.png",
+  living2: "/vantage/done-for-you/house3/5.png",
+  bedroom: "/vantage/done-for-you/house3/6.png",
   studio1: "/vantage/setup/after.jpeg",
   studio2: "/vantage/ranch-clean/input.png",
 };
@@ -692,20 +692,23 @@ const Index = () => {
                   { src: "/vantage/setup/video.mp4", poster: "/vantage/setup/after.jpeg", fallback: "/vantage/setup/after.jpeg", label: "Event Setup", byline: "VENUE · DRESSED FROM EMPTY" },
                   { src: "/vantage/sketch/result.mp4", poster: "/vantage/sketch/original.webp", fallback: "/vantage/sketch/original.webp", label: "Sketch to Reality", byline: "PROPERTY PHOTO · HAND-DRAWN REVEAL" },
                   { src: "/vantage/airbnb/transform-1.mp4", poster: "/vantage/airbnb/hero-still.jpg", fallback: "/vantage/airbnb/hero-still.jpg", label: "Short-Term Rental", byline: "AIRBNB · BOOKING-OPTIMISED" },
-                  { src: "/vantage/just-listed/video.mp4", poster: "/vantage/listing-bundle/1.webp", fallback: "/vantage/listing-bundle/1.webp", label: "Just Listed", byline: "LISTING · BADGE OVERLAY" },
+                  { src: "/vantage/just-listed/video.mp4", poster: "/vantage/done-for-you/house3/1.png", fallback: "/vantage/done-for-you/house3/1.png", label: "Just Listed", byline: "LISTING · BADGE OVERLAY" },
                 ]}
               />
             </div>
           </section>
 
-          {/* THE LISTING BUNDLE — six photos, six clips, one stitched reel */}
+          {/* THE DONE-FOR-YOU REEL — photos in, one finished reel out.
+              (May 25, 2026 — replaced the retired "Listing Bundle" section.
+              We no longer ship per-clip bundles; Done-For-You renders the
+              whole reel in one Seedance 2.0 pass.) */}
           <section className="lux-section lux-bg-bone">
             <div className="lux-container">
               <SectionHeading
-                eyebrow="THE LISTING BUNDLE · WHAT YOU GET"
-                title="Six photos in."
-                italic="One stitched reel out."
-                lede="Each photo becomes a 5-second Seedance 2.0 clip with a different camera move. We hand back the individual clips AND the stitched MP4 with your price burned in."
+                eyebrow="THE DONE-FOR-YOU REEL · WHAT YOU GET"
+                title="Your photos in."
+                italic="One finished reel out."
+                lede="Upload 3–6 photos in the order you want them to play. Seedance 2.0 renders the whole reel in one pass — Snappy, Fast Cuts, Creative, or Luxury Minimal — with native audio. No stitching, no editor."
                 align="center"
                 className="mb-12"
               />
@@ -717,7 +720,7 @@ const Index = () => {
                     style={{ aspectRatio: "9/16", background: "var(--lux-ink)", border: "1px solid var(--lux-hairline)" }}
                   >
                     <img
-                      src={`/vantage/listing-bundle/${i}.webp`}
+                      src={`/vantage/done-for-you/house3/${i}.png`}
                       alt={`Source photo ${i}`}
                       className="absolute inset-0 w-full h-full object-cover"
                       loading="lazy"
@@ -731,13 +734,13 @@ const Index = () => {
                         backdropFilter: "blur(6px)",
                       }}
                     >
-                      CLIP {i} / 6
+                      PHOTO {i}
                     </div>
                   </div>
                 ))}
               </div>
               <p className="text-center mt-8 lux-prose" style={{ color: "var(--lux-ink)", maxWidth: 640, marginInline: "auto" }}>
-                Real bundle output. Six 5-second cinematic clips, one source photo each, different shot type per clip. Stitched together into a single 30-second reel ready for Reels and TikTok.
+                The order you upload is the order they play. One 15-second cinematic reel, 1080p vertical, audio included — ready for Reels and TikTok the night you list.
               </p>
             </div>
           </section>

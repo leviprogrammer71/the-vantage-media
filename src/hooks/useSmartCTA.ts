@@ -18,7 +18,6 @@ import { useAuth } from "@/contexts/AuthContext";
  */
 export type ListingCategoryDeepLink =
   | "done_for_you_reel"
-  | "listing_bundle"
   | "animate_single"
   | "sun_to_sun"
   | "virtual_staging"
@@ -28,7 +27,7 @@ export type CtaAudience =
   | "default"      // listing → Done-For-You Reel
   | "contractor"   // industry / construction → transform
   | "agent"        // agent landing → Done-For-You Reel
-  | "photographer" // photographer landing → Listing Bundle
+  | "photographer" // photographer landing → Done-For-You Reel
   | "airbnb";      // Airbnb landing → Done-For-You Reel
 
 const buildListingPath = (category?: ListingCategoryDeepLink) =>
@@ -48,7 +47,7 @@ export const useSmartCTA = (audience: CtaAudience = "default") => {
   // everyone else lands on the Done-For-You Reel — our flagship sell.
   const audiencePath = (() => {
     if (audience === "contractor") return buildTransformPath();
-    if (audience === "photographer") return buildListingPath("listing_bundle");
+    if (audience === "photographer") return buildListingPath("done_for_you_reel");
     return buildListingPath("done_for_you_reel");
   })();
 
