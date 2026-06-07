@@ -57,6 +57,31 @@ export default function VideoPage() {
     }
   }, [user, authLoading, navigate]);
 
+  // ── June 6, 2026 — sync mode from the URL on client-side navigation ──
+  // Bug fix: the Animate Single picker (rendered inside ListingVideoFlow
+  // while videoMode="listing") navigates to /video?mode=transform|setup|
+  // cleanup. That changes the query string but does NOT remount this page,
+  // so the useState initializers above never re-run and videoMode stayed
+  // "listing" — clicking "Transformation/Setup/Cleanup" appeared to do
+  // nothing. This effect re-reads ?mode= on every searchParams change and
+  // updates both videoMode and transformationCategory accordingly.
+  useEffect(() => {
+    const mode = searchParams.get("mode");
+    if (mode === "transform") {
+      setVideoMode("transform");
+      setTransformationCategory("construction");
+    } else if (mode === "setup") {
+      setVideoMode("setup");
+      setTransformationCategory("setup");
+    } else if (mode === "cleanup") {
+      setVideoMode("cleanup");
+      setTransformationCategory("cleanup");
+    } else if (mode === "listing" || mode === null) {
+      setVideoMode("listing");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background" role="status" aria-live="polite" aria-label="Loading">

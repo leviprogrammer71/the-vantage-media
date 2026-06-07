@@ -358,65 +358,52 @@ export function TransformationFlow({ transformationCategory }: { transformationC
       const submissionId = submission.id;
 
       let videoPrompt: string;
-      let finalBeforeUrl: string;
+      let finalBeforeUrl: string | undefined;
 
+      // ── May 25, 2026 — SINGLE-IMAGE SEEDANCE PATH ──
+      // build/cleanup/setup now run as a single-image Seedance 2.0
+      // generation (the user's verified Replicate approach). We skip the
+      // fragile analyze-submission before-image generation entirely: just
+      // fetch the verbatim timelapse prompt and send the ONE uploaded
+      // photo. generate-transformation-video routes to Seedance when no
+      // before image is present. This is faster (one call, not three) and
+      // far more reliable than the gpt-image-2-before + Kling-morph path.
       if (beforeMode === "ai") {
-        // Path 1: AI generates before image
         setCurrentStep(1);
+        setCompletedSteps((prev) => [...prev, 1]);
+        setCurrentStep(2);
+        setCompletedSteps((prev) => [...prev, 2]);
+        setCurrentStep(3);
 
-        const { data: analyzeData, error: analyzeError } = await supabase.functions.invoke(
-          "analyze-submission",
+        const { data: promptData, error: promptError } = await supabase.functions.invoke(
+          "build-video-prompt",
           {
             body: {
-              after_photo_url: afterImageUrl,
+              after_image_url: afterImageUrl,
               transformation_type: transformationType,
               transformation_category: transformationCategory,
-              build_type: buildType,
               motion_style: motionStyle,
               description,
-              generate_before: true,
-              submission_id: submissionId,
             },
           }
         );
-
-        if (analyzeError) {
-          // Unwrap real error body from Supabase FunctionsHttpError
-          let detail = analyzeError.message;
+        if (promptError) {
+          let detail = promptError.message;
           try {
-            const ctx = (analyzeError as any).context;
+            const ctx = (promptError as any).context;
             if (ctx && typeof ctx.json === "function") {
               const body = await ctx.json();
-              if (body?.error) detail = `analyze-submission: ${body.error}`;
-            } else if (ctx && typeof ctx.text === "function") {
-              const txt = await ctx.text();
-              if (txt) detail = `analyze-submission: ${txt}`;
+              if (body?.error) detail = `build-video-prompt: ${body.error}`;
             }
           } catch (_) {}
-          console.error("analyze-submission error:", detail, analyzeError);
           throw new Error(detail);
         }
-        if (!analyzeData?.before_image_url && !analyzeData?.before_image_path) {
-          throw new Error("Analysis failed — missing data");
-        }
-        if (!analyzeData?.video_prompt) {
-          throw new Error("Analysis failed — missing video prompt");
-        }
-
-        setCompletedSteps((prev) => [...prev, 1]);
-
-        // Step 2: Before image generated
-        setCurrentStep(2);
-        finalBeforeUrl = analyzeData.before_image_url;
-        setGeneratedBeforeUrl(finalBeforeUrl);
-        setCompletedSteps((prev) => [...prev, 2]);
-
-        // Step 3: Prompt written
-        setCurrentStep(3);
-        videoPrompt = analyzeData.video_prompt;
+        videoPrompt = promptData?.video_prompt || "";
+        if (!videoPrompt) throw new Error("Failed to generate video prompt");
+        finalBeforeUrl = undefined; // single-image path — no before
         setCompletedSteps((prev) => [...prev, 3]);
       } else {
-        // Path 2: User uploaded before
+        // Path 2: User uploaded their own before image → before→after morph.
         setCurrentStep(1);
         setCompletedSteps((prev) => [...prev, 1]);
 
@@ -659,10 +646,10 @@ export function TransformationFlow({ transformationCategory }: { transformationC
         </span>
         <div>
           <div className="lux-eyebrow" style={{ color: "var(--lux-ink)" }}>
-            {transformationCategory === "construction" ? "CONSTRUCTION TRANSFORMATION" : transformationCategory === "cleanup" ? "CLEANUP TRANSFORMATION" : "SETUP TRANSFORMATION"}
+            {transformationCategory === "construction" ? "BEFORE & AFTER REVEAL" : transformationCategory === "cleanup" ? "CLEANUP REVEAL" : "SETUP REVEAL"}
           </div>
           <div className="lux-prose text-[10px]" style={{ color: "var(--lux-ash)" }}>
-            {transformationCategory === "construction" ? "We'll reconstruct the before build state" : transformationCategory === "cleanup" ? "We'll generate the cluttered before state" : "We'll generate the empty before state"}
+            {transformationCategory === "construction" ? "We'll animate the build reveal from your photo" : transformationCategory === "cleanup" ? "We'll animate the cleanup reveal from your photo" : "We'll animate the setup reveal from your photo"}
           </div>
         </div>
       </div>

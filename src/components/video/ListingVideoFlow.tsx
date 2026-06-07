@@ -988,9 +988,9 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
       },
       {
         id: "transformation",
-        title: "Transformation",
-        eyebrow: "BEFORE → AFTER · KITCHEN, EXTERIOR, FULL BUILD",
-        description: "Upload the raw before and the finished after of any project — kitchen remodel, full build, exterior renovation, landscaping. We animate the morph.",
+        title: "Before & After Reveal",
+        eyebrow: "RENOVATION · KITCHEN, EXTERIOR, FULL BUILD",
+        description: "Upload the raw before and the finished after of any project — kitchen remodel, full build, exterior renovation, landscaping. We animate the reveal from old to new.",
         details: "5–10s · From 12 credits",
         previewUrl: "/vantage/build/result.mp4",
         action: () => navigate("/video?mode=transform"),

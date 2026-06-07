@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import LazyVideo from "@/components/lux/LazyVideo";
 
 /**
  * VirtualStagingShowcase — landing-page section that demonstrates the
@@ -74,14 +75,9 @@ export default function VirtualStagingShowcase({
               border: "1px solid var(--lux-hairline-strong)",
             }}
           >
-            <video
+            <LazyVideo
               src="/vantage/virtual-staging/result.mp4"
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full"
             />
           </div>
           <div

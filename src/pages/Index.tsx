@@ -13,6 +13,7 @@ import PreviewVideo from "@/components/lux/PreviewVideo";
 import ROICalculator from "@/components/lux/ROICalculator";
 import SectionHeading from "@/components/lux/SectionHeading";
 import VirtualStagingShowcase from "@/components/lux/VirtualStagingShowcase";
+import LazyVideo from "@/components/lux/LazyVideo";
 import OAuthReturnHandler from "@/components/OAuthReturnHandler";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
 import { useUtmCapture } from "@/hooks/useUtmCapture";
@@ -230,15 +231,7 @@ const Index = () => {
                         className="relative overflow-hidden"
                         style={{ aspectRatio: "9/16", background: "var(--lux-ink)", border: "1px solid rgba(244,239,230,0.12)" }}
                       >
-                        <video
-                          src={v.src}
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                          preload="metadata"
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
+                        <LazyVideo src={v.src} className="absolute inset-0 w-full h-full" />
                         <span
                           className="lux-eyebrow absolute bottom-1 left-1 px-1.5 py-0.5"
                           style={{
@@ -247,6 +240,7 @@ const Index = () => {
                             fontSize: "0.5rem",
                             letterSpacing: "0.18em",
                             backdropFilter: "blur(4px)",
+                            zIndex: 2,
                           }}
                         >
                           {v.label}

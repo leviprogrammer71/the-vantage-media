@@ -40,6 +40,14 @@ const corsHeaders = {
 
 const REPLICATE = "https://api.replicate.com/v1"
 const MODEL_KLING = "kwaivgi/kling-v2.5-turbo-pro"
+// ── May 25, 2026 — Seedance 2.0 single-image transformation path ──
+// build/cleanup/setup are far more reliable as a single-image Seedance 2.0
+// generation (the user's verified Replicate approach) than the old
+// gpt-image-2-before + Kling-morph pipeline, which depended on a fragile
+// before-image generation step that frequently failed. When the request
+// has no "before" image we send the uploaded photo as a reference image
+// to Seedance 2.0 and let the verbatim timelapse prompt drive the morph.
+const MODEL_SEEDANCE_V2 = "bytedance/seedance-2.0"
 
 // ── Shot-type → motion hint ──
 // Short prompts only. May 23, 2026 — user directive: "simple, no negatives".
@@ -242,8 +250,64 @@ serve(async (req) => {
       afterUrl = afterSigned?.signedUrl
     }
 
-    if (!beforeUrl) throw new Error("before image URL required")
-    if (!afterUrl) throw new Error("after image URL required (Kling needs both endpoints)")
+    if (!afterUrl) throw new Error("after image URL required")
+
+    // ── SINGLE-IMAGE SEEDANCE 2.0 PATH (May 25, 2026) ──
+    // No "before" image → use the user's verified single-image approach:
+    // send the uploaded photo as a Seedance 2.0 reference image with the
+    // verbatim timelapse prompt. One API call, no fragile before-gen.
+    if (!beforeUrl) {
+      // WebP guard — Seedance rejects webp inputs too.
+      try {
+        const head = await fetch(afterUrl, { method: "HEAD" })
+        const ct = (head.headers.get("content-type") || "").toLowerCase()
+        if (ct.includes("webp")) {
+          throw new Error("The photo is in WebP format, which video models don't support. Re-upload it as JPEG or PNG.")
+        }
+      } catch (e) {
+        if (e instanceof Error && e.message.includes("WebP")) throw e
+      }
+
+      const rawDur = typeof duration === "string" ? parseInt(duration, 10) : (duration || 10)
+      const seedanceDuration = rawDur >= 15 ? 15 : (rawDur >= 10 ? 10 : 5)
+
+      console.log(`[generate-transformation-video] SINGLE-IMAGE seedance-2.0 duration=${seedanceDuration}s`)
+      const sres = await fetch(`${REPLICATE}/models/${MODEL_SEEDANCE_V2}/predictions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${Deno.env.get("REPLICATE_API_TOKEN")}`,
+          "Content-Type": "application/json",
+          Prefer: "wait=60",
+        },
+        body: JSON.stringify({
+          input: {
+            prompt: userPrompt,
+            reference_images: [afterUrl],
+            duration: seedanceDuration,
+            aspect_ratio: aspect_ratio || "9:16",
+            resolution: "720p",
+            fps: 24,
+          },
+        }),
+      })
+      const sprediction = await sres.json()
+      if (!sres.ok || !sprediction.id) {
+        const detail = sprediction?.detail || sprediction?.error?.message || JSON.stringify(sprediction).slice(0, 400)
+        console.error(`[generate-transformation-video] seedance-2.0 rejected HTTP ${sres.status}: ${detail}`)
+        throw new Error(`Seedance 2.0 rejected the request (HTTP ${sres.status}): ${detail}`)
+      }
+      if (sprediction.status === "succeeded" && sprediction.output) {
+        const result = await handleCompleted(supabase, sprediction, submission_id || null)
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
+      }
+      // Async — return prediction id for client polling (same shape as Kling path)
+      return new Response(
+        JSON.stringify({ status: "processing", prediction_id: sprediction.id, submission_id: submission_id || null }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      )
+    }
 
     // WebP guard — Kling rejects webp inputs with a cryptic error.
     for (const [label, url] of [["before", beforeUrl], ["after", afterUrl]] as const) {

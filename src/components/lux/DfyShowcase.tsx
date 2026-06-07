@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import LazyVideo from "@/components/lux/LazyVideo";
 
 /**
  * DfyShowcase — landing-page section that shows the Done-For-You story
@@ -152,14 +153,9 @@ export default function DfyShowcase({
                 border: "1px solid var(--lux-hairline-strong)",
               }}
             >
-              <video
+              <LazyVideo
                 src={`/vantage/done-for-you/${editStyle}.mp4`}
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full"
               />
             </div>
             <div className="mt-4 text-sm" style={{ color: "var(--lux-ash)" }}>

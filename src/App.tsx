@@ -13,13 +13,16 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SkipToContent } from "@/components/SkipToContent";
 import { Loader2 } from "lucide-react";
 
-// Eager-load homepage
+// Eager-load only the homepage + auth — the two highest-traffic entry
+// points. Everything else is code-split so the initial bundle stays small.
+// (May 25, 2026 — moved Blog + BlogPost to lazy; they were padding the
+// main chunk for no reason since most sessions never hit /blog.)
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import Blog from "./pages/Blog";
-import BlogPost from "./pages/BlogPost";
 
 // Lazy-load secondary pages
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
 const Generate = lazy(() => import("./pages/Generate"));
 const Gallery = lazy(() => import("./pages/Gallery"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
