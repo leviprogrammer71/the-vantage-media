@@ -41,6 +41,76 @@ const Auth = () => {
   const [resetEmail, setResetEmail] = useState("");
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
+  // ── Invite code (June 6, 2026) — private access gate ──
+  // A valid code is required to CREATE a new account. The code is validated
+  // against check_invite_code, stashed in localStorage, then redeemed by
+  // AuthContext once the user is signed in (covers email + Google + delayed
+  // email-confirmation). Returning users logging in don't need a code.
+  const [inviteCode, setInviteCode] = useState("");
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestEmail, setRequestEmail] = useState("");
+  const [requestName, setRequestName] = useState("");
+  const [isRequesting, setIsRequesting] = useState(false);
+
+  // Validate a code via the anon RPC. Returns true if usable; toasts on failure.
+  const validateInviteCode = async (code: string): Promise<boolean> => {
+    const trimmed = code.trim();
+    if (!trimmed) {
+      toast.error("An invite code is required to create an account.");
+      setShowRequestForm(true);
+      return false;
+    }
+    try {
+      const { data, error } = await supabase.rpc("check_invite_code", { p_code: trimmed });
+      const res = data as { valid?: boolean; reason?: string } | null;
+      if (error || !res?.valid) {
+        const reason = res?.reason;
+        toast.error(
+          reason === "exhausted"
+            ? "That code has reached its limit. Request a fresh one below."
+            : "That invite code isn't valid. Double-check it or request one below."
+        );
+        setShowRequestForm(true);
+        return false;
+      }
+      // Stash for AuthContext to redeem post-sign-in.
+      localStorage.setItem("pending_invite_code", trimmed.toUpperCase());
+      return true;
+    } catch {
+      toast.error("Couldn't verify the code. Please try again.");
+      return false;
+    }
+  };
+
+  const handleRequestCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      emailSchema.parse(requestEmail);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        toast.error(validationError.errors[0].message);
+        return;
+      }
+    }
+    setIsRequesting(true);
+    try {
+      await supabase.rpc("request_invite_code", {
+        p_email: requestEmail,
+        p_name: requestName || null,
+        p_note: null,
+        p_source: "auth_page",
+      });
+      toast.success("Got it — we'll send you a code shortly. Check your email.");
+      setRequestEmail("");
+      setRequestName("");
+      setShowRequestForm(false);
+    } catch {
+      toast.error("Couldn't submit your request. Please try again.");
+    } finally {
+      setIsRequesting(false);
+    }
+  };
+
   // Safely read a returnUrl: must be same-origin path (starts with /) — guards against open-redirects
   const rawReturn = searchParams.get("returnUrl") || searchParams.get("redirect") || "";
   // Default post-auth destination is the Done-For-You Reel — our flagship sell.
@@ -64,6 +134,14 @@ const Auth = () => {
   }, [user, loading, navigate, returnUrl]);
 
   const handleGoogleSignIn = async () => {
+    // June 6, 2026 — if an invite code is entered, validate + stash it so
+    // AuthContext redeems it after the OAuth round-trip. We don't hard-block
+    // Google with no code (returning users must still log in), but new
+    // visitors are steered to enter their code via the field + helper copy.
+    if (inviteCode.trim()) {
+      const ok = await validateInviteCode(inviteCode);
+      if (!ok) return;
+    }
     setIsGoogleLoading(true);
     const { error } = await signInWithGoogle(returnUrl);
     setIsGoogleLoading(false);
@@ -114,6 +192,9 @@ const Auth = () => {
     // Mobile signups (TikTok-sourced) abandoned at 22% on this field alone.
     // We still keep the state var so any callers that read it don't break.
     void signupConfirmPassword;
+    // June 6, 2026 — invite-only gate: a valid code is required to sign up.
+    const codeOk = await validateInviteCode(inviteCode);
+    if (!codeOk) return;
     setIsSubmitting(true);
     const { error } = await signUp(signupEmail, signupPassword, signupName);
     setIsSubmitting(false);
@@ -194,6 +275,56 @@ const Auth = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* ── Invite code (June 6, 2026) — private access ──
+                  The Vantage is invite-only. A valid code unlocks signup and
+                  applies any creator/campaign bonus credits. Returning users
+                  logging in can leave this blank. */}
+              <div className="mb-5 p-3 rounded-lg border border-primary/30 bg-primary/5">
+                <Label htmlFor="invite-code" className="text-sm font-medium flex items-center gap-2">
+                  <Gift className="h-4 w-4 text-primary" /> Invite code
+                </Label>
+                <Input
+                  id="invite-code"
+                  type="text"
+                  placeholder="Enter your access code"
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                  autoCapitalize="characters"
+                  className="mt-2 tracking-widest font-medium"
+                />
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs text-muted-foreground">Required for new accounts.</span>
+                  <button
+                    type="button"
+                    className="text-xs text-primary hover:underline"
+                    onClick={() => setShowRequestForm((s) => !s)}
+                  >
+                    Don't have one? Request a code →
+                  </button>
+                </div>
+
+                {showRequestForm && (
+                  <form onSubmit={handleRequestCode} className="mt-3 space-y-2 border-t border-primary/20 pt-3">
+                    <Input
+                      type="text"
+                      placeholder="Your name (optional)"
+                      value={requestName}
+                      onChange={(e) => setRequestName(e.target.value)}
+                    />
+                    <Input
+                      type="email"
+                      placeholder="you@example.com"
+                      value={requestEmail}
+                      onChange={(e) => setRequestEmail(e.target.value)}
+                      required
+                    />
+                    <Button type="submit" variant="secondary" className="w-full" disabled={isRequesting}>
+                      {isRequesting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Requesting…</> : "Request an invite code"}
+                    </Button>
+                  </form>
+                )}
+              </div>
+
               {/* Primary Google sign-in — large, prominent, no competing surfaces */}
               <Button
                 type="button"

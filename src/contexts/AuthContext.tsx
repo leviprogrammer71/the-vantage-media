@@ -33,6 +33,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (err) {
         console.warn("[AuthContext] ensure_profile_exists failed (non-fatal):", err);
       }
+      // ── Invite-code redemption (June 6, 2026) ──
+      // The signup form stashes a validated code in localStorage; we redeem
+      // it here, after the profile exists, so it works uniformly across
+      // email signup, Google OAuth, and email-confirmation-delayed flows.
+      // redeem_invite_code is idempotent (one code per user) so re-running
+      // on every login is safe.
+      try {
+        const pending = localStorage.getItem("pending_invite_code");
+        if (pending) {
+          const { data } = await supabase.rpc("redeem_invite_code", { p_code: pending });
+          localStorage.removeItem("pending_invite_code");
+          const bonus = (data as { bonus_credits?: number } | null)?.bonus_credits ?? 0;
+          if (bonus > 0) {
+            // Soft toast — non-blocking. Imported lazily to avoid a hard dep here.
+            import("sonner").then(({ toast }) =>
+              toast.success(`Invite code applied — +${bonus} bonus credits added.`)
+            ).catch(() => {});
+          }
+        }
+      } catch (err) {
+        console.warn("[AuthContext] redeem_invite_code failed (non-fatal):", err);
+        localStorage.removeItem("pending_invite_code");
+      }
     };
 
     // Set up auth state listener FIRST
