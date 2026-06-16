@@ -1,31 +1,35 @@
 import { useState, useEffect } from "react";
-import { Check, Loader2 } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { Check } from "lucide-react";
 
 interface TransformationProcessingProps {
-  currentStep: number;
-  completedSteps: number[];
-  showBeforeStep: boolean;
+  /** Step-list mode (transform/setup/cleanup flow). */
+  currentStep?: number;
+  completedSteps?: number[];
+  showBeforeStep?: boolean;
+  /** Simple-message mode (listing flow): just a centered loader + this label. */
+  message?: string;
 }
 
 const allSteps = [
-  { num: 1, label: "Analyzing your after photo..." },
-  { num: 2, label: "Generating before state..." },
-  { num: 3, label: "Writing video prompt..." },
-  { num: 4, label: "Generating your video..." },
+  { num: 1, label: "Reading your photo" },
+  { num: 2, label: "Composing the before state" },
+  { num: 3, label: "Writing the film prompt" },
+  { num: 4, label: "Rendering your film" },
   { num: 5, label: "Complete" },
 ];
 
+/**
+ * Luxury-system render/processing screen. Two modes:
+ *   • step-list — pass currentStep + completedSteps (+ showBeforeStep)
+ *   • message   — pass `message` for a simple centered loader
+ * Bone canvas, champagne ring spinner, Playfair heading, Space-Mono status.
+ */
 export function TransformationProcessing({
   currentStep,
-  completedSteps,
-  showBeforeStep,
+  completedSteps = [],
+  showBeforeStep = false,
+  message,
 }: TransformationProcessingProps) {
-  const steps = showBeforeStep
-    ? allSteps
-    : allSteps.filter((s) => s.num !== 2);
-
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -37,61 +41,119 @@ export function TransformationProcessing({
   const seconds = elapsed % 60;
   const timeStr = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 
+  // The champagne ring spinner, shared by both modes.
+  const Spinner = ({ size = 56 }: { size?: number }) => (
+    <div
+      className="lux-spin mx-auto"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        border: "2px solid var(--lux-hairline-strong)",
+        borderTopColor: "var(--lux-rust)",
+      }}
+    />
+  );
+
+  // ── Simple message mode ──
+  if (message && currentStep === undefined) {
+    return (
+      <div className="lux-bg-bone min-h-[70vh] flex flex-col items-center justify-center px-6 text-center" style={{ color: "var(--lux-ink)" }}>
+        <Spinner />
+        <div className="lux-eyebrow mt-8" style={{ color: "var(--lux-rust)" }}>
+          ✦ RENDERING · {timeStr}
+        </div>
+        <h2 className="lux-display mt-4" style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)" }}>
+          {message}
+        </h2>
+        <p className="lux-prose mt-4" style={{ maxWidth: 420 }}>
+          About three minutes, rendered at 1080p. You can leave this page — your film lands in your gallery when it's done.
+        </p>
+        <div className="lux-eyebrow mt-8" style={{ color: "var(--lux-brass)", opacity: 0.7 }}>
+          THE VANTAGE · SEEDANCE 2.0
+        </div>
+      </div>
+    );
+  }
+
+  // ── Step-list mode ──
+  const steps = showBeforeStep ? allSteps : allSteps.filter((s) => s.num !== 2);
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-      <Card className="w-full max-w-sm p-6 space-y-6">
-        <div className="space-y-4">
+    <div className="lux-bg-bone min-h-[70vh] flex flex-col items-center justify-center px-6" style={{ color: "var(--lux-ink)" }}>
+      <div
+        className="w-full max-w-md p-8 lux-bg-cream"
+        style={{ border: "1px solid var(--lux-hairline-strong)" }}
+      >
+        <div className="lux-eyebrow mb-6" style={{ color: "var(--lux-rust)" }}>
+          ✦ COMPOSING YOUR FILM
+        </div>
+
+        <div className="space-y-5">
           {steps.map((step) => {
             const isCompleted = completedSteps.includes(step.num);
             const isActive = currentStep === step.num;
             return (
-              <div key={step.num} className="flex items-center gap-3">
+              <div key={step.num} className="flex items-center gap-4">
                 <div
-                  className={cn(
-                    "h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all",
-                    isCompleted
-                      ? "bg-primary text-primary-foreground"
+                  className="flex items-center justify-center flex-shrink-0"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    background: isCompleted ? "var(--lux-ink)" : "transparent",
+                    border: isCompleted
+                      ? "1px solid var(--lux-ink)"
                       : isActive
-                      ? "border-2 border-primary bg-primary/10"
-                      : "border-2 border-border bg-muted/30"
-                  )}
+                        ? "1px solid var(--lux-rust)"
+                        : "1px solid var(--lux-hairline-strong)",
+                    color: isCompleted ? "var(--lux-bone)" : "var(--lux-ink)",
+                  }}
                 >
                   {isCompleted ? (
-                    <Check className="h-4 w-4" />
+                    <Check className="h-3.5 w-3.5" />
                   ) : isActive ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span
+                      className="lux-spin"
+                      style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: "50%",
+                        border: "2px solid var(--lux-hairline-strong)",
+                        borderTopColor: "var(--lux-rust)",
+                      }}
+                    />
                   ) : (
-                    <span className="text-xs text-muted-foreground">{step.num}</span>
+                    <span className="lux-eyebrow" style={{ color: "var(--lux-ash)", fontSize: 10 }}>{step.num}</span>
                   )}
                 </div>
                 <span
-                  className={cn(
-                    "text-sm transition-all",
-                    isCompleted ? "text-foreground font-medium" : isActive ? "text-foreground animate-pulse" : "text-muted-foreground"
-                  )}
+                  className="lux-prose"
+                  style={{
+                    fontSize: "0.95rem",
+                    color: isCompleted || isActive ? "var(--lux-ink)" : "var(--lux-ash)",
+                    fontWeight: isActive ? 500 : 400,
+                  }}
                 >
-                  {isCompleted && step.num === 5 ? "✓ Complete" : step.label}
+                  {step.label}
                 </span>
               </div>
             );
           })}
         </div>
 
-        <div className="text-center space-y-3 pt-2">
-          <p className="text-2xl font-mono text-primary font-bold tracking-wider">
+        <div className="mt-8 pt-6 text-center" style={{ borderTop: "1px solid var(--lux-hairline)" }}>
+          <div className="lux-display" style={{ fontSize: "2.2rem", lineHeight: 1, color: "var(--lux-ink)" }}>
             {timeStr}
+          </div>
+          <p className="lux-prose mt-3" style={{ fontSize: "0.85rem" }}>
+            About three minutes, rendered at 1080p. You can leave this page — your film saves to your gallery when complete.
           </p>
-          <p className="text-sm text-muted-foreground">
-            This takes 3-5 minutes. Your video is being rendered at 1080p.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            You can leave this page — your video will be saved to your gallery when complete.
-          </p>
-          <p className="text-xs font-mono text-primary">
-            POWERED BY SEEDANCE 1.5 PRO
-          </p>
+          <div className="lux-eyebrow mt-5" style={{ color: "var(--lux-brass)", opacity: 0.7 }}>
+            THE VANTAGE · SEEDANCE 2.0
+          </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

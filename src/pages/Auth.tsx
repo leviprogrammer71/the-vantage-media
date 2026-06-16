@@ -1,36 +1,39 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Gift } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Helmet } from "react-helmet-async";
-import logo from "@/assets/logo.png";
 import { supabase } from "@/integrations/supabase/client";
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
 const nameSchema = z.string().min(1, "Name is required");
 
+// Shared input styling so every field matches the luxury system.
+const luxInput: React.CSSProperties = {
+  width: "100%",
+  padding: "13px 16px",
+  background: "var(--lux-bone)",
+  border: "1px solid var(--lux-hairline-strong)",
+  color: "var(--lux-ink)",
+  fontFamily: "Inter, sans-serif",
+  fontSize: "0.95rem",
+  outline: "none",
+};
+const luxLabel = "lux-eyebrow block mb-2";
+
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, loading, signIn, signUp, signInWithGoogle } = useAuth();
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("login");
-  // CRO P0 #4 — Hide the email form behind a toggle so the visual focus is
-  // on the single Continue-with-Google button. ~70% of real estate users
-  // sign in with Google; surfacing email tabs upfront adds choice paralysis
-  // and ~10-15% drop-off. Email is one click away when wanted.
+  const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
   const [showEmailForm, setShowEmailForm] = useState(false);
-  
+
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [signupName, setSignupName] = useState("");
@@ -41,18 +44,27 @@ const Auth = () => {
   const [resetEmail, setResetEmail] = useState("");
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
-  // ── Invite code (June 6, 2026) — private access gate ──
-  // A valid code is required to CREATE a new account. The code is validated
-  // against check_invite_code, stashed in localStorage, then redeemed by
-  // AuthContext once the user is signed in (covers email + Google + delayed
-  // email-confirmation). Returning users logging in don't need a code.
+  // ── Invite code — private access gate ──
   const [inviteCode, setInviteCode] = useState("");
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [requestEmail, setRequestEmail] = useState("");
   const [requestName, setRequestName] = useState("");
   const [isRequesting, setIsRequesting] = useState(false);
 
-  // Validate a code via the anon RPC. Returns true if usable; toasts on failure.
+  const rawReturn = searchParams.get("returnUrl") || searchParams.get("redirect") || "";
+  let safeReturn = "/video?mode=listing&category=done_for_you_reel";
+  if (rawReturn) {
+    try {
+      const decoded = decodeURIComponent(rawReturn);
+      if (decoded.startsWith("/") && !decoded.startsWith("//")) safeReturn = decoded;
+    } catch { /* default */ }
+  }
+  const returnUrl = safeReturn;
+
+  useEffect(() => {
+    if (user && !loading) navigate(returnUrl);
+  }, [user, loading, navigate, returnUrl]);
+
   const validateInviteCode = async (code: string): Promise<boolean> => {
     const trimmed = code.trim();
     if (!trimmed) {
@@ -64,16 +76,14 @@ const Auth = () => {
       const { data, error } = await supabase.rpc("check_invite_code", { p_code: trimmed });
       const res = data as { valid?: boolean; reason?: string } | null;
       if (error || !res?.valid) {
-        const reason = res?.reason;
         toast.error(
-          reason === "exhausted"
+          res?.reason === "exhausted"
             ? "That code has reached its limit. Request a fresh one below."
             : "That invite code isn't valid. Double-check it or request one below."
         );
         setShowRequestForm(true);
         return false;
       }
-      // Stash for AuthContext to redeem post-sign-in.
       localStorage.setItem("pending_invite_code", trimmed.toUpperCase());
       return true;
     } catch {
@@ -84,60 +94,21 @@ const Auth = () => {
 
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      emailSchema.parse(requestEmail);
-    } catch (validationError) {
-      if (validationError instanceof z.ZodError) {
-        toast.error(validationError.errors[0].message);
-        return;
-      }
-    }
+    try { emailSchema.parse(requestEmail); }
+    catch (v) { if (v instanceof z.ZodError) { toast.error(v.errors[0].message); return; } }
     setIsRequesting(true);
     try {
       await supabase.rpc("request_invite_code", {
-        p_email: requestEmail,
-        p_name: requestName || null,
-        p_note: null,
-        p_source: "auth_page",
+        p_email: requestEmail, p_name: requestName || null, p_note: null, p_source: "auth_page",
       });
       toast.success("Got it — we'll send you a code shortly. Check your email.");
-      setRequestEmail("");
-      setRequestName("");
-      setShowRequestForm(false);
+      setRequestEmail(""); setRequestName(""); setShowRequestForm(false);
     } catch {
       toast.error("Couldn't submit your request. Please try again.");
-    } finally {
-      setIsRequesting(false);
-    }
+    } finally { setIsRequesting(false); }
   };
 
-  // Safely read a returnUrl: must be same-origin path (starts with /) — guards against open-redirects
-  const rawReturn = searchParams.get("returnUrl") || searchParams.get("redirect") || "";
-  // Default post-auth destination is the Done-For-You Reel — our flagship sell.
-  let safeReturn = "/video?mode=listing&category=done_for_you_reel";
-  if (rawReturn) {
-    try {
-      const decoded = decodeURIComponent(rawReturn);
-      if (decoded.startsWith("/") && !decoded.startsWith("//")) {
-        safeReturn = decoded;
-      }
-    } catch {
-      /* fall through to default */
-    }
-  }
-  const returnUrl = safeReturn;
-
-  useEffect(() => {
-    if (user && !loading) {
-      navigate(returnUrl);
-    }
-  }, [user, loading, navigate, returnUrl]);
-
   const handleGoogleSignIn = async () => {
-    // June 6, 2026 — if an invite code is entered, validate + stash it so
-    // AuthContext redeems it after the OAuth round-trip. We don't hard-block
-    // Google with no code (returning users must still log in), but new
-    // visitors are steered to enter their code via the field + helper copy.
     if (inviteCode.trim()) {
       const ok = await validateInviteCode(inviteCode);
       if (!ok) return;
@@ -145,31 +116,20 @@ const Auth = () => {
     setIsGoogleLoading(true);
     const { error } = await signInWithGoogle(returnUrl);
     setIsGoogleLoading(false);
-    if (error) {
-      toast.error(error.message || "Failed to sign in with Google");
-    }
+    if (error) toast.error(error.message || "Failed to sign in with Google");
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      emailSchema.parse(loginEmail);
-      passwordSchema.parse(loginPassword);
-    } catch (validationError) {
-      if (validationError instanceof z.ZodError) {
-        toast.error(validationError.errors[0].message);
-        return;
-      }
-    }
+    try { emailSchema.parse(loginEmail); passwordSchema.parse(loginPassword); }
+    catch (v) { if (v instanceof z.ZodError) { toast.error(v.errors[0].message); return; } }
     setIsSubmitting(true);
     const { error } = await signIn(loginEmail, loginPassword);
     setIsSubmitting(false);
     if (error) {
-      if (error.message.includes("Invalid login credentials")) {
-        toast.error("Invalid email or password. Please try again.");
-      } else {
-        toast.error(error.message);
-      }
+      toast.error(error.message.includes("Invalid login credentials")
+        ? "Invalid email or password. Please try again."
+        : error.message);
     } else {
       toast.success("Welcome back!");
       navigate(returnUrl);
@@ -178,74 +138,43 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      nameSchema.parse(signupName);
-      emailSchema.parse(signupEmail);
-      passwordSchema.parse(signupPassword);
-    } catch (validationError) {
-      if (validationError instanceof z.ZodError) {
-        toast.error(validationError.errors[0].message);
-        return;
-      }
-    }
-    // May 24, 2026 — confirm-password field dropped per CRO audit.
-    // Mobile signups (TikTok-sourced) abandoned at 22% on this field alone.
-    // We still keep the state var so any callers that read it don't break.
+    try { nameSchema.parse(signupName); emailSchema.parse(signupEmail); passwordSchema.parse(signupPassword); }
+    catch (v) { if (v instanceof z.ZodError) { toast.error(v.errors[0].message); return; } }
     void signupConfirmPassword;
-    // June 6, 2026 — invite-only gate: a valid code is required to sign up.
     const codeOk = await validateInviteCode(inviteCode);
     if (!codeOk) return;
     setIsSubmitting(true);
     const { error } = await signUp(signupEmail, signupPassword, signupName);
     setIsSubmitting(false);
     if (error) {
-      if (error.message.includes("already registered")) {
-        toast.error("This email is already registered. Please log in instead.");
-      } else {
-        toast.error(error.message);
-      }
+      toast.error(error.message.includes("already registered")
+        ? "This email is already registered. Please log in instead."
+        : error.message);
     } else {
-      toast.success("Account created — 60 free credits ready. Let's make your first reel.");
-      // CRO P0 #4 — Skip the /welcome detour. Every extra page between signup
-      // and the first render costs ~10% of activation. Land users straight on
-      // the render flow with their 60 free credits already granted.
+      toast.success("Account created — your free credits are ready. Let's make your first reel.");
       navigate(returnUrl);
     }
   };
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      emailSchema.parse(resetEmail);
-    } catch (validationError) {
-      if (validationError instanceof z.ZodError) {
-        toast.error(validationError.errors[0].message);
-        return;
-      }
-    }
+    try { emailSchema.parse(resetEmail); }
+    catch (v) { if (v instanceof z.ZodError) { toast.error(v.errors[0].message); return; } }
     setIsResettingPassword(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo: window.location.origin + "/login",
       });
-      if (error) {
-        toast.error(error.message || "Failed to send reset email");
-      } else {
-        toast.success("Check your email for a password reset link");
-        setResetEmail("");
-        setShowPasswordReset(false);
-      }
-    } catch (err) {
-      toast.error("An error occurred. Please try again.");
-    } finally {
-      setIsResettingPassword(false);
-    }
+      if (error) toast.error(error.message || "Failed to send reset email");
+      else { toast.success("Check your email for a password reset link"); setResetEmail(""); setShowPasswordReset(false); }
+    } catch { toast.error("An error occurred. Please try again."); }
+    finally { setIsResettingPassword(false); }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen lux-bg-bone flex items-center justify-center">
+        <div className="lux-spin" style={{ width: 40, height: 40, borderRadius: "50%", border: "2px solid var(--lux-hairline-strong)", borderTopColor: "var(--lux-rust)" }} />
       </div>
     );
   }
@@ -253,209 +182,193 @@ const Auth = () => {
   return (
     <>
       <Helmet>
-        <title>Sign In — The Vantage</title>
+        <title>Enter the Studio — The Vantage</title>
       </Helmet>
-      <div className="min-h-screen bg-background flex flex-col">
-        <header className="border-b border-border py-4">
-          <div className="container mx-auto px-4">
-            <Link to="/" className="flex items-center gap-2 w-fit">
-              <img src={logo} alt="TheVantage" className="h-12 w-auto" />
+      <div className="min-h-screen lux-bg-bone flex flex-col" style={{ color: "var(--lux-ink)" }}>
+        {/* Header */}
+        <header style={{ borderBottom: "1px solid var(--lux-hairline)" }} className="py-5">
+          <div className="lux-container">
+            <Link to="/" className="lux-display w-fit block" style={{ fontSize: "1.5rem", fontStyle: "italic" }}>
+              The Vantage
             </Link>
           </div>
         </header>
 
-        <div className="flex-1 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-card border-border">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                WELCOME TO THE VANTAGE
-              </CardTitle>
-              <CardDescription>
-                60 free credits · No card required · Your first reel in 3 minutes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* ── Invite code (June 6, 2026) — private access ──
-                  The Vantage is invite-only. A valid code unlocks signup and
-                  applies any creator/campaign bonus credits. Returning users
-                  logging in can leave this blank. */}
-              <div className="mb-5 p-3 rounded-lg border border-primary/30 bg-primary/5">
-                <Label htmlFor="invite-code" className="text-sm font-medium flex items-center gap-2">
-                  <Gift className="h-4 w-4 text-primary" /> Invite code
-                </Label>
-                <Input
+        <div className="flex-1 flex items-center justify-center px-4 py-12">
+          <div
+            className="w-full max-w-md"
+            style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline-strong)" }}
+          >
+            {/* Card header */}
+            <div className="px-8 pt-10 pb-6 text-center" style={{ borderBottom: "1px solid var(--lux-hairline)" }}>
+              <div className="lux-eyebrow mb-4" style={{ color: "var(--lux-rust)" }}>
+                ✦ INVITE-ONLY · BY ACCESS CODE
+              </div>
+              <h1 className="lux-display" style={{ fontSize: "clamp(2rem, 5vw, 2.6rem)", lineHeight: 1 }}>
+                Enter the
+                <br />
+                <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>studio.</span>
+              </h1>
+              <p className="lux-prose mt-4" style={{ fontSize: "0.9rem" }}>
+                Your first reel in three minutes. No card required.
+              </p>
+            </div>
+
+            <div className="px-8 py-8">
+              {/* ── Invite code ── */}
+              <div className="mb-6 p-4" style={{ background: "var(--lux-bone)", border: "1px solid var(--lux-hairline-strong)", borderLeft: "2px solid var(--lux-rust)" }}>
+                <label htmlFor="invite-code" className={luxLabel} style={{ color: "var(--lux-rust)" }}>
+                  ✦ INVITE CODE
+                </label>
+                <input
                   id="invite-code"
                   type="text"
-                  placeholder="Enter your access code"
+                  placeholder="ENTER YOUR ACCESS CODE"
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                   autoCapitalize="characters"
-                  className="mt-2 tracking-widest font-medium"
+                  style={{ ...luxInput, letterSpacing: "0.18em", fontWeight: 500 }}
                 />
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-xs text-muted-foreground">Required for new accounts.</span>
+                <div className="flex items-center justify-between mt-2.5">
+                  <span className="lux-prose" style={{ fontSize: "0.7rem" }}>Required for new accounts.</span>
                   <button
                     type="button"
-                    className="text-xs text-primary hover:underline"
+                    className="lux-eyebrow"
+                    style={{ color: "var(--lux-rust)" }}
                     onClick={() => setShowRequestForm((s) => !s)}
                   >
-                    Don't have one? Request a code →
+                    REQUEST A CODE →
                   </button>
                 </div>
 
                 {showRequestForm && (
-                  <form onSubmit={handleRequestCode} className="mt-3 space-y-2 border-t border-primary/20 pt-3">
-                    <Input
-                      type="text"
-                      placeholder="Your name (optional)"
-                      value={requestName}
-                      onChange={(e) => setRequestName(e.target.value)}
-                    />
-                    <Input
-                      type="email"
-                      placeholder="you@example.com"
-                      value={requestEmail}
-                      onChange={(e) => setRequestEmail(e.target.value)}
-                      required
-                    />
-                    <Button type="submit" variant="secondary" className="w-full" disabled={isRequesting}>
-                      {isRequesting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Requesting…</> : "Request an invite code"}
-                    </Button>
+                  <form onSubmit={handleRequestCode} className="mt-4 space-y-2.5" style={{ borderTop: "1px solid var(--lux-hairline)", paddingTop: "1rem" }}>
+                    <input type="text" placeholder="Your name (optional)" value={requestName} onChange={(e) => setRequestName(e.target.value)} style={luxInput} />
+                    <input type="email" placeholder="you@example.com" value={requestEmail} onChange={(e) => setRequestEmail(e.target.value)} required style={luxInput} />
+                    <button type="submit" disabled={isRequesting} className="lux-btn-ghost w-full flex items-center justify-center" style={{ padding: "12px", border: "1px solid var(--lux-hairline-strong)", color: "var(--lux-ink)" }}>
+                      {isRequesting ? <Loader2 className="h-4 w-4 animate-spin" /> : "REQUEST AN INVITE CODE"}
+                    </button>
                   </form>
                 )}
               </div>
 
-              {/* Primary Google sign-in — large, prominent, no competing surfaces */}
-              <Button
+              {/* Google */}
+              <button
                 type="button"
-                size="lg"
-                className="w-full mb-3 flex items-center justify-center gap-3 h-14 text-base font-medium"
                 onClick={handleGoogleSignIn}
                 disabled={isGoogleLoading || isSubmitting}
+                className="lux-btn w-full flex items-center justify-center"
+                style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "16px", gap: "12px" }}
               >
                 {isGoogleLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <svg className="h-5 w-5" viewBox="0 0 24 24">
-                    <path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                    <path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                    <path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                    <path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                  </svg>
+                  <>
+                    <svg className="h-4 w-4" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                    CONTINUE WITH GOOGLE
+                  </>
                 )}
-                Continue with Google
-              </Button>
-
-              <p className="text-xs text-muted-foreground text-center mb-6">
-                Fastest. No password to remember.
+              </button>
+              <p className="lux-prose text-center mt-3" style={{ fontSize: "0.75rem" }}>
+                Fastest — no password to remember.
               </p>
 
-              {/* Collapsed email path — one click away when wanted */}
+              {/* Email path */}
               {!showEmailForm ? (
                 <button
                   type="button"
-                  className="w-full text-sm text-muted-foreground hover:text-foreground py-2 underline-offset-4 hover:underline transition-colors"
+                  className="lux-eyebrow w-full mt-5 py-2"
+                  style={{ color: "var(--lux-ash)" }}
                   onClick={() => setShowEmailForm(true)}
                 >
-                  Use email and password instead
+                  — OR USE EMAIL & PASSWORD —
                 </button>
               ) : (
-                <>
-                  <div className="relative mb-5">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-border" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">Email & password</span>
-                    </div>
+                <div className="mt-6">
+                  {/* Tab toggle */}
+                  <div className="grid grid-cols-2 mb-6" style={{ border: "1px solid var(--lux-hairline-strong)" }}>
+                    {(["login", "signup"] as const).map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setActiveTab(t)}
+                        className="lux-eyebrow py-3 transition-colors"
+                        style={{
+                          background: activeTab === t ? "var(--lux-ink)" : "transparent",
+                          color: activeTab === t ? "var(--lux-bone)" : "var(--lux-ink)",
+                        }}
+                      >
+                        {t === "login" ? "LOG IN" : "SIGN UP"}
+                      </button>
+                    ))}
                   </div>
 
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="login">Login</TabsTrigger>
-                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                </TabsList>
+                  {activeTab === "login" && (
+                    !showPasswordReset ? (
+                      <form onSubmit={handleLogin} className="space-y-4">
+                        <div>
+                          <label htmlFor="login-email" className={luxLabel}>EMAIL</label>
+                          <input id="login-email" type="email" placeholder="you@example.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required style={luxInput} />
+                        </div>
+                        <div>
+                          <label htmlFor="login-password" className={luxLabel}>PASSWORD</label>
+                          <input id="login-password" type="password" placeholder="••••••••" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required style={luxInput} />
+                        </div>
+                        <button type="submit" disabled={isSubmitting} className="lux-btn w-full flex items-center justify-center" style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "15px" }}>
+                          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "SIGN IN"}
+                        </button>
+                        <button type="button" onClick={() => setShowPasswordReset(true)} className="lux-eyebrow w-full" style={{ color: "var(--lux-rust)" }}>
+                          FORGOT PASSWORD?
+                        </button>
+                      </form>
+                    ) : (
+                      <form onSubmit={handlePasswordReset} className="space-y-4">
+                        <div>
+                          <label htmlFor="reset-email" className={luxLabel}>EMAIL</label>
+                          <input id="reset-email" type="email" placeholder="you@example.com" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required style={luxInput} />
+                        </div>
+                        <button type="submit" disabled={isResettingPassword} className="lux-btn w-full flex items-center justify-center" style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "15px" }}>
+                          {isResettingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : "SEND RESET LINK"}
+                        </button>
+                        <button type="button" onClick={() => setShowPasswordReset(false)} className="lux-eyebrow w-full" style={{ color: "var(--lux-rust)" }}>
+                          ← BACK TO LOGIN
+                        </button>
+                      </form>
+                    )
+                  )}
 
-                <TabsContent value="login">
-                  {!showPasswordReset ? (
-                    <form onSubmit={handleLogin} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="login-email">Email</Label>
-                        <Input id="login-email" type="email" placeholder="you@example.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
+                  {activeTab === "signup" && (
+                    <form onSubmit={handleSignup} className="space-y-4">
+                      <div className="p-3 flex items-center gap-3" style={{ background: "var(--lux-bone)", border: "1px solid var(--lux-hairline)" }}>
+                        <span className="lux-display-italic" style={{ color: "var(--lux-rust)", fontSize: 22, lineHeight: 1 }}>✦</span>
+                        <span className="lux-prose" style={{ fontSize: "0.8rem", color: "var(--lux-ink)" }}>
+                          A valid invite code above unlocks signup + your free credits.
+                        </span>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="login-password">Password</Label>
-                        <Input id="login-password" type="password" placeholder="••••••••" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required />
+                      <div>
+                        <label htmlFor="signup-name" className={luxLabel}>FULL NAME</label>
+                        <input id="signup-name" type="text" placeholder="Jane Realtor" value={signupName} onChange={(e) => setSignupName(e.target.value)} required style={luxInput} />
                       </div>
-                      <Button type="submit" className="w-full" disabled={isSubmitting}>
-                        {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in...</> : "Sign In"}
-                      </Button>
-                      <button
-                        type="button"
-                        onClick={() => setShowPasswordReset(true)}
-                        className="w-full text-sm text-primary hover:underline"
-                      >
-                        Forgot password?
-                      </button>
-                    </form>
-                  ) : (
-                    <form onSubmit={handlePasswordReset} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="reset-email">Email</Label>
-                        <Input id="reset-email" type="email" placeholder="you@example.com" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required />
+                      <div>
+                        <label htmlFor="signup-email" className={luxLabel}>EMAIL</label>
+                        <input id="signup-email" type="email" placeholder="you@example.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required style={luxInput} />
                       </div>
-                      <Button type="submit" className="w-full" disabled={isResettingPassword}>
-                        {isResettingPassword ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending...</> : "Send Reset Link"}
-                      </Button>
-                      <button
-                        type="button"
-                        onClick={() => setShowPasswordReset(false)}
-                        className="w-full text-sm text-primary hover:underline"
-                      >
-                        Back to login
+                      <div>
+                        <label htmlFor="signup-password" className={luxLabel}>PASSWORD · 8+ CHARS</label>
+                        <input id="signup-password" type="password" placeholder="••••••••" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required minLength={8} style={luxInput} />
+                      </div>
+                      <button type="submit" disabled={isSubmitting} className="lux-btn w-full flex items-center justify-center" style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "15px" }}>
+                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "CREATE ACCOUNT"}
                       </button>
                     </form>
                   )}
-                </TabsContent>
 
-                <TabsContent value="signup">
-                  <form onSubmit={handleSignup} className="space-y-4">
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20 mb-4">
-                      <Gift className="h-5 w-5 text-primary shrink-0" />
-                      <span className="text-sm text-primary font-medium">Get 60 free credits when you sign up — no card required.</span>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-name">Full Name</Label>
-                      <Input id="signup-name" type="text" placeholder="John Doe" value={signupName} onChange={(e) => setSignupName(e.target.value)} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email">Email</Label>
-                      <Input id="signup-email" type="email" placeholder="you@example.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-password">Password</Label>
-                      <Input id="signup-password" type="password" placeholder="•••••••• · 8+ chars" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required minLength={8} />
-                    </div>
-                    {/* May 24, 2026 — confirm-password field dropped per CRO audit
-                        (mobile signup abandonment killer). Visible password toggle
-                        is a future improvement but unblocks signup today. */}
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
-                      {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating account...</> : "Create Account"}
-                    </Button>
-                  </form>
-                </TabsContent>
-              </Tabs>
-                  <button
-                    type="button"
-                    className="w-full text-xs text-muted-foreground hover:text-foreground mt-4 underline-offset-4 hover:underline transition-colors"
-                    onClick={() => setShowEmailForm(false)}
-                  >
-                    ← Back to one-click sign in
+                  <button type="button" className="lux-eyebrow w-full mt-5" style={{ color: "var(--lux-ash)" }} onClick={() => setShowEmailForm(false)}>
+                    ← BACK TO ONE-CLICK SIGN IN
                   </button>
-                </>
+                </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </>

@@ -632,35 +632,41 @@ export function TransformationFlow({ transformationCategory }: { transformationC
 
   return (
     <div className="space-y-5">
-      {/* Category Context Banner */}
-      <div style={{
-        background: "var(--lux-bone)",
-        borderLeft: "4px solid var(--lux-brass)",
-        padding: "12px 16px",
-        display: "flex",
-        gap: "12px",
-        alignItems: "center",
-      }}>
-        <span style={{ fontSize: "24px" }}>
-          {transformationCategory === "construction" ? "🏗️" : transformationCategory === "cleanup" ? "🧹" : "✨"}
+      {/* Category Context Banner — refined editorial marker, no emoji */}
+      <div
+        className="flex items-center gap-4"
+        style={{
+          background: "var(--lux-cream)",
+          border: "1px solid var(--lux-hairline)",
+          borderLeft: "2px solid var(--lux-rust)",
+          padding: "16px 20px",
+        }}
+      >
+        <span
+          className="lux-display-italic flex-shrink-0"
+          style={{ fontSize: 28, color: "var(--lux-rust)", lineHeight: 1 }}
+        >
+          {transformationCategory === "construction" ? "I." : transformationCategory === "cleanup" ? "II." : "III."}
         </span>
         <div>
-          <div className="lux-eyebrow" style={{ color: "var(--lux-ink)" }}>
+          <div className="lux-eyebrow" style={{ color: "var(--lux-rust)" }}>
             {transformationCategory === "construction" ? "BEFORE & AFTER REVEAL" : transformationCategory === "cleanup" ? "CLEANUP REVEAL" : "SETUP REVEAL"}
           </div>
-          <div className="lux-prose text-[10px]" style={{ color: "var(--lux-ash)" }}>
-            {transformationCategory === "construction" ? "We'll animate the build reveal from your photo" : transformationCategory === "cleanup" ? "We'll animate the cleanup reveal from your photo" : "We'll animate the setup reveal from your photo"}
+          <div className="lux-prose mt-1" style={{ fontSize: "0.8rem", color: "var(--lux-ash)" }}>
+            {transformationCategory === "construction" ? "We animate the build reveal straight from your finished photo." : transformationCategory === "cleanup" ? "We animate the cleanup reveal straight from your finished photo." : "We animate the setup reveal straight from your finished photo."}
           </div>
         </div>
       </div>
-      {/* Coming Soon Banner */}
+      {/* Quality note — editorial strip, no rounded shadcn look */}
       {!bannerDismissed && (
-        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: "var(--lux-cream)", color: "var(--lux-ink)" }}>
-          <Zap className="h-4 w-4 flex-shrink-0" style={{ color: "var(--lux-brass)" }} />
-          <p className="lux-eyebrow flex-1 text-xs" style={{ color: "var(--lux-ink)" }}>
-            NOW POWERED BY KLING 2.5 TURBO PRO — 1080p cinematic quality with start and end frame precision. Better than ever.
-          </p>
-          <button onClick={handleDismissBanner} className="transition-colors" style={{ color: "var(--lux-ash)" }}>
+        <div
+          className="flex items-center gap-3 px-4 py-3"
+          style={{ background: "var(--lux-bone)", border: "1px solid var(--lux-hairline)", color: "var(--lux-ink)" }}
+        >
+          <span className="lux-eyebrow flex-1" style={{ color: "var(--lux-brass)" }}>
+            ✦ SEEDANCE 2.0 · 1080p CINEMATIC · RENDERED IN ~3 MINUTES
+          </span>
+          <button onClick={handleDismissBanner} className="transition-colors hover:opacity-70" style={{ color: "var(--lux-ash)" }} aria-label="Dismiss">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -898,7 +904,7 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                       Tells the AI what kind of crew to show in your video
                     </p>
                     <div className="space-y-0">
-                      {BUILD_TYPES.map((b) => (
+                      {BUILD_TYPES.map((b, i) => (
                         <div
                           key={b.id}
                           onClick={() => setBuildType(b.id)}
@@ -915,7 +921,16 @@ export function TransformationFlow({ transformationCategory }: { transformationC
                             marginBottom: "8px",
                           }}
                         >
-                          <span style={{ fontSize: "24px", lineHeight: 1 }}>{b.icon}</span>
+                          <span
+                            className="lux-display-italic flex-shrink-0"
+                            style={{
+                              fontSize: "22px",
+                              lineHeight: 1,
+                              color: buildType === b.id ? "var(--lux-champagne)" : "var(--lux-rust)",
+                            }}
+                          >
+                            {["I", "II", "III"][i] || "·"}
+                          </span>
                           <div>
                             <div className="lux-eyebrow" style={{
                               color: buildType === b.id ? "var(--lux-champagne)" : "var(--lux-ink)",
