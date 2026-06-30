@@ -14,6 +14,7 @@ import ROICalculator from "@/components/lux/ROICalculator";
 import SectionHeading from "@/components/lux/SectionHeading";
 import VirtualStagingShowcase from "@/components/lux/VirtualStagingShowcase";
 import LazyVideo from "@/components/lux/LazyVideo";
+import SeatsStrip from "@/components/lux/SeatsStrip";
 import OAuthReturnHandler from "@/components/OAuthReturnHandler";
 import { useSmartCTA } from "@/hooks/useSmartCTA";
 import { useUtmCapture } from "@/hooks/useUtmCapture";
@@ -120,6 +121,7 @@ const Index = () => {
 
       <div className="min-h-screen lux-bg-bone" style={{ color: "var(--lux-ink)" }}>
         <OAuthReturnHandler />
+        <SeatsStrip />
         <LuxuryHeader variant="bone" />
 
         <main id="main-content">

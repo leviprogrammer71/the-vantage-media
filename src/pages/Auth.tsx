@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
+import SeatsStrip from "@/components/lux/SeatsStrip";
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -50,6 +51,13 @@ const Auth = () => {
   const [requestEmail, setRequestEmail] = useState("");
   const [requestName, setRequestName] = useState("");
   const [isRequesting, setIsRequesting] = useState(false);
+
+  // ── June 6, 2026 — signup is OPEN (founding-seats phase) ──
+  // The site is open to everyone right now; scarcity comes from the limited
+  // founding-seat count (see SeatsStrip), not a code gate. The invite-code
+  // infrastructure stays in the DB so we can flip back to invite-only the
+  // moment seats run out, but the UI no longer gates on a code.
+  const isOpen = true;
 
   const rawReturn = searchParams.get("returnUrl") || searchParams.get("redirect") || "";
   let safeReturn = "/video?mode=listing&category=done_for_you_reel";
@@ -109,7 +117,10 @@ const Auth = () => {
   };
 
   const handleGoogleSignIn = async () => {
-    if (inviteCode.trim()) {
+    if (isOpen) {
+      // Open variant — no code needed. Tag the signup 'OPEN' for attribution.
+      localStorage.setItem("pending_invite_code", "OPEN");
+    } else if (inviteCode.trim()) {
       const ok = await validateInviteCode(inviteCode);
       if (!ok) return;
     }
@@ -141,8 +152,13 @@ const Auth = () => {
     try { nameSchema.parse(signupName); emailSchema.parse(signupEmail); passwordSchema.parse(signupPassword); }
     catch (v) { if (v instanceof z.ZodError) { toast.error(v.errors[0].message); return; } }
     void signupConfirmPassword;
-    const codeOk = await validateInviteCode(inviteCode);
-    if (!codeOk) return;
+    if (isOpen) {
+      // Open variant — skip the code gate, tag 'OPEN' for attribution.
+      localStorage.setItem("pending_invite_code", "OPEN");
+    } else {
+      const codeOk = await validateInviteCode(inviteCode);
+      if (!codeOk) return;
+    }
     setIsSubmitting(true);
     const { error } = await signUp(signupEmail, signupPassword, signupName);
     setIsSubmitting(false);
@@ -201,8 +217,8 @@ const Auth = () => {
           >
             {/* Card header */}
             <div className="px-8 pt-10 pb-6 text-center" style={{ borderBottom: "1px solid var(--lux-hairline)" }}>
-              <div className="lux-eyebrow mb-4" style={{ color: "var(--lux-rust)" }}>
-                ✦ INVITE-ONLY · BY ACCESS CODE
+              <div className="flex justify-center mb-4">
+                <SeatsStrip variant="inline" />
               </div>
               <h1 className="lux-display" style={{ fontSize: "clamp(2rem, 5vw, 2.6rem)", lineHeight: 1 }}>
                 Enter the
@@ -215,7 +231,8 @@ const Auth = () => {
             </div>
 
             <div className="px-8 py-8">
-              {/* ── Invite code ── */}
+              {/* ── Invite code (hidden in open mode) ── */}
+              {!isOpen && (
               <div className="mb-6 p-4" style={{ background: "var(--lux-bone)", border: "1px solid var(--lux-hairline-strong)", borderLeft: "2px solid var(--lux-rust)" }}>
                 <label htmlFor="invite-code" className={luxLabel} style={{ color: "var(--lux-rust)" }}>
                   ✦ INVITE CODE
@@ -251,6 +268,7 @@ const Auth = () => {
                   </form>
                 )}
               </div>
+              )}
 
               {/* Google */}
               <button
@@ -341,7 +359,7 @@ const Auth = () => {
                       <div className="p-3 flex items-center gap-3" style={{ background: "var(--lux-bone)", border: "1px solid var(--lux-hairline)" }}>
                         <span className="lux-display-italic" style={{ color: "var(--lux-rust)", fontSize: 22, lineHeight: 1 }}>✦</span>
                         <span className="lux-prose" style={{ fontSize: "0.8rem", color: "var(--lux-ink)" }}>
-                          A valid invite code above unlocks signup + your free credits.
+                          {isOpen ? "Get 60 free credits when you sign up — no card required." : "A valid invite code above unlocks signup + your free credits."}
                         </span>
                       </div>
                       <div>
