@@ -1,0 +1,32 @@
+{
+  "name": "vantage-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for The Vantage — generate short-form real-estate reels from listing URLs or photos, entirely through Claude.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "vantage-mcp-server": "dist/index.js"
+  },
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "inspector": "npx @modelcontextprotocol/inspector node dist/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "express": "^4.21.2",
+    "node-html-parser": "^6.1.13",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

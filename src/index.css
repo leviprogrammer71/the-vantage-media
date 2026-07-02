@@ -274,11 +274,24 @@ All colors MUST be HSL.
   --lux-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-.lux-bg-bone { background: var(--lux-bone); }
-.lux-bg-cream { background: var(--lux-cream); }
-.lux-bg-parchment { background: var(--lux-parchment); }
-.lux-bg-ink { background: var(--lux-ink); }
-.lux-bg-onyx { background: var(--lux-onyx); }
+/* ── Background utilities + contrast guardrails (June 6, 2026) ──
+   Each background sets a sensible DEFAULT text color so nothing ever renders
+   same-color-on-same-color (black text on a black strip/button/banner).
+   Children with an explicit color still win; this only catches the cases
+   where no color was set. */
+.lux-bg-bone { background: var(--lux-bone); color: var(--lux-ink); }
+.lux-bg-cream { background: var(--lux-cream); color: var(--lux-ink); }
+.lux-bg-parchment { background: var(--lux-parchment); color: var(--lux-ink); }
+.lux-bg-ink { background: var(--lux-ink); color: var(--lux-bone); }
+.lux-bg-onyx { background: var(--lux-onyx); color: var(--lux-bone); }
+
+/* Buttons must never lose their text color on press/focus/active — some
+   browsers + reset styles can flatten color on :active. Lock it. */
+.lux-btn:active, .lux-btn:focus, .lux-btn:focus-visible { color: var(--lux-bone); }
+.lux-btn-bone:active, .lux-btn-bone:focus { color: var(--lux-ink); }
+.lux-btn-ghost:active, .lux-btn-ghost:focus { color: var(--lux-ink); }
+/* When a ghost button is hovered/active it flips to ink bg — keep text bone. */
+.lux-btn-ghost:hover, .lux-btn-ghost:active { color: var(--lux-bone); }
 
 .lux-text-ink { color: var(--lux-ink); }
 .lux-text-ash { color: var(--lux-ash); }

@@ -288,6 +288,43 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   // the highest-traffic style on the user's TikTok ads and is the one we
   // alternate as the homepage hero.
   const [dfyStyle, setDfyStyle] = useState<DfyStyle>("snappy");
+  // ── THE STUDIO (June 6, 2026) — locked, per-shot precision mode ──
+  // A premium Done-For-You mode: label each photo, choose an action per
+  // shot (camera move / virtual staging / sun-to-dusk), and optionally add
+  // a line of direction. All photos still go to Seedance in ONE pass; we
+  // just compose a shot-by-shot prompt. Unlock code: "vantage".
+  const [dfyMode, setDfyMode] = useState<"quick" | "studio">("quick");
+  const [studioUnlocked, setStudioUnlocked] = useState<boolean>(
+    () => typeof window !== "undefined" && localStorage.getItem("studio_unlocked") === "1"
+  );
+  const [studioCodeInput, setStudioCodeInput] = useState("");
+  const [showStudioUnlock, setShowStudioUnlock] = useState(false);
+  type StudioAction = "camera" | "staging" | "sun";
+  interface StudioShot { label: string; action: StudioAction; stagingStyle: StagingStyle; caption: string; }
+  const [studioShots, setStudioShots] = useState<Record<number, StudioShot>>({});
+  const [studioDirection, setStudioDirection] = useState("");
+  const getStudioShot = (i: number): StudioShot =>
+    studioShots[i] || { label: "", action: "camera", stagingStyle: "luxury_minimalist", caption: "" };
+  const setStudioShot = (i: number, patch: Partial<StudioShot>) =>
+    setStudioShots((prev) => ({ ...prev, [i]: { ...getStudioShot(i), ...patch } }));
+  // Compose the shot-by-shot Seedance prompt from the per-photo direction.
+  // All photos still go in ONE reference_images call; this prompt just tells
+  // Seedance what to do with each, in order.
+  const composeStudioPrompt = (): string => {
+    const kw = (id: StagingStyle) => STAGING_STYLES.find((s) => s.id === id)?.promptKeyword || "modern";
+    const shots = photos.map((_, i) => {
+      const s = getStudioShot(i);
+      const name = s.label.trim() || `shot ${i + 1}`;
+      let action: string;
+      if (s.action === "staging") action = `the ${name} redesigned into ${kw(s.stagingStyle)} style, furniture changing in place`;
+      else if (s.action === "sun") action = `the ${name} as a sunrise-to-dusk timelapse`;
+      else action = `a slow cinematic camera move through the ${name}`;
+      const extra = s.caption.trim() ? ` (${s.caption.trim()})` : "";
+      return `Shot ${i + 1}: ${action}${extra}`;
+    }).join(". ");
+    const dir = studioDirection.trim() ? ` Overall tone: ${studioDirection.trim()}.` : "";
+    return `A cinematic reel walking through the space, shot by shot with smooth transitions. ${shots}.${dir}`;
+  };
   // ── Audio toggle (May 24, 2026) ──
   // Seedance 2.0 generates audio natively. Default ON because the user
   // direction is "create with audio by default and without audio if they
@@ -304,6 +341,12 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
   const [brokerage, setBrokerage] = useState("");
   const [caption, setCaption] = useState("");
   const [musicVibe, setMusicVibe] = useState("Cinematic Slow Build");
+  // ── June 6, 2026 — property fields are real-estate-only ──
+  // The product is general-purpose video. We only ask property questions
+  // (agent name, location, price, property type) when the user explicitly
+  // identifies as a real estate agent. Default OFF.
+  const [isRealEstateAgent, setIsRealEstateAgent] = useState(false);
+  const [propertyType, setPropertyType] = useState("");
 
   // Pre-populate the realtor name from the user's profile. Run once on
   // mount; never overwrite a value the user has already typed. Saves the
@@ -518,9 +561,11 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
           shot_type: category === "animate_single" ? shotType : category === "virtual_staging" ? "push_in" : undefined,
           // Done-For-You edit-style prompt + its index — picked from the 4
           // user-tested options (Snappy / Fast Cuts / Creative / Luxury Minimal).
-          dfy_style: category === "done_for_you_reel" ? dfyStyle : undefined,
+          dfy_style: category === "done_for_you_reel" ? (dfyMode === "studio" ? "studio" : dfyStyle) : undefined,
           dfy_prompt: category === "done_for_you_reel"
-            ? (DFY_STYLES.find((s) => s.id === dfyStyle)?.prompt || DFY_STYLES[0].prompt)
+            ? (dfyMode === "studio"
+                ? composeStudioPrompt()
+                : (DFY_STYLES.find((s) => s.id === dfyStyle)?.prompt || DFY_STYLES[0].prompt))
             : undefined,
           // Audio toggle — default ON. Forwarded to Seedance modelInput so
           // it generates a music bed natively rather than requiring the
@@ -544,11 +589,14 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
           effect_mode: effectId !== "none" ? "realistic" : undefined,
           vibe,
           listing: {
-            realtor_name: (category === "virtual_staging" || category === "sketch_to_real") ? undefined : realtorName,
-            location: (category === "virtual_staging" || category === "sketch_to_real") ? undefined : location,
-            show_price: (category === "virtual_staging" || category === "sketch_to_real") ? undefined : showPrice,
-            price: (category === "virtual_staging" || category === "sketch_to_real") ? undefined : (showPrice ? price : undefined),
-            brokerage: (category === "virtual_staging" || category === "sketch_to_real") ? undefined : brokerage,
+            // Property fields only sent when the user identifies as an agent.
+            realtor_name: isRealEstateAgent ? realtorName : undefined,
+            location: isRealEstateAgent ? location : undefined,
+            show_price: isRealEstateAgent ? showPrice : undefined,
+            price: isRealEstateAgent && showPrice ? price : undefined,
+            brokerage: isRealEstateAgent ? brokerage : undefined,
+            property_type: isRealEstateAgent && propertyType ? propertyType : undefined,
+            // Caption is general (applies to any video), kept for all.
             caption: (category === "virtual_staging" || category === "sketch_to_real") ? undefined : caption,
             music_vibe: (category === "virtual_staging" || category === "sketch_to_real") ? undefined : musicVibe,
           },
@@ -1909,7 +1957,184 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                 </button>
               );
             })}
+
+            {/* ── THE STUDIO — locked premium card ── */}
+            <button
+              type="button"
+              onClick={() => {
+                if (studioUnlocked) {
+                  setDfyMode("studio");
+                } else {
+                  setShowStudioUnlock((s) => !s);
+                }
+              }}
+              className="text-left rounded-none transition-all relative overflow-hidden flex flex-col"
+              style={dfyMode === "studio" ? {
+                background: "var(--lux-ink)", color: "var(--lux-bone)",
+                border: "1px solid var(--lux-champagne)", boxShadow: "0 14px 40px rgba(14,14,12,0.18)",
+              } : {
+                background: "var(--lux-cream)", color: "var(--lux-ink)",
+                border: "1px dashed var(--lux-hairline-strong)",
+              }}
+            >
+              <div className="relative w-full flex items-center justify-center" style={{ aspectRatio: "9 / 16", maxHeight: 240, background: "#0E0E0C" }}>
+                <div className="text-center px-4" style={{ color: "var(--lux-bone)" }}>
+                  <div style={{ fontSize: 30, lineHeight: 1 }}>{studioUnlocked ? "✦" : "🔒"}</div>
+                  <div className="lux-eyebrow mt-3" style={{ color: "var(--lux-champagne)" }}>THE STUDIO</div>
+                  <div className="lux-prose mt-2" style={{ fontSize: "0.7rem", color: "rgba(244,239,230,0.7)" }}>
+                    {studioUnlocked ? "Unlocked" : "Locked · enter code"}
+                  </div>
+                </div>
+              </div>
+              <div className="p-5 flex-1">
+                <div className="lux-eyebrow mb-2" style={{ color: dfyMode === "studio" ? "var(--lux-champagne)" : "var(--lux-rust)", fontSize: "0.65rem" }}>
+                  PRECISION MODE · +30 CR
+                </div>
+                <h3 className="lux-display mb-2" style={{ fontSize: "1.5rem", lineHeight: 1.05, color: dfyMode === "studio" ? "var(--lux-bone)" : "var(--lux-ink)" }}>
+                  The Studio
+                </h3>
+                <p className="lux-prose" style={{ fontSize: "0.85rem", lineHeight: 1.5, color: dfyMode === "studio" ? "rgba(244,239,230,0.85)" : "var(--lux-ink)" }}>
+                  Label every shot, choose a move per photo — camera, staging, or sun-to-dusk — and direct the whole reel, shot by shot.
+                </p>
+              </div>
+            </button>
           </div>
+
+          {/* Studio unlock input */}
+          {!studioUnlocked && showStudioUnlock && (
+            <div className="mb-8 p-4 flex flex-wrap items-center gap-3" style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline-strong)", borderLeft: "2px solid var(--lux-rust)" }}>
+              <span className="lux-eyebrow" style={{ color: "var(--lux-rust)" }}>✦ UNLOCK THE STUDIO</span>
+              <input
+                type="text"
+                value={studioCodeInput}
+                onChange={(e) => setStudioCodeInput(e.target.value)}
+                placeholder="Enter code"
+                className="flex-1 min-w-[160px] px-4 py-2.5 lux-prose"
+                style={{ border: "1px solid var(--lux-hairline-strong)", background: "var(--lux-bone)", letterSpacing: "0.12em" }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (studioCodeInput.trim().toLowerCase() === "vantage") {
+                    localStorage.setItem("studio_unlocked", "1");
+                    setStudioUnlocked(true);
+                    setDfyMode("studio");
+                    setShowStudioUnlock(false);
+                    toast.success("The Studio unlocked.");
+                  } else {
+                    toast.error("That code isn't valid.");
+                  }
+                }}
+                className="lux-btn"
+                style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", padding: "10px 18px" }}
+              >
+                UNLOCK
+              </button>
+            </div>
+          )}
+
+          {/* ── THE STUDIO — per-shot editor ── */}
+          {dfyMode === "studio" && studioUnlocked && (
+            <div className="mb-10">
+              <div className="mb-5">
+                <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-rust)" }}>✦ DIRECT EACH SHOT</div>
+                <p className="lux-prose" style={{ fontSize: "0.9rem" }}>
+                  Label each photo and pick what happens in that shot. Order top-to-bottom is the order in your reel. Everything renders together in one pass.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {photos.map((photo, i) => {
+                  const shot = getStudioShot(i);
+                  return (
+                    <div key={i} className="flex flex-col sm:flex-row gap-4 p-4" style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline)" }}>
+                      <div className="flex items-start gap-3 sm:w-48 flex-shrink-0">
+                        <span className="lux-display-italic" style={{ color: "var(--lux-rust)", fontSize: 20, lineHeight: 1 }}>{i + 1}</span>
+                        <img src={photo.preview} alt={`Shot ${i + 1}`} style={{ width: 64, height: 64, objectFit: "cover", border: "1px solid var(--lux-hairline)" }} />
+                      </div>
+                      <div className="flex-1 space-y-2.5">
+                        <input
+                          type="text"
+                          value={shot.label}
+                          onChange={(e) => setStudioShot(i, { label: e.target.value })}
+                          placeholder="Label this shot — e.g. Kitchen, Master Bedroom, Backyard"
+                          className="w-full px-3 py-2 lux-prose"
+                          style={{ border: "1px solid var(--lux-hairline-strong)", background: "var(--lux-bone)", fontSize: "0.9rem" }}
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          {([
+                            { id: "camera", label: "Camera move" },
+                            { id: "staging", label: "Virtual staging" },
+                            { id: "sun", label: "Sun → dusk" },
+                          ] as { id: StudioAction; label: string }[]).map((a) => {
+                            const on = shot.action === a.id;
+                            return (
+                              <button
+                                key={a.id}
+                                type="button"
+                                onClick={() => setStudioShot(i, { action: a.id })}
+                                className="lux-eyebrow px-3 py-2"
+                                style={{
+                                  background: on ? "var(--lux-ink)" : "var(--lux-bone)",
+                                  color: on ? "var(--lux-bone)" : "var(--lux-ink)",
+                                  border: "1px solid var(--lux-hairline-strong)",
+                                  fontSize: "0.6rem",
+                                }}
+                              >
+                                {a.label}
+                              </button>
+                            );
+                          })}
+                          {shot.action === "staging" && (
+                            <select
+                              value={shot.stagingStyle}
+                              onChange={(e) => setStudioShot(i, { stagingStyle: e.target.value as StagingStyle })}
+                              className="lux-prose px-2 py-1"
+                              style={{ border: "1px solid var(--lux-hairline-strong)", background: "var(--lux-bone)", fontSize: "0.8rem", appearance: "auto" }}
+                            >
+                              {STAGING_STYLES.map((st) => (
+                                <option key={st.id} value={st.id}>{st.label}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={shot.caption}
+                          onChange={(e) => setStudioShot(i, { caption: e.target.value })}
+                          placeholder="Optional: a sentence of direction for this shot"
+                          className="w-full px-3 py-2 lux-prose"
+                          style={{ border: "1px solid var(--lux-hairline)", background: "var(--lux-parchment)", fontSize: "0.85rem" }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Overall direction / style reference */}
+              <div className="mt-4">
+                <label className="lux-eyebrow block mb-2" style={{ color: "var(--lux-brass)" }}>OVERALL DIRECTION <span style={{ opacity: 0.55 }}>· OPTIONAL</span></label>
+                <textarea
+                  value={studioDirection}
+                  onChange={(e) => setStudioDirection(e.target.value)}
+                  rows={2}
+                  placeholder="Set the tone for the whole reel — e.g. 'warm, editorial, unhurried; golden-hour grade throughout'."
+                  className="w-full px-4 py-3 lux-prose"
+                  style={{ border: "1px solid var(--lux-hairline-strong)", background: "var(--lux-bone)", fontFamily: "Inter, sans-serif", fontSize: "0.9rem" }}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setDfyMode("quick")}
+                className="lux-eyebrow mt-4"
+                style={{ color: "var(--lux-ash)" }}
+              >
+                ← Use a quick edit style instead
+              </button>
+            </div>
+          )}
 
           {/* ── AUDIO TOGGLE ──
               Default ON per user direction. Seedance 2.0 generates audio
@@ -2259,7 +2484,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
 
           <div className="mb-8">
             <h2 className="lux-display mb-2" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
-              Property details
+              Finishing touches
               <span
                 className="lux-eyebrow ml-3 align-middle"
                 style={{
@@ -2274,7 +2499,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
             <p className="lux-prose" style={{ color: "var(--lux-ash)" }}>
               {category === "virtual_staging"
                 ? "These details help style the scene — but you can skip them all and just generate."
-                : "These details appear in your video and social caption. Every field is optional — your profile name pre-fills automatically, and you can generate right now without filling anything in."}
+                : "Add an optional caption, or check the box below if you're a real estate agent to burn in property details. Everything here is optional — you can generate right now."}
             </p>
           </div>
 
@@ -2326,6 +2551,51 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
           <div className="space-y-8">
             {showListingMetadata && (
               <>
+                {/* ── Real-estate toggle ── (June 6, 2026)
+                    The product is general-purpose. We only ask property
+                    questions when the user says they're a real estate agent. */}
+                <label
+                  className="flex items-center gap-4 p-4 cursor-pointer"
+                  style={{
+                    background: isRealEstateAgent ? "var(--lux-ink)" : "var(--lux-cream)",
+                    color: isRealEstateAgent ? "var(--lux-bone)" : "var(--lux-ink)",
+                    border: "1px solid var(--lux-hairline-strong)",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isRealEstateAgent}
+                    onChange={(e) => setIsRealEstateAgent(e.target.checked)}
+                    style={{ width: 18, height: 18, accentColor: "var(--lux-rust)" }}
+                  />
+                  <span className="flex-1">
+                    <span className="lux-display text-base block">I'm a real estate agent</span>
+                    <span className="text-xs" style={{ opacity: 0.7 }}>
+                      Adds optional property details (address, price, agent name) burned into the video. Leave off for general videos.
+                    </span>
+                  </span>
+                </label>
+
+                {isRealEstateAgent && (
+                <>
+                {/* Property type */}
+                <div>
+                  <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-brass)" }}>
+                    PROPERTY TYPE <span style={{ opacity: 0.55 }}>· OPTIONAL</span>
+                  </label>
+                  <select
+                    value={propertyType}
+                    onChange={(e) => setPropertyType(e.target.value)}
+                    className="w-full px-5 py-4 lux-prose"
+                    style={{ border: "1px solid var(--lux-hairline)", background: "var(--lux-parchment)", appearance: "auto" }}
+                  >
+                    <option value="">Select (optional)…</option>
+                    {["Single-family home","Condo","Townhouse","Luxury estate","Apartment","Multi-family","New construction","Land / lot","Commercial","Vacation rental"].map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Realtor Name — pre-filled from profile.full_name */}
                 <div>
                   <label className="lux-eyebrow block mb-3" style={{ color: "var(--lux-brass)" }}>
@@ -2406,6 +2676,8 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                     style={{ border: "1px solid var(--lux-hairline)", background: "var(--lux-parchment)" }}
                   />
                 </div>
+                </>
+                )}
 
                 {/* Caption */}
                 <div>

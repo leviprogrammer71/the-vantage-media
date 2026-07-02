@@ -33,7 +33,9 @@ const Auth = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
-  const [showEmailForm, setShowEmailForm] = useState(false);
+  // June 6, 2026 — email auth is first-class (many users sign up with a
+  // business email, not Google). Shown by default, not behind a toggle.
+  const [showEmailForm, setShowEmailForm] = useState(true);
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -303,6 +305,12 @@ const Auth = () => {
                 </button>
               ) : (
                 <div className="mt-6">
+                  {/* Divider — email is a first-class path, not a fallback */}
+                  <div className="flex items-center gap-3 mb-6">
+                    <span style={{ flex: 1, height: 1, background: "var(--lux-hairline)" }} />
+                    <span className="lux-eyebrow" style={{ color: "var(--lux-ash)" }}>OR WITH EMAIL</span>
+                    <span style={{ flex: 1, height: 1, background: "var(--lux-hairline)" }} />
+                  </div>
                   {/* Tab toggle */}
                   <div className="grid grid-cols-2 mb-6" style={{ border: "1px solid var(--lux-hairline-strong)" }}>
                     {(["login", "signup"] as const).map((t) => (
@@ -379,10 +387,6 @@ const Auth = () => {
                       </button>
                     </form>
                   )}
-
-                  <button type="button" className="lux-eyebrow w-full mt-5" style={{ color: "var(--lux-ash)" }} onClick={() => setShowEmailForm(false)}>
-                    ← BACK TO ONE-CLICK SIGN IN
-                  </button>
                 </div>
               )}
             </div>
