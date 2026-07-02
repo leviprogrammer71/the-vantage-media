@@ -50,9 +50,22 @@ async function runHttp(): Promise<void> {
     res.json({ status: "ok", server: SERVER_NAME, version: SERVER_VERSION });
   });
 
-  app.post("/mcp", async (req, res) => {
-    // Fresh, stateless transport + server per request (prevents request-id
-    // collisions and keeps horizontal scaling simple).
+  // Single MCP request handler. Because Claude's "Add custom connector" dialog
+  // has no field for a Bearer token (only a URL + optional OAuth), we ALSO
+  // accept the connector token embedded in the URL path — `/mcp/<token>` — or
+  // as a `?token=` query param. That makes the connector URL self-authenticating:
+  // the user pastes one URL and nothing else. Header auth still works too.
+  const handleMcp = async (req: express.Request, res: express.Response): Promise<void> => {
+    // Pull a token from the path param or query string, if present, and fold
+    // it into the headers the tool handlers read.
+    const pathToken = typeof req.params.token === "string" ? req.params.token : undefined;
+    const queryToken = typeof req.query.token === "string" ? req.query.token : undefined;
+    const urlToken = pathToken || queryToken;
+    const headers = { ...req.headers };
+    if (urlToken && !headers["x-vantage-token"] && !headers["authorization"]) {
+      headers["x-vantage-token"] = urlToken;
+    }
+
     const server = createServer();
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
@@ -64,8 +77,7 @@ async function runHttp(): Promise<void> {
     });
     try {
       await server.connect(transport);
-      // Carry this request's headers into tool handlers for auth resolution.
-      await withRequestContext({ headers: req.headers }, async () => {
+      await withRequestContext({ headers }, async () => {
         await transport.handleRequest(req, res, req.body);
       });
     } catch (error) {
@@ -78,7 +90,16 @@ async function runHttp(): Promise<void> {
         });
       }
     }
-  });
+  };
+
+  // Streamable HTTP uses POST for JSON-RPC; GET/DELETE are used by some clients
+  // for the SSE stream / teardown. Register both the bare and tokenized paths.
+  app.post("/mcp", handleMcp);
+  app.get("/mcp", handleMcp);
+  app.delete("/mcp", handleMcp);
+  app.post("/mcp/:token", handleMcp);
+  app.get("/mcp/:token", handleMcp);
+  app.delete("/mcp/:token", handleMcp);
 
   const port = parseInt(process.env.PORT || "3000", 10);
   app.listen(port, () => {

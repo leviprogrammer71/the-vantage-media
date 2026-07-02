@@ -123,6 +123,10 @@ export default function ConnectClaudePanel() {
 
         {freshToken ? (
           <div className="mb-4">
+            <p className="lux-prose mb-2" style={{ fontSize: "0.85rem", color: "var(--lux-ink)" }}>
+              This is your personal connector URL — it already includes your token, so it's the only
+              thing you paste into Claude. No separate login step.
+            </p>
             <div
               className="flex items-center gap-3 p-4 flex-wrap"
               style={{ background: "var(--lux-ink)", color: "var(--lux-bone)" }}
@@ -131,12 +135,13 @@ export default function ConnectClaudePanel() {
                 className="flex-1 min-w-[220px]"
                 style={{ fontFamily: "'Space Mono', monospace", fontSize: "0.82rem", wordBreak: "break-all" }}
               >
-                {freshToken}
+                {`${CONNECTOR_URL}/${freshToken}`}
               </code>
-              <CopyButton value={freshToken} label="Token" />
+              <CopyButton value={`${CONNECTOR_URL}/${freshToken}`} label="Connector URL" />
             </div>
             <p className="lux-prose mt-2" style={{ fontSize: "0.8rem", color: "var(--lux-rust)" }}>
-              ⚠ Copy it now — for your security this is the only time the full token is shown.
+              ⚠ Copy it now — for your security the token is shown only once. Treat this URL like a
+              password; anyone with it can spend your credits. You can revoke it anytime below.
             </p>
           </div>
         ) : (
@@ -192,21 +197,15 @@ export default function ConnectClaudePanel() {
       <div className="p-6 sm:p-8" style={{ borderBottom: "1px solid var(--lux-hairline)" }}>
         <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-brass)" }}>STEP 2 · ADD THE CONNECTOR IN CLAUDE</div>
         <p className="lux-prose mb-3" style={{ fontSize: "0.9rem", color: "var(--lux-ink)" }}>
-          In Claude, open <strong>Settings → Connectors → Add custom connector</strong> and paste this URL.
-          When asked for authentication, paste your token above as a Bearer token.
+          In Claude, open <strong>Settings → Connectors → Add custom connector</strong>, give it a name
+          (e.g. "The Vantage"), and paste your personal connector URL from Step 1 into
+          <strong> Remote MCP server URL</strong>. That's the whole setup — the URL carries your token,
+          so you can leave the OAuth fields blank. Hit <strong>Add</strong>.
         </p>
-        <div
-          className="flex items-center gap-3 p-4 flex-wrap"
-          style={{ background: "var(--lux-bone)", border: "1px solid var(--lux-hairline-strong)" }}
-        >
-          <code
-            className="flex-1 min-w-[220px]"
-            style={{ fontFamily: "'Space Mono', monospace", fontSize: "0.82rem", color: "var(--lux-ink)", wordBreak: "break-all" }}
-          >
-            {CONNECTOR_URL}
-          </code>
-          <CopyButton value={CONNECTOR_URL} label="Connector URL" />
-        </div>
+        <p className="lux-prose" style={{ fontSize: "0.8rem", color: "var(--lux-ash)" }}>
+          Generate a token above to get your paste-ready URL. It looks like{" "}
+          <code style={{ fontFamily: "'Space Mono', monospace", fontSize: "0.78rem" }}>{CONNECTOR_URL}/vtg_live_…</code>
+        </p>
       </div>
 
       {/* Step 3 — use it */}
