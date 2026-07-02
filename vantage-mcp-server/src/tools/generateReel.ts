@@ -8,7 +8,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { GenerateReelInput } from "../schemas.js";
 import { generateReel, ReelError } from "../services/vantage.js";
-import { currentAuth, MissingAuthError, toErrorResult, toJsonResult } from "./shared.js";
+import { currentToken, MissingAuthError, toErrorResult, toJsonResult } from "./shared.js";
 
 const OutputSchema = {
   reel_url: z.string(),
@@ -58,7 +58,7 @@ export function registerGenerateReel(server: McpServer): void {
     },
     async (input) => {
       try {
-        const auth = currentAuth();
+        const token = currentToken();
         const result = await generateReel(
           {
             photos: input.photos,
@@ -69,7 +69,7 @@ export function registerGenerateReel(server: McpServer): void {
             beds: input.beds ?? null,
             baths: input.baths ?? null,
           },
-          auth,
+          token,
         );
         return toJsonResult({ ...result });
       } catch (error) {

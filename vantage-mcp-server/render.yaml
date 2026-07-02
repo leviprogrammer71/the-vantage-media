@@ -1,0 +1,19 @@
+# One-click deploy blueprint for Render (render.com).
+# In production, point mcp.thevantage.media at this service.
+services:
+  - type: web
+    name: vantage-mcp-server
+    runtime: docker
+    rootDir: vantage-mcp-server
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    plan: starter
+    envVars:
+      - key: TRANSPORT
+        value: http
+      - key: VANTAGE_SUPABASE_URL
+        value: https://tsvmyjxnvdrwcdesiewv.supabase.co
+      - key: VANTAGE_SUPABASE_ANON_KEY
+        sync: false   # set in dashboard (public anon key)
+      - key: VANTAGE_SUPABASE_SERVICE_ROLE_KEY
+        sync: false   # SECRET — set in dashboard, never commit

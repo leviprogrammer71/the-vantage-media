@@ -10,8 +10,7 @@
 
 import { AsyncLocalStorage } from "node:async_hooks";
 import { CHARACTER_LIMIT } from "../constants.js";
-import { resolveAuth, MissingAuthError } from "../services/auth.js";
-import type { VantageAuth } from "../types.js";
+import { resolveToken, MissingAuthError } from "../services/auth.js";
 import type { IncomingHttpHeaders } from "node:http";
 
 interface RequestContext {
@@ -26,12 +25,13 @@ export function withRequestContext<T>(ctx: RequestContext, fn: () => Promise<T>)
 }
 
 /**
- * Resolve the Vantage auth for the current request (headers first, then env).
+ * Resolve the connector token for the current request (headers first, env
+ * fallback).
  * @throws {MissingAuthError} if no token is available.
  */
-export function currentAuth(): VantageAuth {
+export function currentToken(): string {
   const ctx = storage.getStore();
-  return resolveAuth(ctx?.headers);
+  return resolveToken(ctx?.headers);
 }
 
 export { MissingAuthError };

@@ -16,7 +16,7 @@ const publicNavLinks = [
 ];
 
 const authedNavLinks = [
-  { to: "/for-agents", label: "For Agents" },
+  { to: "/connect", label: "Connect to Claude" },
   { to: "/gallery", label: "My Gallery" },
   { to: "/dashboard", label: "Dashboard" },
   { to: "/profile", label: "Profile" },

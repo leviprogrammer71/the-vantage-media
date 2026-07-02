@@ -41,6 +41,11 @@ export interface ReelResult {
   hashtags: string[];
 }
 
+/** Reserved for future use (per-request resolved account context). */
+export interface ResolvedUser {
+  userId: string;
+}
+
 /**
  * Raw response shape from the generate-listing-video edge function. The
  * function is async: the first call returns prediction id(s) with
@@ -55,12 +60,4 @@ export interface ReelFunctionResponse {
   prediction_ids?: unknown[];
   quick_effect?: unknown;
   error?: string;
-}
-
-/** Per-request auth resolved from headers or environment. */
-export interface VantageAuth {
-  /** Supabase user JWT (the Vantage session token). */
-  token: string;
-  /** Supabase anon key sent alongside the bearer token. */
-  anonKey: string;
 }

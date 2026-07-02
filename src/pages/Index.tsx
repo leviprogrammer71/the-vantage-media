@@ -13,6 +13,7 @@ import PreviewVideo from "@/components/lux/PreviewVideo";
 import ROICalculator from "@/components/lux/ROICalculator";
 import SectionHeading from "@/components/lux/SectionHeading";
 import VirtualStagingShowcase from "@/components/lux/VirtualStagingShowcase";
+import ConnectClaudeShowcase from "@/components/lux/ConnectClaudeShowcase";
 import LazyVideo from "@/components/lux/LazyVideo";
 import SeatsStrip from "@/components/lux/SeatsStrip";
 import OAuthReturnHandler from "@/components/OAuthReturnHandler";
@@ -169,6 +170,10 @@ const Index = () => {
               "BUILT FOR  ·  eXp · KW · CB",
             ]}
           />
+
+          {/* ── CONNECT TO CLAUDE (Jul 1, 2026) — headline feature ──
+              Paste a listing link into Claude, get a finished reel back. */}
+          <ConnectClaudeShowcase />
 
           {/* ── VIRTUAL STAGING SHOWCASE (May 24, 2026) ──
               Uses the user-supplied virtualdtaging.mp4 customer-output. */}

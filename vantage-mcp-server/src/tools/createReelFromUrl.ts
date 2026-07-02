@@ -10,7 +10,7 @@ import { CreateReelFromUrlInput } from "../schemas.js";
 import { fetchListing, ListingFetchError } from "../services/listing.js";
 import { generateReel, ReelError } from "../services/vantage.js";
 import type { ReelStyle } from "../types.js";
-import { currentAuth, MissingAuthError, toErrorResult, toJsonResult } from "./shared.js";
+import { currentToken, MissingAuthError, toErrorResult, toJsonResult } from "./shared.js";
 
 const OutputSchema = {
   reel_url: z.string(),
@@ -64,7 +64,7 @@ export function registerCreateReelFromUrl(server: McpServer): void {
     },
     async ({ listing_url, style }) => {
       try {
-        const auth = currentAuth();
+        const token = currentToken();
 
         // 1) Fetch the listing.
         const listing = await fetchListing(listing_url);
@@ -83,7 +83,7 @@ export function registerCreateReelFromUrl(server: McpServer): void {
             description: listing.description,
             style: chosenStyle,
           },
-          auth,
+          token,
         );
 
         return toJsonResult({

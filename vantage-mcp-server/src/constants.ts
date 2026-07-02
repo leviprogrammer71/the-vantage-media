@@ -19,6 +19,16 @@ export const SUPABASE_URL =
  */
 export const SUPABASE_ANON_KEY = process.env.VANTAGE_SUPABASE_ANON_KEY ?? "";
 
+/**
+ * Supabase SERVICE ROLE key. This stays server-side on the hosted MCP server
+ * and is NEVER exposed to a connecting client. It lets the server resolve a
+ * caller's connector token to a user, deduct that user's credits, call the
+ * reel generator, and record the submission — i.e. carry the whole burden so
+ * the connecting Claude only needs the user's vtg_ token.
+ */
+export const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.VANTAGE_SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+
 /** Name of the edge function that runs reel generation. */
 export const REEL_FUNCTION = "generate-listing-video";
 

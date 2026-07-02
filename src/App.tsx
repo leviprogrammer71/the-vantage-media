@@ -39,6 +39,7 @@ const MetaLanding = lazy(() => import("./pages/MetaLanding"));
 const RedditLanding = lazy(() => import("./pages/RedditLanding"));
 const WebsiteConsultation = lazy(() => import("./pages/WebsiteConsultation"));
 const Video = lazy(() => import("./pages/Video"));
+const ConnectClaude = lazy(() => import("./pages/ConnectClaude"));
 const Submit = lazy(() => import("./pages/Submit"));
 const Share = lazy(() => import("./pages/Share"));
 const Referral = lazy(() => import("./pages/Referral"));
@@ -110,6 +111,8 @@ const App = () => (
                   <Route path="/for-photographers" element={<RealEstatePhotographers />} />
                   <Route path="/consultation" element={<WebsiteConsultation />} />
                   <Route path="/video" element={<Video />} />
+                  <Route path="/connect" element={<ConnectClaude />} />
+                  <Route path="/connect-claude" element={<ConnectClaude />} />
                   <Route path="/submit" element={<Submit />} />
                   <Route path="/share/:id" element={<Share />} />
                   <Route path="/referral" element={<Referral />} />

@@ -48,14 +48,23 @@ TRANSPORT=stdio npm start
 
 ## Auth
 
-Every request is billed against an agent's Vantage account via their **session
-token** (a Supabase user JWT). The server resolves it in this order:
+Each agent connects with a **connector token** (`vtg_live_…`) they mint on the
+Vantage dashboard (Settings → Connect to Claude). The token is tied to their
+account and stored only as a hash. The server resolves it in this order:
 
-1. `Authorization: Bearer <token>` request header
+1. `Authorization: Bearer vtg_live_…` request header
 2. `x-vantage-token` request header
 3. `VANTAGE_TOKEN` environment variable (local/stdio)
 
-The Supabase anon key (public) is read from `VANTAGE_SUPABASE_ANON_KEY`.
+The hosted server holds the Supabase **service-role key**
+(`VANTAGE_SUPABASE_SERVICE_ROLE_KEY`) — kept server-side, never sent to the
+connecting client. It uses it to: resolve the token → user (`resolve_mcp_token`
+RPC), pre-check + deduct that user's credits (`deduct_credits` RPC), run the
+reel generator, and record the submission. The connecting Claude only ever
+holds the `vtg_` token, so the whole burden stays on the server.
+
+**Backend dependency:** apply `supabase/migrations/20260701_mcp_access_tokens.sql`
+(the `mcp_access_tokens` table + `create/list/revoke/resolve_mcp_token` RPCs).
 
 ## Test with MCP Inspector
 
