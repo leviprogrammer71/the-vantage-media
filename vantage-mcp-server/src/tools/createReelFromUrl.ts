@@ -1,7 +1,7 @@
 /**
  * Tool: vantage_create_reel_from_url
- * The primary end-to-end tool: fetch a Zillow/Airbnb listing, then generate a
- * finished reel with caption copy in a single call.
+ * The primary entry point: fetch a Zillow/Airbnb listing, auto-curate photos,
+ * and START a reel render — returning a job id to poll with vantage_check_reel.
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -9,14 +9,14 @@ import { z } from "zod";
 import { MAX_PHOTOS } from "../constants.js";
 import { CreateReelFromUrlInput } from "../schemas.js";
 import { fetchListing, selectReelPhotos, ListingFetchError } from "../services/listing.js";
-import { generateReel, ReelError } from "../services/vantage.js";
+import { startReel, ReelError } from "../services/vantage.js";
 import type { ReelStyle } from "../types.js";
 import { currentToken, MissingAuthError, toErrorResult, toJsonResult } from "./shared.js";
 
 const OutputSchema = {
-  reel_url: z.string(),
-  caption: z.string(),
-  hashtags: z.array(z.string()),
+  job_id: z.string(),
+  status: z.string(),
+  message: z.string(),
   address: z.string(),
   price: z.string(),
   platform: z.string(),
@@ -24,36 +24,38 @@ const OutputSchema = {
   photos_available: z.number(),
 };
 
-const DESCRIPTION = `Create a finished reel directly from a Zillow or Airbnb listing URL — fetch + generate in one call.
+const DESCRIPTION = `Create a reel directly from a Zillow or Airbnb listing URL. Fetches + curates + starts the render, returning a job id to poll.
 
-This is the PRIMARY tool for agents. Give it a listing URL and it: (1) fetches the full photo gallery and details, (2) auto-curates a balanced 9-photo set (keeps the hero shot and evenly samples across the gallery for variety, rather than nine angles of one room), (3) generates the reel, (4) returns the reel URL with a ready-to-post caption and hashtags. It blocks until the reel is fully rendered (typically 1-3 minutes). Don't ask the agent for extra information first unless the URL is invalid. If the agent wants to hand-pick which rooms appear, use vantage_fetch_listing to review the full gallery first, then vantage_generate_reel with your chosen photos.
+This is the PRIMARY tool for agents. Give it a listing URL and it: (1) fetches the full photo gallery and details (Zillow is pulled via a proxy scraper that bypasses bot-blocking), (2) auto-curates a balanced 9-photo set (keeps the hero shot and evenly samples across the gallery for variety), (3) STARTS the render and returns a job_id. Rendering takes 1-3 minutes, so then call vantage_check_reel with the job_id every ~20 seconds until it returns status "complete" with the reel URL, caption, and hashtags. Don't ask the agent for extra information first unless the URL is invalid.
+
+If the agent wants to hand-pick which rooms appear, use vantage_fetch_listing to review the full gallery first, then vantage_generate_reel with your chosen photos.
 
 Args:
   - listing_url (string): A Zillow or Airbnb listing URL.
-  - style ('luxury'|'family'|'airbnb'|'snappy'|'creative', optional): Reel style. Defaults to 'airbnb' for Airbnb links and 'snappy' otherwise.
+  - style ('luxury'|'family'|'airbnb'|'snappy'|'creative', optional): defaults to 'airbnb' for Airbnb links, 'snappy' otherwise.
 
 Returns (JSON):
   {
-    "reel_url": string,       // URL of the finished reel video
-    "caption": string,        // ready-to-post social caption
-    "hashtags": string[],     // relevant hashtags (without '#')
-    "address": string,        // detected property address
-    "price": string,          // detected price
+    "job_id": string,          // pass to vantage_check_reel to poll
+    "status": "processing",
+    "message": string,         // tells you to poll vantage_check_reel
+    "address": string,
+    "price": string,
     "platform": "zillow" | "airbnb",
-    "photo_count": number     // photos used in the reel
+    "photo_count": number,     // photos used in the reel
+    "photos_available": number // total photos found in the gallery
   }
 
 Error handling:
-  - If the listing can't be fetched (bot protection, no photos, invalid URL),
-    returns an actionable error suggesting the agent upload photos directly and
-    use vantage_generate_reel instead.
-  - Also surfaces auth/credit/render errors from the generator with next steps.`;
+  - If the listing can't be fetched, returns an actionable error suggesting the
+    agent upload photos directly and use vantage_generate_reel instead.
+  - Also surfaces auth/credit errors with next steps.`;
 
 export function registerCreateReelFromUrl(server: McpServer): void {
   server.registerTool(
     "vantage_create_reel_from_url",
     {
-      title: "Create Reel from Listing URL",
+      title: "Create Reel from Listing URL (start)",
       description: DESCRIPTION,
       inputSchema: CreateReelFromUrlInput.shape,
       outputSchema: OutputSchema,
@@ -68,19 +70,17 @@ export function registerCreateReelFromUrl(server: McpServer): void {
       try {
         const token = currentToken();
 
-        // 1) Fetch the listing (returns the full gallery, up to 40 shots).
+        // 1) Fetch the listing (full gallery, up to 40 shots).
         const listing = await fetchListing(listing_url);
 
-        // 2) Auto-curate a balanced set for the reel. Since this one-shot path
-        //    has no human/Claude in the loop to pick, we evenly sample across
-        //    the gallery (hero + variety) rather than take the first 9 in a row.
+        // 2) Auto-curate a balanced set (hero + even sample) for the reel.
         const chosenPhotos = selectReelPhotos(listing.photos, MAX_PHOTOS);
 
-        // 3) Choose a sensible default style by platform if not specified.
+        // 3) Default style by platform if not specified.
         const chosenStyle: ReelStyle = style ?? (listing.platform === "airbnb" ? "airbnb" : "snappy");
 
-        // 4) Generate the reel from the curated set.
-        const result = await generateReel(
+        // 4) Start the render — returns a job id to poll.
+        const { jobId } = await startReel(
           {
             photos: chosenPhotos,
             address: listing.address,
@@ -94,7 +94,10 @@ export function registerCreateReelFromUrl(server: McpServer): void {
         );
 
         return toJsonResult({
-          ...result,
+          job_id: jobId,
+          status: "processing",
+          message:
+            "Fetched the listing and started rendering. Call vantage_check_reel with this job_id in ~20 seconds, and keep polling until status is \"complete\".",
           address: listing.address,
           price: listing.price,
           platform: listing.platform,

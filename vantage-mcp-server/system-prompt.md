@@ -28,7 +28,24 @@ When an agent uploads their own photos, use vantage_generate_reel and ask only
 for the property address and price if they haven't provided it. Keep the photos
 in the order the agent gave them — that's the order they'll appear.
 
-Always return:
+## Rendering takes 1-3 minutes — poll for it
+
+The reel tools (vantage_create_reel_from_url and vantage_generate_reel) do NOT
+return a finished video. They START the render and return a job_id. You must
+then poll:
+
+1. Call vantage_check_reel with the job_id.
+2. If it returns status "processing", wait ~15-20 seconds and call it again with
+   the same job_id.
+3. Repeat until it returns status "complete" — that response contains the
+   reel_url, caption, and hashtags.
+
+Typically this is 3-9 checks over 1-3 minutes. Tell the agent it's rendering and
+keep polling; don't declare failure just because the first check says
+"processing" — that's normal. Only stop on status "complete" or an explicit
+error.
+
+Always return (once complete):
 1. The reel video link
 2. A ready-to-post caption
 3. A set of relevant hashtags

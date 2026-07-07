@@ -96,14 +96,24 @@ export interface SubmissionInput {
   category: string;
   videoUrl: string;
   videoStyle: string;
+  /**
+   * Optional explicit row id. Passing a deterministic id (derived from the
+   * render job) makes the insert idempotent via upsert — repeated poll
+   * completions won't create duplicate gallery rows or double-charge credits.
+   */
+  id?: string;
 }
 
 /** Insert a delivered submission row so the reel shows in the user's gallery. */
 export async function insertSubmission(input: SubmissionInput): Promise<string | null> {
+  const prefer = input.id
+    ? "return=representation,resolution=ignore-duplicates"
+    : "return=representation";
   const res = await httpRequest(`${SUPABASE_URL}/rest/v1/submissions`, {
     method: "POST",
-    headers: { ...serviceHeaders(), Prefer: "return=representation" },
+    headers: { ...serviceHeaders(), Prefer: prefer },
     body: JSON.stringify({
+      ...(input.id ? { id: input.id } : {}),
       user_id: input.userId,
       full_name: input.email || "user",
       email: input.email || "noreply@thevantage.media",
@@ -124,8 +134,8 @@ export async function insertSubmission(input: SubmissionInput): Promise<string |
   }
   try {
     const rows = res.json<{ id: string }[]>();
-    return rows.length ? rows[0].id : null;
+    return rows.length ? rows[0].id : input.id ?? null;
   } catch {
-    return null;
+    return input.id ?? null;
   }
 }

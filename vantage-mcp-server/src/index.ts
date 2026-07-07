@@ -26,6 +26,7 @@ import express from "express";
 import { registerFetchListing } from "./tools/fetchListing.js";
 import { registerGenerateReel } from "./tools/generateReel.js";
 import { registerCreateReelFromUrl } from "./tools/createReelFromUrl.js";
+import { registerCheckReel } from "./tools/checkReel.js";
 import { withRequestContext } from "./tools/shared.js";
 
 const SERVER_NAME = "vantage-mcp-server";
@@ -37,6 +38,7 @@ function createServer(): McpServer {
   registerFetchListing(server);
   registerGenerateReel(server);
   registerCreateReelFromUrl(server);
+  registerCheckReel(server);
   return server;
 }
 

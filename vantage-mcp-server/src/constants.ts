@@ -74,3 +74,19 @@ export const CHARACTER_LIMIT = 25000;
 export const BROWSER_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
+
+// ── Apify (Zillow scraping via residential proxies) ───────────────────────
+// Zillow blocks direct server-side fetches from datacenter IPs. When an Apify
+// token is configured, Zillow listings are pulled through Apify's residential
+// proxy actor instead — reliable, ~$0.004/listing. Falls back to direct fetch
+// if unset or if the actor fails.
+export const APIFY_TOKEN = process.env.APIFY_TOKEN ?? process.env.VANTAGE_APIFY_TOKEN ?? "";
+
+/** Apify actor id for Zillow detail scraping (username~name form for the API). */
+export const APIFY_ZILLOW_ACTOR = process.env.APIFY_ZILLOW_ACTOR ?? "maxcopell~zillow-detail-scraper";
+
+/** Apify actor id for Airbnb room scraping (username~name form for the API). */
+export const APIFY_AIRBNB_ACTOR = process.env.APIFY_AIRBNB_ACTOR ?? "tri_angle~airbnb-rooms-urls-scraper";
+
+/** Timeout for an Apify run-sync call, in ms (the actor takes ~20-30s). */
+export const APIFY_TIMEOUT_MS = 90000;

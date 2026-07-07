@@ -16,6 +16,7 @@ import { parse } from "node-html-parser";
 import { BROWSER_UA, MAX_GALLERY } from "../constants.js";
 import type { ListingData, ListingPlatform } from "../types.js";
 import { httpRequest, HttpError } from "./http.js";
+import { apifyConfigured, fetchZillowViaApify, fetchAirbnbViaApify } from "./apify.js";
 
 /** A listing fetch failure the agent can act on. */
 export class ListingFetchError extends Error {
@@ -240,6 +241,22 @@ export async function fetchListing(url: string): Promise<ListingData> {
     throw new ListingFetchError(
       `That URL isn't a recognized Zillow or Airbnb listing. Paste a Zillow (zillow.com/homedetails/...) or Airbnb (airbnb.com/rooms/...) link, or upload the listing photos directly and I'll build the reel from those.`,
     );
+  }
+
+  // ── Zillow / Airbnb via Apify (residential proxies) ──
+  // Both sites block direct datacenter fetches, so when Apify is configured we
+  // pull the listing through it. This is the reliable path; the direct fetch
+  // below is only a fallback (and usually blocked).
+  if (apifyConfigured() && (platform === "zillow" || platform === "airbnb")) {
+    try {
+      const viaApify =
+        platform === "zillow" ? await fetchZillowViaApify(url) : await fetchAirbnbViaApify(url);
+      if (viaApify && viaApify.photos.length) {
+        return { ...viaApify, photos: cleanPhotos(viaApify.photos) };
+      }
+    } catch {
+      // fall through to direct fetch
+    }
   }
 
   let res;

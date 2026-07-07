@@ -46,3 +46,13 @@ export const CreateReelFromUrlInput = z
   })
   .strict();
 export type CreateReelFromUrlInput = z.infer<typeof CreateReelFromUrlInput>;
+
+export const CheckReelInput = z
+  .object({
+    job_id: z
+      .string()
+      .min(1)
+      .describe("The job_id returned by vantage_generate_reel or vantage_create_reel_from_url."),
+  })
+  .strict();
+export type CheckReelInput = z.infer<typeof CheckReelInput>;
