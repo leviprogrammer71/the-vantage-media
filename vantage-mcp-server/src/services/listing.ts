@@ -13,7 +13,7 @@
  */
 
 import { parse } from "node-html-parser";
-import { BROWSER_UA, MAX_PHOTOS } from "../constants.js";
+import { BROWSER_UA, MAX_GALLERY } from "../constants.js";
 import type { ListingData, ListingPlatform } from "../types.js";
 import { httpRequest, HttpError } from "./http.js";
 
@@ -40,7 +40,7 @@ export function detectPlatform(url: string): ListingPlatform {
 
 /** Recursively collect image URLs from an arbitrary JSON blob. */
 function collectImageUrls(node: unknown, out: Set<string>, depth = 0): void {
-  if (depth > 12 || out.size >= MAX_PHOTOS * 4) return;
+  if (depth > 12 || out.size >= MAX_GALLERY * 3) return;
   if (typeof node === "string") {
     if (/^https?:\/\/[^\s"']+\.(?:jpe?g|png|webp)(?:\?[^\s"']*)?$/i.test(node)) out.add(node);
     return;
@@ -180,7 +180,7 @@ function merge(base: Partial<ParsedStructured>, next: Partial<ParsedStructured>)
 }
 
 /** De-duplicate + clean image URLs, preferring higher-resolution variants. */
-function cleanPhotos(urls: string[]): string[] {
+function cleanPhotos(urls: string[], limit: number = MAX_GALLERY): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const raw of urls) {
@@ -193,9 +193,41 @@ function cleanPhotos(urls: string[]): string[] {
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(norm);
-    if (out.length >= MAX_PHOTOS) break;
+    if (out.length >= limit) break;
   }
   return out;
+}
+
+/**
+ * Pick a balanced set of `count` photos from a full gallery for a reel.
+ *
+ * Listing galleries are ordered like a tour (hero exterior first, then rooms),
+ * so rather than take the first N consecutive shots — which can be nine angles
+ * of the same kitchen — we keep the hero and then evenly sample across the
+ * whole gallery. That yields variety (exterior → living → kitchen → beds →
+ * yard) and a more intentional-feeling reel. Order is preserved.
+ *
+ * @param photos Full gallery in listing order.
+ * @param count  Target number of photos (e.g. Seedance's 9-image cap).
+ */
+export function selectReelPhotos(photos: string[], count: number): string[] {
+  if (count <= 0) return [];
+  if (photos.length <= count) return [...photos];
+
+  const chosenIdx = new Set<number>([0]); // always keep the hero
+  const remaining = count - 1;
+  const step = (photos.length - 1) / remaining;
+  for (let i = 1; i <= remaining; i++) {
+    const idx = Math.min(photos.length - 1, Math.max(1, Math.round(i * step)));
+    chosenIdx.add(idx);
+  }
+  // De-dup from rounding collisions may leave us short — backfill in order.
+  for (let i = 1; i < photos.length && chosenIdx.size < count; i++) chosenIdx.add(i);
+
+  return Array.from(chosenIdx)
+    .sort((a, b) => a - b)
+    .slice(0, count)
+    .map((i) => photos[i]);
 }
 
 /**

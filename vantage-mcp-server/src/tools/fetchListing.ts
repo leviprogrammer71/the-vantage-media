@@ -22,7 +22,7 @@ const OutputSchema = {
 
 const DESCRIPTION = `Fetch listing photos and property details from a Zillow or Airbnb URL.
 
-Use this to pull the raw materials for a reel WITHOUT generating one yet — for example when the agent wants to review or edit the photos/details first. To fetch AND generate in one step, use vantage_create_reel_from_url instead.
+Use this to pull the raw materials for a reel WITHOUT generating one yet — especially when you want to CURATE the photos first. It returns the FULL gallery (up to 40 shots) in listing order. Review them, pick the best 6-9 (a balanced tour: exterior/hero, living, kitchen, primary bedroom, bath, and any standout feature — avoid near-duplicate angles of the same room), then pass that ordered subset to vantage_generate_reel. For a fast, hands-off reel that auto-curates for you, use vantage_create_reel_from_url instead.
 
 Args:
   - listing_url (string): A Zillow (zillow.com/homedetails/...) or Airbnb (airbnb.com/rooms/...) listing URL.

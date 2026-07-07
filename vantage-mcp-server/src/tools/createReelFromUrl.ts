@@ -6,8 +6,9 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { MAX_PHOTOS } from "../constants.js";
 import { CreateReelFromUrlInput } from "../schemas.js";
-import { fetchListing, ListingFetchError } from "../services/listing.js";
+import { fetchListing, selectReelPhotos, ListingFetchError } from "../services/listing.js";
 import { generateReel, ReelError } from "../services/vantage.js";
 import type { ReelStyle } from "../types.js";
 import { currentToken, MissingAuthError, toErrorResult, toJsonResult } from "./shared.js";
@@ -20,11 +21,12 @@ const OutputSchema = {
   price: z.string(),
   platform: z.string(),
   photo_count: z.number(),
+  photos_available: z.number(),
 };
 
 const DESCRIPTION = `Create a finished reel directly from a Zillow or Airbnb listing URL — fetch + generate in one call.
 
-This is the PRIMARY tool for agents. Give it a listing URL and it: (1) fetches the listing photos and details, (2) generates the reel, (3) returns the reel URL with a ready-to-post caption and hashtags. It blocks until the reel is fully rendered (typically 1-3 minutes). Don't ask the agent for extra information first unless the URL is invalid.
+This is the PRIMARY tool for agents. Give it a listing URL and it: (1) fetches the full photo gallery and details, (2) auto-curates a balanced 9-photo set (keeps the hero shot and evenly samples across the gallery for variety, rather than nine angles of one room), (3) generates the reel, (4) returns the reel URL with a ready-to-post caption and hashtags. It blocks until the reel is fully rendered (typically 1-3 minutes). Don't ask the agent for extra information first unless the URL is invalid. If the agent wants to hand-pick which rooms appear, use vantage_fetch_listing to review the full gallery first, then vantage_generate_reel with your chosen photos.
 
 Args:
   - listing_url (string): A Zillow or Airbnb listing URL.
@@ -66,16 +68,21 @@ export function registerCreateReelFromUrl(server: McpServer): void {
       try {
         const token = currentToken();
 
-        // 1) Fetch the listing.
+        // 1) Fetch the listing (returns the full gallery, up to 40 shots).
         const listing = await fetchListing(listing_url);
 
-        // 2) Choose a sensible default style by platform if not specified.
+        // 2) Auto-curate a balanced set for the reel. Since this one-shot path
+        //    has no human/Claude in the loop to pick, we evenly sample across
+        //    the gallery (hero + variety) rather than take the first 9 in a row.
+        const chosenPhotos = selectReelPhotos(listing.photos, MAX_PHOTOS);
+
+        // 3) Choose a sensible default style by platform if not specified.
         const chosenStyle: ReelStyle = style ?? (listing.platform === "airbnb" ? "airbnb" : "snappy");
 
-        // 3) Generate the reel from the fetched materials.
+        // 4) Generate the reel from the curated set.
         const result = await generateReel(
           {
-            photos: listing.photos,
+            photos: chosenPhotos,
             address: listing.address,
             price: listing.price,
             beds: listing.beds,
@@ -91,7 +98,8 @@ export function registerCreateReelFromUrl(server: McpServer): void {
           address: listing.address,
           price: listing.price,
           platform: listing.platform,
-          photo_count: listing.photos.length,
+          photo_count: chosenPhotos.length,
+          photos_available: listing.photos.length,
         });
       } catch (error) {
         if (

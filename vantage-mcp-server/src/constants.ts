@@ -44,6 +44,13 @@ export const REEL_DURATION_SECONDS = 15;
 /** Maximum photos Seedance 2.0 accepts as reference images in one reel. */
 export const MAX_PHOTOS = 9;
 
+/**
+ * Maximum photos `vantage_fetch_listing` returns for review. A Zillow gallery
+ * can have 30-60 shots; we surface the full curated set (up to this cap) so the
+ * connecting Claude can pick the best ones itself before generating.
+ */
+export const MAX_GALLERY = 40;
+
 /** Minimum photos needed to make a watchable reel. */
 export const MIN_PHOTOS = 2;
 

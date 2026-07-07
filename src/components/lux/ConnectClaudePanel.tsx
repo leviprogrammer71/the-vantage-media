@@ -15,7 +15,8 @@ import { Copy, Check, Plus, Loader2, Trash2, Plug, ShieldCheck } from "lucide-re
 
 // Public connector endpoint. Override at build time with VITE_VANTAGE_MCP_URL.
 const CONNECTOR_URL =
-  (import.meta.env.VITE_VANTAGE_MCP_URL as string | undefined) || "https://mcp.thevantage.media/mcp";
+  (import.meta.env.VITE_VANTAGE_MCP_URL as string | undefined) ||
+  "https://the-vantage-media.onrender.com/mcp";
 
 interface TokenRow {
   id: string;

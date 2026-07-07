@@ -1,13 +1,16 @@
-# One-click deploy blueprint for Render (render.com).
-# In production, point mcp.thevantage.media at this service.
+# Deploy blueprint for Render (render.com) — Node web service.
+#
+# IMPORTANT: this server lives in the `vantage-mcp-server/` SUBFOLDER of the
+# repo. Render must build/run from there, NOT the repo root (the root is the
+# Vite website and has no `start` script — that's what caused the failed deploy).
 services:
   - type: web
     name: vantage-mcp-server
-    runtime: docker
+    runtime: node
     rootDir: vantage-mcp-server
-    dockerfilePath: ./Dockerfile
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     healthCheckPath: /health
-    plan: starter
     envVars:
       - key: TRANSPORT
         value: http

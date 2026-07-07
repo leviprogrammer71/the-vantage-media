@@ -43,11 +43,35 @@ function createServer(): McpServer {
 /** Run over Streamable HTTP (stateless JSON) — recommended for remote hosting. */
 async function runHttp(): Promise<void> {
   const app = express();
+
+  // CORS + preflight. Remote MCP clients (including browser-originated ones)
+  // may send a preflight OPTIONS and enforce CORS on the /mcp endpoint. Allow
+  // it broadly — the only auth is the per-user token in the URL/header.
+  app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, apikey, x-vantage-token, mcp-session-id, mcp-protocol-version, last-event-id",
+    );
+    res.setHeader("Access-Control-Expose-Headers", "mcp-session-id, mcp-protocol-version");
+    if (req.method === "OPTIONS") {
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  });
+
   app.use(express.json({ limit: "12mb" })); // base64 photos can be large
 
   // Simple health check for load balancers / uptime probes.
   app.get("/health", (_req, res) => {
     res.json({ status: "ok", server: SERVER_NAME, version: SERVER_VERSION });
+  });
+
+  // Root ping — some connector validators GET the base URL first.
+  app.get("/", (_req, res) => {
+    res.json({ status: "ok", server: SERVER_NAME, version: SERVER_VERSION, mcp: "/mcp" });
   });
 
   // Single MCP request handler. Because Claude's "Add custom connector" dialog
