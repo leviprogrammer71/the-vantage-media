@@ -23,11 +23,12 @@ import {
   REEL_FUNCTION,
   REEL_CATEGORY,
   REEL_CREDIT_COST,
+  reelCreditCost,
   REEL_DURATION_SECONDS,
   MAX_PHOTOS,
   MIN_PHOTOS,
 } from "../constants.js";
-import type { ReelRequest, ReelResult, ReelFunctionResponse, ReelStyle } from "../types.js";
+import type { ReelRequest, ReelResult, ReelFunctionResponse, ReelStyle, ReelResolution } from "../types.js";
 import { buildCaption } from "./caption.js";
 import { httpRequest, HttpError } from "./http.js";
 import {
@@ -35,6 +36,7 @@ import {
   getCreditBalance,
   deductCredits,
   insertSubmission,
+  persistSubmissionVideo,
   AdminConfigError,
 } from "./supabase.js";
 
@@ -56,17 +58,17 @@ const POLL_TIMEOUT_MS = 30_000;
 const CHECK_POLL_MS = 4_000;
 const CHECK_POLL_ATTEMPTS = 5; // 5 × 4s ≈ 20s, safely under the 30s tool limit
 
+// Seedance 2.0 renders best from SHORT, plain prompts and honors NO negative
+// prompts — long, clause-heavy prompts degrade quality and consistency. Each
+// of these is one clean motion/mood line; the reference photos carry the
+// actual content, so the prompt only sets camera + tone. Do not add negatives,
+// material lists, or per-shot instructions here.
 const STYLE_PROMPTS: Record<ReelStyle, string> = {
-  luxury:
-    "A cinematic luxury real-estate reel. Slow, deliberate camera moves through each space with elegant transitions, warm editorial color grade, unhurried and aspirational pacing.",
-  family:
-    "A warm, inviting real-estate reel. Bright natural light, smooth walk-through camera moves that emphasize livable space and flow, friendly and welcoming pacing.",
-  airbnb:
-    "An upbeat short-stay listing reel. Lifestyle-forward camera moves highlighting amenities and views, vibrant color, energetic vacation-rental pacing.",
-  snappy:
-    "A punchy, fast-cut real-estate reel. Quick reveals and snappy transitions between rooms, high-energy pacing that hooks in the first second.",
-  creative:
-    "A stylish, editorial real-estate reel. Creative camera moves and layered transitions with a distinctive look, confident cinematic pacing.",
+  luxury: "Cinematic luxury real estate reel. Slow, smooth camera glides through the home. Warm, elegant tone.",
+  family: "Warm real estate reel. Bright natural light. Smooth, steady walk-through of the home.",
+  airbnb: "Upbeat vacation rental reel. Smooth camera moves. Bright, vibrant, lively tone.",
+  snappy: "Fast, clean real estate reel. Quick smooth transitions between rooms. High energy.",
+  creative: "Stylish editorial real estate reel. Smooth, confident camera moves. Distinctive cinematic look.",
 };
 
 function normalizeStyle(style?: string): ReelStyle {
@@ -75,17 +77,14 @@ function normalizeStyle(style?: string): ReelStyle {
   return "snappy";
 }
 
-function buildReelPrompt(req: ReelRequest, style: ReelStyle): string {
-  const base = STYLE_PROMPTS[style];
-  const context: string[] = [];
-  if (req.address) context.push(`Property: ${req.address}.`);
-  const specs: string[] = [];
-  if (req.beds != null) specs.push(`${req.beds} bed`);
-  if (req.baths != null) specs.push(`${req.baths} bath`);
-  if (specs.length) context.push(`${specs.join(", ")}.`);
-  if (req.features) context.push(`Highlight: ${req.features}.`);
-  context.push("Show the photos in the order provided, one shot per photo, with smooth transitions.");
-  return `${base} ${context.join(" ")}`.trim();
+function normalizeResolution(r?: string): ReelResolution {
+  return (r ?? "").toLowerCase() === "4k" ? "4k" : "1080p";
+}
+
+/** Short, Seedance-friendly prompt: just the style line. Content comes from the
+ *  reference photos, so we deliberately keep this simple. */
+function buildReelPrompt(_req: ReelRequest, style: ReelStyle): string {
+  return STYLE_PROMPTS[style];
 }
 
 function buildBody(req: ReelRequest, style: ReelStyle) {
@@ -148,12 +147,18 @@ function deterministicUuid(seed: string): string {
 
 // ── Job token ──────────────────────────────────────────────────────────────
 interface ReelJob {
+  /** Pipeline stage: "gen" = polling Seedance, "upscale" = polling the upscaler. */
+  stage: "gen" | "upscale";
   /** prediction id(s) to poll; empty if the render returned synchronously. */
   pred?: string;
   preds?: string[];
+  /** Upscale prediction id (stage "upscale"). */
+  upPred?: string;
   quick?: unknown;
   doneUrl?: string; // set when the start call already returned a video
   style: ReelStyle;
+  resolution: ReelResolution;
+  cost: number;
   address?: string;
   price?: string;
   features?: string;
@@ -203,7 +208,9 @@ export async function startReel(req: ReelRequest, token: string): Promise<{ jobI
   }
   const trimmed = photos.slice(0, MAX_PHOTOS);
   const style = normalizeStyle(req.style);
-  const effectiveReq: ReelRequest = { ...req, photos: trimmed, style };
+  const resolution = normalizeResolution(req.resolution);
+  const cost = reelCreditCost(resolution);
+  const effectiveReq: ReelRequest = { ...req, photos: trimmed, style, resolution };
 
   const userId = await resolveUserOrThrow(token);
 
@@ -213,9 +220,9 @@ export async function startReel(req: ReelRequest, token: string): Promise<{ jobI
   } catch (error) {
     throw new ReelError(`Could not check your credit balance: ${error instanceof Error ? error.message : String(error)}`);
   }
-  if (balance < REEL_CREDIT_COST) {
+  if (balance < cost) {
     throw new ReelError(
-      `Not enough credits: this reel costs ${REEL_CREDIT_COST} and your balance is ${balance}. Top up in the Vantage dashboard and try again.`,
+      `Not enough credits: this ${resolution} reel costs ${cost} and your balance is ${balance}. Top up in the Vantage dashboard and try again.`,
     );
   }
 
@@ -230,7 +237,10 @@ export async function startReel(req: ReelRequest, token: string): Promise<{ jobI
   }
 
   const job: ReelJob = {
+    stage: "gen",
     style,
+    resolution,
+    cost,
     address: req.address,
     price: req.price,
     features: req.features,
@@ -276,9 +286,19 @@ async function finalize(job: ReelJob, token: string, videoUrl: string): Promise<
   }
 
   try {
-    await deductCredits(userId, REEL_CREDIT_COST, "Reel via Claude connector", submissionId);
+    await deductCredits(userId, job.cost ?? REEL_CREDIT_COST, `Reel via Claude connector (${job.resolution})`, submissionId);
   } catch (error) {
     console.error("[vantage] credit deduction failed:", error);
+  }
+
+  // Persist the reel into permanent Storage so it survives past Replicate's
+  // ~24h URL expiry and shows in the gallery. Fire-and-forget: Render is a
+  // long-lived process, so this finishes in the background without delaying
+  // the response. Only runs when we actually recorded a submission row.
+  if (submissionId) {
+    void persistSubmissionVideo(submissionId).catch((err) =>
+      console.error("[vantage] video persist (backfill) failed:", err),
+    );
   }
 
   const { caption, hashtags } = buildCaption({
@@ -295,27 +315,18 @@ async function finalize(job: ReelJob, token: string, videoUrl: string): Promise<
 }
 
 export type CheckResult =
-  | { status: "processing" }
+  | { status: "processing"; jobId: string; note?: string }
   | ({ status: "complete" } & ReelResult);
 
-/**
- * Poll a reel job for up to ~20s. Returns the finished reel (with caption) once
- * ready, or {status:"processing"} to poll again. Charges credits on completion.
- * @throws {ReelError}
- */
-export async function checkReel(jobId: string, token: string): Promise<CheckResult> {
-  const job = decodeJob(jobId);
+interface PollOutcome {
+  done: boolean;
+  failed: boolean;
+  videoUrl?: string;
+  error?: string;
+}
 
-  // Synchronous completion captured at start.
-  if (job.doneUrl) {
-    return { status: "complete", ...(await finalize(job, token, job.doneUrl)) };
-  }
-
-  const pollBody =
-    job.preds && job.preds.length
-      ? { prediction_ids: job.preds, quick_effect: job.quick ?? null }
-      : { prediction_id: job.pred, quick_effect: job.quick ?? null };
-
+/** Poll a prediction for up to ~20s (safely under the 30s tool-call limit). */
+async function pollLoop(pollBody: unknown): Promise<PollOutcome> {
   for (let attempt = 0; attempt < CHECK_POLL_ATTEMPTS; attempt++) {
     let res: ReelFunctionResponse;
     try {
@@ -324,14 +335,64 @@ export async function checkReel(jobId: string, token: string): Promise<CheckResu
       if (error instanceof ReelError) throw error;
       throw new ReelError(`Could not check render status: ${error instanceof Error ? error.message : String(error)}`);
     }
-    if (res.status === "complete" && res.video_url) {
-      return { status: "complete", ...(await finalize(job, token, res.video_url)) };
-    }
-    if (res.status === "failed") {
-      throw new ReelError(res.error || "Reel generation failed while rendering. Please try again.");
-    }
+    if (res.status === "complete" && res.video_url) return { done: true, failed: false, videoUrl: res.video_url };
+    if (res.status === "failed") return { done: false, failed: true, error: res.error };
     if (attempt < CHECK_POLL_ATTEMPTS - 1) await sleep(CHECK_POLL_MS);
   }
+  return { done: false, failed: false };
+}
 
-  return { status: "processing" };
+/** Kick off an upscale of a finished 720p reel. Returns a prediction to poll. */
+async function startUpscale(videoUrl: string, resolution: ReelResolution): Promise<{ upPred?: string; doneUrl?: string }> {
+  const res = await callFunction({ mode: "upscale", video_url: videoUrl, resolution }, START_TIMEOUT_MS);
+  if (res.video_url) return { doneUrl: res.video_url };
+  if (res.prediction_id) return { upPred: String(res.prediction_id) };
+  throw new ReelError("The upscaler did not start.");
+}
+
+/**
+ * Poll a reel job for up to ~20s. Two stages: "gen" (Seedance 720p) then
+ * "upscale" (to 1080p or 4K). Returns the finished reel once ready, or
+ * {status:"processing", jobId} to poll again — ALWAYS poll with the returned
+ * jobId, which may change when the render advances to the upscale stage.
+ * @throws {ReelError}
+ */
+export async function checkReel(jobId: string, token: string): Promise<CheckResult> {
+  const job = decodeJob(jobId);
+
+  // ── Stage 2: upscale ──
+  if (job.stage === "upscale") {
+    const res = await pollLoop({ prediction_id: job.upPred });
+    if (res.done && res.videoUrl) return { status: "complete", ...(await finalize(job, token, res.videoUrl)) };
+    if (res.failed) {
+      // Upscale failed — deliver the base 720p render so the reel isn't lost.
+      if (job.doneUrl) return { status: "complete", ...(await finalize(job, token, job.doneUrl)) };
+      throw new ReelError(res.error || "Upscale failed while rendering.");
+    }
+    return { status: "processing", jobId, note: `Enhancing to ${job.resolution}…` };
+  }
+
+  // ── Stage 1: generation ──
+  let baseUrl = job.doneUrl ?? null; // sync completion captured at start
+  if (!baseUrl) {
+    const pollBody = job.preds && job.preds.length
+      ? { prediction_ids: job.preds, quick_effect: job.quick ?? null }
+      : { prediction_id: job.pred, quick_effect: job.quick ?? null };
+    const res = await pollLoop(pollBody);
+    if (res.failed) throw new ReelError(res.error || "Reel generation failed while rendering. Please try again.");
+    if (!res.done || !res.videoUrl) return { status: "processing", jobId };
+    baseUrl = res.videoUrl;
+  }
+
+  // Base 720p is ready → start the upscale and hand back a NEW jobId to poll.
+  // If the upscaler can't start, deliver the base render rather than fail.
+  try {
+    const up = await startUpscale(baseUrl, job.resolution);
+    if (up.doneUrl) return { status: "complete", ...(await finalize(job, token, up.doneUrl)) };
+    const upJob: ReelJob = { ...job, stage: "upscale", upPred: up.upPred, doneUrl: baseUrl };
+    return { status: "processing", jobId: encodeJob(upJob), note: `Enhancing to ${job.resolution}…` };
+  } catch (err) {
+    console.error("[vantage] upscale start failed, delivering base render:", err);
+    return { status: "complete", ...(await finalize(job, token, baseUrl)) };
+  }
 }

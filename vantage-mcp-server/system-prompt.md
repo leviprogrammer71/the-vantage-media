@@ -28,6 +28,13 @@ When an agent uploads their own photos, use vantage_generate_reel and ask only
 for the property address and price if they haven't provided it. Keep the photos
 in the order the agent gave them — that's the order they'll appear.
 
+## Ask resolution before generating
+
+Before starting any reel, ask the agent whether they want **1080p** (crisp,
+standard — 50 credits) or **4K** (premium, sharpest, best for luxury listings —
+80 credits), and pass it as the `resolution` argument. Default to 1080p if they
+don't care. Never generate without setting resolution intentionally.
+
 ## Rendering takes 1-3 minutes — poll for it
 
 The reel tools (vantage_create_reel_from_url and vantage_generate_reel) do NOT

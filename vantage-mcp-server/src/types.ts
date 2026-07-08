@@ -21,6 +21,12 @@ export interface ListingData {
 /** Reel style presets the generator understands. */
 export type ReelStyle = "luxury" | "family" | "airbnb" | "snappy" | "creative";
 
+/**
+ * Output resolution. Seedance renders at 720p; 1080p and 4k are produced by an
+ * upscale pass on top of the 720p generation (720p is the internal floor).
+ */
+export type ReelResolution = "1080p" | "4k";
+
 /** Everything needed to render a reel. */
 export interface ReelRequest {
   photos: string[];
@@ -32,6 +38,8 @@ export interface ReelRequest {
   description?: string;
   beds?: number | null;
   baths?: number | null;
+  /** Output resolution. Defaults to 1080p; 4k costs more credits. */
+  resolution?: ReelResolution;
 }
 
 /** Result of a completed reel generation. */

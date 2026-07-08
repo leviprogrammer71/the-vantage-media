@@ -12,6 +12,7 @@ import { currentToken, MissingAuthError, toErrorResult, toJsonResult } from "./s
 
 const OutputSchema = {
   status: z.string(),
+  job_id: z.string().optional(),
   reel_url: z.string().optional(),
   caption: z.string().optional(),
   hashtags: z.array(z.string()).optional(),
@@ -59,7 +60,10 @@ export function registerCheckReel(server: McpServer): void {
         if (result.status === "processing") {
           return toJsonResult({
             status: "processing",
-            message: "Still rendering — wait ~15-20 seconds and call vantage_check_reel again with the same job_id.",
+            job_id: result.jobId,
+            message:
+              (result.note ? result.note + " " : "") +
+              "Still rendering — wait ~15-20 seconds and call vantage_check_reel again, using the job_id from THIS response (it can change when the render moves to the enhance stage).",
           });
         }
         return toJsonResult({

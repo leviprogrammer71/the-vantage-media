@@ -1174,6 +1174,45 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
+    // ── UPSCALE MODE ──
+    // Seedance 2.0 (multi-reference reels) maxes at 720p. To deliver 1080p/4K
+    // we run the finished 720p reel through Topaz video-upscale. The MCP server
+    // starts this after the base render completes, then polls the returned
+    // prediction_id like any other prediction. Model + input field are env-
+    // overridable so the upscaler can be corrected without a redeploy; if this
+    // errors, the MCP delivers the base 720p so a reel is never lost.
+    //   Payload: { mode: "upscale", video_url: string, resolution: "1080p"|"4k" }
+    if (body.mode === "upscale" && body.video_url) {
+      const TOKEN = Deno.env.get("REPLICATE_API_TOKEN")!
+      const model = Deno.env.get("VIDEO_UPSCALE_MODEL") ?? "topazlabs/video-upscale"
+      const resField = Deno.env.get("VIDEO_UPSCALE_RES_FIELD") ?? "target_resolution"
+      const target = body.resolution === "4k" ? "4k" : "1080p"
+      const input: Record<string, unknown> = { video: body.video_url }
+      input[resField] = target
+      console.log(`[upscale] model=${model} target=${target}`)
+      const res = await fetch(`${REPLICATE}/models/${model}/predictions`, {
+        method: "POST",
+        headers: { Authorization: `Token ${TOKEN}`, "Content-Type": "application/json", Prefer: "wait=30" },
+        body: JSON.stringify({ input }),
+      })
+      const prediction = await res.json()
+      if (!res.ok || !prediction.id) {
+        const detail = prediction?.detail || prediction?.error?.message || JSON.stringify(prediction).slice(0, 300)
+        console.error(`[upscale] HTTP ${res.status}: ${detail}`)
+        throw new Error(`Upscale rejected (HTTP ${res.status}): ${detail}`)
+      }
+      if (prediction.status === "succeeded" && prediction.output) {
+        const out = prediction.output
+        const url = typeof out === "string" ? out : (Array.isArray(out) ? out[0] : null)
+        if (url) {
+          return new Response(JSON.stringify({ status: "complete", video_url: url }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+        }
+      }
+      return new Response(JSON.stringify({ status: "processing", prediction_id: prediction.id }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    }
+
     console.log("[generate-listing-video] payload:", JSON.stringify({
       mode: body.prediction_id ? "poll" : "start",
       prediction_id: body.prediction_id,

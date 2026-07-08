@@ -139,3 +139,22 @@ export async function insertSubmission(input: SubmissionInput): Promise<string |
     return input.id ?? null;
   }
 }
+
+/**
+ * Persist a submission's reel from the temporary Replicate URL into permanent
+ * Supabase Storage, by invoking the edge function's backfill mode. Without this,
+ * an MCP-generated reel only has the Replicate URL, which expires in ~24h and
+ * then vanishes from the user's gallery. Best-effort; the reel still works if
+ * this fails.
+ */
+export async function persistSubmissionVideo(submissionId: string): Promise<void> {
+  await httpRequest(
+    `${SUPABASE_URL}/functions/v1/generate-listing-video`,
+    {
+      method: "POST",
+      headers: serviceHeaders(),
+      body: JSON.stringify({ mode: "backfill", submission_id: submissionId }),
+    },
+    60_000,
+  );
+}

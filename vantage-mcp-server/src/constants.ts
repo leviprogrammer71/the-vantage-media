@@ -35,8 +35,16 @@ export const REEL_FUNCTION = "generate-listing-video";
 /** Category the reel generator uses for a multi-photo "Done-For-You" reel. */
 export const REEL_CATEGORY = "done_for_you_reel";
 
-/** Credit cost of one Done-For-You reel (mirrors calculateListingCost). */
+/** Credit cost of a 1080p Done-For-You reel (720p generate + 1080p upscale). */
 export const REEL_CREDIT_COST = 50;
+
+/** Credit cost of a 4K reel (720p generate + 4K upscale) — premium tier. */
+export const REEL_CREDIT_COST_4K = 80;
+
+/** Credit cost for a given output resolution. */
+export function reelCreditCost(resolution: "1080p" | "4k"): number {
+  return resolution === "4k" ? REEL_CREDIT_COST_4K : REEL_CREDIT_COST;
+}
 
 /** Default per-reel duration in seconds (single 15s Seedance reel). */
 export const REEL_DURATION_SECONDS = 15;

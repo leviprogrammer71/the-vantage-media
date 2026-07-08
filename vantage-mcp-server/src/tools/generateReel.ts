@@ -67,6 +67,7 @@ export function registerGenerateReel(server: McpServer): void {
             price: input.price,
             features: input.features,
             style: input.style,
+            resolution: input.resolution,
             beds: input.beds ?? null,
             baths: input.baths ?? null,
           },
