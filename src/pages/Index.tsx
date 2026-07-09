@@ -272,7 +272,7 @@ const Index = () => {
           <section className="lux-section lux-bg-cream" id="proof">
             <div className="lux-container">
               <SectionHeading
-                eyebrow="A REAL DONE-FOR-YOU REEL · 123 E. ATWOOD"
+                eyebrow="A REAL DONE-FOR-YOU REEL · EIGHT PHOTOS IN"
                 title="Eight photos in."
                 italic="One reel out."
                 lede="This is what a customer received this week — every clip rendered individually from a single photo with the exact prompt-engineering pipeline you'd run, then auto-stitched with a 0.5s cross-dissolve between each shot. No editor. No second crew. No post-production day."
@@ -289,14 +289,14 @@ const Index = () => {
                   </div>
                   <div className="grid grid-cols-3 gap-2 md:gap-3">
                     {[
-                      { src: "/atwood/cleanfront.webp", label: "FRONT · EXTERIOR" },
-                      { src: "/atwood/welcome.webp", label: "ENTRY" },
-                      { src: "/atwood/livingroom.webp", label: "LIVING" },
-                      { src: "/atwood/kitchen.webp", label: "KITCHEN" },
-                      { src: "/atwood/bedroom.webp", label: "BEDROOM" },
-                      { src: "/atwood/room.webp", label: "ROOM" },
-                      { src: "/atwood/bathroom.webp", label: "BATH" },
-                      { src: "/atwood/backyardside.webp", label: "BACKYARD" },
+                      { src: "/vantage/done-for-you/house3/1.png", label: "FRONT · EXTERIOR" },
+                      { src: "/vantage/done-for-you/house3/2.png", label: "ENTRY" },
+                      { src: "/vantage/done-for-you/house3/3.png", label: "LIVING" },
+                      { src: "/vantage/done-for-you/house3/4.png", label: "KITCHEN" },
+                      { src: "/vantage/done-for-you/house3/5.png", label: "BEDROOM" },
+                      { src: "/vantage/done-for-you/house3/6.png", label: "ROOM" },
+                      { src: "/vantage/done-for-you/house3/7.png", label: "BATH" },
+                      { src: "/vantage/done-for-you/house3/8.png", label: "BACKYARD" },
                     ].map((p, i) => (
                       <div
                         key={i}
@@ -345,9 +345,9 @@ const Index = () => {
                     THE OUTPUT · ONE STITCHED MP4
                   </div>
                   <PreviewVideo
-                    src="/atwood/123-e-atwood-final-cut.mp4"
-                    poster="/atwood/cleanfront.webp"
-                    alt="123 East Atwood — final Done-For-You reel"
+                    src="/vantage/done-for-you/result.mp4"
+                    poster="/vantage/done-for-you/house3/1.png"
+                    alt="Done-For-You reel — eight listing photos rendered into one cinematic reel"
                     containerClassName="w-full lux-bg-ink"
                     containerStyle={{ aspectRatio: "9/16", border: "1px solid var(--lux-hairline-strong)", boxShadow: "0 28px 60px -32px rgba(14,14,12,0.45)" }}
                   />

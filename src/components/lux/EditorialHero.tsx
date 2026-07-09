@@ -33,7 +33,7 @@ const EditorialHero = ({
   edition = "TIKTOK · REELS · MLS · ZILLOW · REALTOR.COM",
   title,
   italic,
-  subtitle = "Listing agents: post a scroll-stopping Reel the night you sign — not the week after. Upload one photo, get a 1080p vertical cinematic film in three minutes. Built for TikTok, Reels, and the MLS. MLS-safe with built-in AI-disclosure tag.",
+  subtitle = "Paste a Zillow link — or drop your photos — and get a cinematic 1080p reel with the caption and hashtags written for you, in minutes. It's the first listing tool your AI assistant runs for you. No editor, no crew, no post-production day. Your first reel is free.",
   primaryCta,
   secondaryCta,
   backgroundImage = "/vantage/ranch-build/input.png",
@@ -163,11 +163,27 @@ const EditorialHero = ({
               {subtitle}
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-5">
+            <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link to={pCta.to} className="lux-btn">
                 {pCta.label}
               </Link>
-              <Link to={sCta.to} className="lux-eyebrow inline-flex items-center gap-3" style={{ color: "var(--lux-ink)" }}>
+              {/* Connect-to-Claude CTA — surfaced above the fold, in style. */}
+              <Link
+                to="/connect"
+                className="lux-eyebrow inline-flex items-center gap-2 transition-transform hover:scale-[1.03]"
+                style={{
+                  color: "var(--lux-bone)",
+                  background: "var(--lux-rust)",
+                  padding: "14px 24px",
+                  fontWeight: 700,
+                  letterSpacing: "0.14em",
+                  fontSize: 12,
+                  boxShadow: "0 8px 22px rgba(14,14,12,0.2)",
+                }}
+              >
+                ⚡ CONNECT TO CLAUDE →
+              </Link>
+              <Link to={sCta.to} className="lux-eyebrow inline-flex items-center gap-3" style={{ color: "var(--lux-ink)", opacity: 0.85 }}>
                 <span style={{ display: "inline-block", width: 24, height: 1, background: "var(--lux-ink)" }} />
                 {sCta.label}
               </Link>
