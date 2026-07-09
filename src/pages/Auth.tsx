@@ -62,7 +62,7 @@ const Auth = () => {
   const isOpen = true;
 
   const rawReturn = searchParams.get("returnUrl") || searchParams.get("redirect") || "";
-  let safeReturn = "/video?mode=listing&category=done_for_you_reel";
+  let safeReturn = "/video?mode=listing";
   if (rawReturn) {
     try {
       const decoded = decodeURIComponent(rawReturn);
