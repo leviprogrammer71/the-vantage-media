@@ -84,8 +84,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Auth redirects must land on a stable, live URL. Per-deploy *.vercel.app URLs
+  // are ephemeral — they 404 after the deploy rotates (DEPLOYMENT_NOT_FOUND) —
+  // so never use them as the OAuth/email redirect base. Localhost and the real
+  // custom domains are fine; anything else falls back to the canonical domain.
+  const authRedirectOrigin = () => {
+    if (typeof window === "undefined") return "https://thevantage.media";
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1" || host.endsWith("thevantage.media")) {
+      return window.location.origin;
+    }
+    return "https://thevantage.media";
+  };
+
   const signUp = async (email: string, password: string, fullName: string) => {
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = `${authRedirectOrigin()}/`;
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -111,10 +124,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signInWithGoogle = async (returnUrl?: string) => {
-    const allowedOrigins = [window.location.origin, 'https://thevantage.media'];
-    const baseOrigin = allowedOrigins.includes(window.location.origin)
-      ? window.location.origin
-      : 'https://thevantage.media';
+    const baseOrigin = authRedirectOrigin();
 
     // Validate returnUrl is a same-origin path (starts with single "/").
     let safeReturn: string | null = null;
