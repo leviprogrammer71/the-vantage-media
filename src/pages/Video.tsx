@@ -102,10 +102,20 @@ export default function VideoPage() {
       <ErrorBoundary>
         <div className="min-h-screen bg-background pb-24">
         {/* Header */}
-        <header className="border-b bg-background/95 backdrop-blur sticky top-0 z-50">
-          <div className="px-4 sm:px-6 lg:px-10 xl:px-16 2xl:px-24 h-14 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-               <Button
+        <header
+          className="sticky top-0 z-50"
+          style={{
+            background: "var(--lux-bone)",
+            borderBottom: "1px solid var(--lux-hairline)",
+            paddingTop: "env(safe-area-inset-top, 0px)",
+          }}
+        >
+          <div
+            className="px-4 sm:px-6 lg:px-10 xl:px-16 2xl:px-24 flex items-center justify-between"
+            style={{ minHeight: 62 }}
+          >
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Button
                 variant="ghost"
                 size="icon"
                 className="h-9 w-9"
@@ -123,32 +133,53 @@ export default function VideoPage() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div className="flex items-center gap-2">
-                <Video className="h-5 w-5 text-primary" />
-                <span className="font-semibold">
-                  {videoMode === "select"
-                    ? "Create a Video"
-                    : videoMode === "listing"
-                    ? "Camera Movement"
-                    : videoMode === "transform"
-                    ? "Transformation"
-                    : videoMode === "setup"
-                    ? "Setup"
-                    : "Cleanup"}
+              {/* Brand wordmark — links home, matching the homepage. */}
+              <Link
+                to="/"
+                className="flex items-baseline gap-2 no-underline"
+                style={{ color: "var(--lux-ink)" }}
+                title="Back to The Vantage home"
+              >
+                <span className="lux-display-italic" style={{ fontSize: 21, lineHeight: 1, letterSpacing: "0.005em" }}>
+                  The Vantage
                 </span>
-              </div>
+              </Link>
+              <span
+                className="lux-eyebrow hidden sm:inline"
+                style={{ color: "var(--lux-ash)", marginLeft: 2 }}
+              >
+                {videoMode === "select"
+                  ? "· CREATE"
+                  : videoMode === "listing"
+                  ? "· LISTING VIDEO"
+                  : videoMode === "transform"
+                  ? "· TRANSFORMATION"
+                  : videoMode === "setup"
+                  ? "· SETUP"
+                  : "· CLEANUP"}
+              </span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
-                <Coins className="h-4 w-4 text-primary" />
-                <span className="font-semibold text-primary text-sm">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <Link
+                to="/"
+                className="lux-eyebrow hidden md:inline-flex items-center gap-1.5 hover:opacity-100 transition-opacity"
+                style={{ color: "var(--lux-ink)", opacity: 0.7 }}
+              >
+                <ArrowLeft className="h-3.5 w-3.5" /> HOME
+              </Link>
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1"
+                style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline-strong)" }}
+              >
+                <Coins className="h-4 w-4" style={{ color: "var(--lux-rust)" }} />
+                <span className="font-semibold text-sm" style={{ color: "var(--lux-ink)" }}>
                   {credits ?? 0}
                 </span>
               </div>
-              <Button variant="ghost" size="sm" asChild className="h-8 text-xs">
-                <Link to="/pricing">Get Credits</Link>
-              </Button>
+              <Link to="/pricing" className="lux-eyebrow" style={{ color: "var(--lux-ink)", opacity: 0.78 }}>
+                GET CREDITS
+              </Link>
             </div>
           </div>
         </header>

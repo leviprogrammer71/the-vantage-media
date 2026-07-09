@@ -9,7 +9,10 @@
 //
 // Cached: HTML shell + manifest + icons. Everything else is network-only.
 
-const CACHE = "vantage-v3";
+// Bump this on every deploy that must invalidate the app shell. Changing the
+// bytes of this file makes the browser re-install the SW, and the activate
+// handler below evicts every cache that isn't the current name.
+const CACHE = "vantage-v4";
 
 // Only the app shell — never media or third-party.
 const APP_SHELL = [

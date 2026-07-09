@@ -46,6 +46,11 @@ function createServer(): McpServer {
 async function runHttp(): Promise<void> {
   const app = express();
 
+  // Serve the brand favicon/logo (V monogram) from the server root, so MCP
+  // clients that fetch the connector's origin favicon can show the V mark.
+  // Files live in vantage-mcp-server/public/ (Render runs from that folder).
+  app.use(express.static("public", { maxAge: "1d", fallthrough: true }));
+
   // CORS + preflight. Remote MCP clients (including browser-originated ones)
   // may send a preflight OPTIONS and enforce CORS on the /mcp endpoint. Allow
   // it broadly — the only auth is the per-user token in the URL/header.
