@@ -53,15 +53,15 @@ export default function ConnectClaudeShowcase() {
           {/* RIGHT — pitch */}
           <div className="order-1 lg:order-2">
             <div className="lux-eyebrow inline-flex items-center gap-2 mb-4" style={{ color: "var(--lux-champagne)" }}>
-              <Plug size={13} /> NEW · WORKS INSIDE CLAUDE
+              <Plug size={13} /> THE FIRST AGENTIC LISTING TOOL
             </div>
             <h2 className="lux-display" style={{ fontSize: "clamp(2rem, 4vw, 3rem)", lineHeight: 1.02 }}>
-              Your listings become reels <em style={{ color: "var(--lux-champagne)" }}>without opening the app.</em>
+              Paste a Zillow link. Get a listing reel back — <em style={{ color: "var(--lux-champagne)" }}>inside your chat.</em>
             </h2>
             <p className="lux-prose mt-5" style={{ fontSize: "1rem", color: "rgba(244,239,230,0.8)", maxWidth: 520 }}>
-              Connect The Vantage to Claude once. Then paste a Zillow or Airbnb link — or drop your own
-              photos — into any chat and get a finished, captioned reel back in minutes. The system does
-              the fetching, the filming, and the copy. You just ask.
+              The Vantage is the first real-estate video tool your AI assistant runs for you. Connect it to
+              Claude once, then just say "make me a reel for this listing." It fetches the photos, films the
+              reel, and writes the caption — while you do literally nothing else. No dashboard. No editing.
             </p>
             <ul className="mt-6 space-y-2 lux-prose" style={{ fontSize: "0.92rem", color: "rgba(244,239,230,0.85)" }}>
               <li>— One-click connector token, tied to your account</li>

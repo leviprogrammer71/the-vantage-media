@@ -73,6 +73,17 @@ const BlogPostPage = () => {
           mainEntityOfPage: { "@type": "WebPage", "@id": url },
           keywords: post.keywords.join(", "),
         })}</script>
+
+        {/* Breadcrumb trail for richer SERP display */}
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Home", item: "https://thevantage.media/" },
+            { "@type": "ListItem", position: 2, name: "Blog", item: "https://thevantage.media/blog" },
+            { "@type": "ListItem", position: 3, name: post.title, item: url },
+          ],
+        })}</script>
       </Helmet>
 
       <div className="min-h-screen lux-bg-bone lux-grain">

@@ -9,6 +9,7 @@
     <meta name="author" content="The Vantage Media" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="googlebot" content="index, follow, max-image-preview:large" />
+    <meta name="google-site-verification" content="dcrB4kGwpgo9uGUKIGuFnGf2vC9134k4W5lOD-c3FhI" />
     <link rel="canonical" href="https://thevantage.media/" />
     <meta name="application-name" content="The Vantage" />
     <meta name="geo.region" content="US" />
@@ -32,8 +33,19 @@
          Preconnecting shaves the TLS+DNS handshake off the first render fetch. -->
     <link rel="dns-prefetch" href="https://replicate.delivery" />
     <link rel="preconnect" href="https://replicate.delivery" crossorigin />
+    <!-- Preload the LCP hero still so it paints as early as possible. -->
+    <link rel="preload" as="image" href="/hero-still.jpg" fetchpriority="high" />
+    <!-- Primary Google font stylesheet (Inter/Playfair/etc.) uses display=swap. -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=DM+Serif+Display:ital@0;1&family=Anton&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
-    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&display=swap" rel="stylesheet" />
+    <!-- Secondary font (Clash Display) — load async so it never blocks first paint.
+         display=swap on the URL means no invisible-text flash. -->
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript><link href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&display=swap" rel="stylesheet" /></noscript>
 
     <style>
       #splash {
@@ -195,7 +207,15 @@
             "name": "How much does it cost to make an AI listing video?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "The Vantage starts free — every account gets 50 credits with no card required. Animate Single starts at 25 credits per video, Sun-Up to Sundown at 60 credits, Virtual Staging at 50 credits, and the Done-For-You Reel at 110 credits. Annual plans save 30 percent and include a two-month bonus."
+              "text": "The Vantage starts free — every account gets 60 credits with no card required. A Done-For-You Reel is 50 credits, Animate Single is 10 credits, and Virtual Staging or Sun-Up to Sundown is 15 credits each. Reels render in 1080p, with 4K available. Annual plans save about 30 percent and include bonus credits."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I make real estate videos inside Claude or another AI assistant?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. The Vantage is the first agentic listing tool for real estate agents — connect it to Claude once, then paste a Zillow or Airbnb link into any chat and get a finished, captioned reel back in minutes. The assistant fetches the photos, generates the reel, and writes the caption and hashtags. No dashboard and no editing required."
             }
           }
         ]

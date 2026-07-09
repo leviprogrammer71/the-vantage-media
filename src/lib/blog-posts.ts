@@ -333,6 +333,183 @@ export const BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "make-real-estate-videos-in-claude",
+    title: "How to Make Real Estate Videos Inside Claude — No App, No Editing",
+    description: "Connect The Vantage to Claude and generate a finished listing reel by chatting. Paste a Zillow or Airbnb link, get a captioned reel back in minutes. Full setup and workflow.",
+    publishedAt: "2026-07-07",
+    readTime: 7,
+    cover: "/hero-still.jpg",
+    category: "AI ASSISTANT · WORKFLOW",
+    keywords: [
+      "make real estate videos in claude",
+      "ai assistant real estate video",
+      "claude real estate reel",
+      "listing video from chat",
+      "mcp real estate video",
+      "ai real estate video",
+      "connect vantage to claude",
+    ],
+    sections: [
+      {
+        type: "lede",
+        text:
+          "The fastest listing reel in 2026 doesn't start in an app. It starts in a chat. Connect The Vantage to Claude once, paste a Zillow or Airbnb link, and a finished, captioned reel comes back in minutes — no dashboard, no timeline, no editing. Here is exactly how it works and how to set it up.",
+      },
+      { type: "h2", text: "Why make listing videos inside an AI assistant?" },
+      {
+        type: "p",
+        text:
+          "Most agents already spend part of their day in an AI chat — writing descriptions, drafting emails, answering client questions. Making the listing video the same way removes every step that usually kills the habit: no separate login, no learning a video editor, no uploading and waiting on a dashboard. You ask, it delivers. That is the single biggest friction reducer in real-estate content this year.",
+      },
+      { type: "h2", text: "What you can ask for" },
+      {
+        type: "ul",
+        items: [
+          "\"Make me a reel for this listing: [Zillow link]\" — it fetches the photos and builds the reel.",
+          "\"Turn these photos into a luxury reel\" — upload your own shots and it renders from those.",
+          "\"Write me a caption and hashtags for this listing\" — post-ready copy every time.",
+          "\"Make it 4K\" — choose 1080p or 4K per video.",
+        ],
+      },
+      { type: "h2", text: "The three-step setup" },
+      {
+        type: "ol",
+        items: [
+          "On thevantage.media/connect, generate your personal connector token.",
+          "In Claude, open Settings then Connectors then Add custom connector, and paste your connector URL.",
+          "Start a chat and say what you want. Your reels still land in your Vantage gallery.",
+        ],
+      },
+      { type: "h2", text: "What comes back" },
+      {
+        type: "p",
+        text:
+          "Every generation returns three things: the finished vertical reel (1080p or 4K), a ready-to-post caption, and a set of relevant hashtags. The reel is sized for Instagram Reels, TikTok, YouTube Shorts, and Stories, and it is MLS-safe with an AI-disclosure tag. From link to post-ready reel is typically two to three minutes.",
+      },
+      {
+        type: "p",
+        text:
+          "Because the assistant can see the listing, it curates a balanced set of shots — hero exterior, living, kitchen, primary bedroom, a standout feature — instead of nine near-identical angles of one room. That is the difference between a reel that looks intentional and one that looks auto-generated.",
+      },
+      {
+        type: "cta",
+        label: "Connect The Vantage to Claude",
+        href: "/connect",
+        subhead: "Generate your token and make your first reel from a chat — free.",
+      },
+    ],
+  },
+  {
+    slug: "zillow-link-to-video-reel",
+    title: "Turn a Zillow Link Into a Listing Video Reel in Minutes",
+    description: "Paste a Zillow listing URL and get a cinematic, captioned video reel back — no photo downloads, no editing. Here's how link-to-reel works and how to get the best result.",
+    publishedAt: "2026-07-07",
+    readTime: 6,
+    cover: "/hero-still.jpg",
+    category: "ZILLOW · WORKFLOW",
+    keywords: [
+      "zillow video maker",
+      "zillow link to video",
+      "listing video from zillow",
+      "real estate reel from listing url",
+      "zillow listing video",
+      "ai real estate video",
+    ],
+    sections: [
+      {
+        type: "lede",
+        text:
+          "You already have the listing on Zillow. Why re-download every photo, re-type the address, and open an editor? With The Vantage you paste the Zillow URL and a finished, captioned reel comes back — the photos and details are pulled for you.",
+      },
+      { type: "h2", text: "How link-to-reel works" },
+      {
+        type: "p",
+        text:
+          "Give The Vantage a Zillow listing link and it fetches the full photo gallery and the property details — address, price, beds, baths — automatically. It then curates a balanced sequence of shots, renders a cinematic vertical reel, and writes a caption with hashtags. You review one thing: the finished video.",
+      },
+      { type: "h2", text: "Getting the best result from a link" },
+      {
+        type: "ul",
+        items: [
+          "Use the full listing URL (the one with the address and zpid), not a search page.",
+          "Pick a style that matches the home — luxury for high-end, snappy for fast social, family for everyday residential.",
+          "Choose 1080p for crisp everyday posting or 4K for luxury listings where sharpness sells.",
+          "If a listing is behind heavy protection, upload the photos directly — the reel comes out identical.",
+        ],
+      },
+      { type: "h2", text: "Where to post it" },
+      {
+        type: "p",
+        text:
+          "The output is a 9:16 vertical reel built for Instagram Reels, TikTok, YouTube Shorts, and Facebook Stories, plus a caption you can paste straight into the post. It is MLS-safe and carries an AI-disclosure tag, so it fits MLS video fields and Zillow tour requirements too.",
+      },
+      { type: "h2", text: "Link-to-reel vs. a videographer" },
+      {
+        type: "p",
+        text:
+          "A shot-and-edited listing video typically costs $150-300 and takes days to turn around. Link-to-reel turns the same listing into a post-ready video in minutes for a fraction of the cost — so every listing gets marketed, not just the flagship ones.",
+      },
+      {
+        type: "cta",
+        label: "Make a reel from a Zillow link",
+        href: "/for-agents",
+        subhead: "Paste a link, pick a style, post today. First reel free.",
+      },
+    ],
+  },
+  {
+    slug: "airbnb-listing-video-guide",
+    title: "Airbnb Listing Videos: Make a Booking Reel From Your Listing in Minutes",
+    description: "Short-term rental hosts: turn your Airbnb listing into a scroll-stopping booking reel. Paste your listing link or upload photos and get a captioned video in minutes.",
+    publishedAt: "2026-07-07",
+    readTime: 6,
+    cover: "/hero-still.jpg",
+    category: "AIRBNB · SHORT-TERM RENTAL",
+    keywords: [
+      "airbnb listing video",
+      "short term rental video",
+      "airbnb reel maker",
+      "vrbo listing video",
+      "airbnb marketing video",
+      "booking reel",
+    ],
+    sections: [
+      {
+        type: "lede",
+        text:
+          "Photos get a scroll; a reel gets a booking. Short-term rental guests decide in seconds, and a moving walk-through of your space converts far better than a static gallery. The Vantage turns your Airbnb listing into a booking reel in minutes — no editing required.",
+      },
+      { type: "h2", text: "From listing link to booking reel" },
+      {
+        type: "p",
+        text:
+          "Paste your Airbnb room link and The Vantage pulls the photos and details for you, then renders a cinematic vertical reel with a caption. Prefer to hand-pick the shots? Upload your own photos in the order you want them to appear. Either way you get a post-ready video sized for Reels, TikTok, and Stories.",
+      },
+      { type: "h2", text: "What makes a rental reel convert" },
+      {
+        type: "ul",
+        items: [
+          "Open on the hero shot — the view, the pool, or the standout living space.",
+          "Show flow: entry, living, kitchen, bedroom, then the outdoor or view moment to close.",
+          "Keep it under 20 seconds and let the motion do the selling.",
+          "Add a caption with the location and the one feature guests search for — 'walk to the beach,' 'hot tub,' 'downtown.'",
+        ],
+      },
+      { type: "h2", text: "Where rental reels pay off" },
+      {
+        type: "p",
+        text:
+          "Post the reel on your property's Instagram and TikTok, pin it to your profile, and add it to your direct-booking site. Hosts who market off-platform reduce their dependence on OTA fees and build a repeat-guest audience — and a reel is the single most shareable asset you can make from a listing you already have.",
+      },
+      {
+        type: "cta",
+        label: "Make your Airbnb booking reel",
+        href: "/for-airbnb",
+        subhead: "Paste your listing link or upload photos. First reel free.",
+      },
+    ],
+  },
 ];
 
 export const getPostBySlug = (slug: string) => BLOG_POSTS.find((p) => p.slug === slug);

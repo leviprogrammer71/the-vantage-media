@@ -68,18 +68,26 @@ const LuxuryHeader = ({ variant = "bone" }: LuxuryHeaderProps) => {
         <nav className="hidden lg:flex items-center gap-9">
           {navLinks.map((l) => {
             const active = location.pathname === l.to;
+            const isConnect = l.to === "/connect";
             return (
               <Link
                 key={l.to}
                 to={l.to}
                 className="lux-eyebrow hover:opacity-100 transition-opacity"
                 style={{
-                  color: fg,
-                  opacity: active ? 1 : 0.6,
+                  color: isConnect ? "var(--lux-brass)" : fg,
+                  // Higher base opacity so links read as clickable, not decoration.
+                  opacity: active || isConnect ? 1 : 0.82,
                   letterSpacing: "0.18em",
+                  fontWeight: isConnect ? 700 : undefined,
                 }}
               >
                 {l.label}
+                {isConnect && (
+                  <sup style={{ color: "var(--lux-rust)", fontSize: 8, marginLeft: 4, letterSpacing: 0, fontWeight: 700 }}>
+                    NEW
+                  </sup>
+                )}
               </Link>
             );
           })}
@@ -103,18 +111,19 @@ const LuxuryHeader = ({ variant = "bone" }: LuxuryHeaderProps) => {
                   product, every film should be one click away. */}
               <Link
                 to="/video?mode=listing"
-                className="lux-eyebrow inline-flex items-center gap-3"
+                className="lux-eyebrow inline-flex items-center gap-2 transition-transform hover:scale-[1.04]"
                 style={{
-                  color: variant === "ink" ? "var(--lux-ink)" : "var(--lux-bone)",
-                  background: variant === "ink" ? "var(--lux-bone)" : "var(--lux-ink)",
-                  padding: "14px 26px",
-                  minHeight: 46,
-                  fontSize: 12,
-                  letterSpacing: "0.2em",
-                  border: variant === "ink" ? "1px solid var(--lux-bone)" : "1px solid var(--lux-ink)",
+                  color: "var(--lux-bone)",
+                  background: "var(--lux-rust)",
+                  padding: "15px 30px",
+                  minHeight: 48,
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  letterSpacing: "0.16em",
+                  boxShadow: "0 8px 22px rgba(14,14,12,0.22)",
                 }}
               >
-                NEW FILM →
+                MAKE A REEL →
               </Link>
             </>
           ) : (
@@ -128,18 +137,19 @@ const LuxuryHeader = ({ variant = "bone" }: LuxuryHeaderProps) => {
               </Link>
               <Link
                 to="/signup"
-                className="lux-eyebrow inline-flex items-center gap-3"
+                className="lux-eyebrow inline-flex items-center gap-2 transition-transform hover:scale-[1.04]"
                 style={{
-                  color: variant === "ink" ? "var(--lux-ink)" : "var(--lux-bone)",
-                  background: variant === "ink" ? "var(--lux-bone)" : "var(--lux-ink)",
-                  padding: "14px 26px",
-                  minHeight: 46,
-                  fontSize: 12,
-                  letterSpacing: "0.2em",
-                  border: variant === "ink" ? "1px solid var(--lux-bone)" : "1px solid var(--lux-ink)",
+                  color: "var(--lux-bone)",
+                  background: "var(--lux-rust)",
+                  padding: "15px 30px",
+                  minHeight: 48,
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  letterSpacing: "0.16em",
+                  boxShadow: "0 8px 22px rgba(14,14,12,0.22)",
                 }}
               >
-                TRY FREE →
+                START FREE →
               </Link>
             </>
           )}

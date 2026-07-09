@@ -14,7 +14,17 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Ship modern JS to modern browsers (smaller, faster) and strip console/
+  // debugger from production bundles so logging doesn't ship to users.
+  esbuild: {
+    drop: mode === "production" ? ["console", "debugger"] : [],
+  },
   build: {
+    // Modern baseline — avoids legacy transpilation weight.
+    target: "es2020",
+    cssCodeSplit: true,
+    // Skip the expensive gzip-size report to speed up builds.
+    reportCompressedSize: false,
     // Slightly higher warning ceiling so the intentional vendor splits
     // below don't spam the build log.
     chunkSizeWarningLimit: 900,

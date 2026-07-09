@@ -106,6 +106,7 @@ export default function DfyShowcase({
                     src={src}
                     alt={`Listing photo ${i + 1}`}
                     loading="lazy"
+                    decoding="async"
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                   <div

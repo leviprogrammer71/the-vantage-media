@@ -28,6 +28,8 @@ export default function ArticlePreview({
           <img
             alt={imageAlt}
             src={image}
+            loading="lazy"
+            decoding="async"
             className="absolute w-full h-full object-cover transition-transform duration-500 ease-out group-hover/image:scale-105"
           />
         </Link>

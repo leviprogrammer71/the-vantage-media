@@ -807,7 +807,7 @@ const Index = () => {
           </section>
 
           {/* CASE STUDIES */}
-          <section className="lux-section lux-bg-parchment">
+          <section className="lux-section lux-bg-parchment [content-visibility:auto] [contain-intrinsic-size:1px_1400px]">
             <div className="lux-container">
               <SectionHeading
                 eyebrow="THE CLIENTELE"
@@ -890,7 +890,7 @@ const Index = () => {
           />
 
           {/* THE ECONOMICS — ROI Calculator */}
-          <section className="lux-section lux-bg-bone">
+          <section className="lux-section lux-bg-bone [content-visibility:auto] [contain-intrinsic-size:1px_1200px]">
             <div className="lux-container grid lg:grid-cols-12 gap-12 lg:gap-16 items-start">
               <div className="lg:col-span-5">
                 <SectionHeading

@@ -51,6 +51,11 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://thevantage.media/connect</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://thevantage.media/gallery</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -114,5 +119,23 @@
     <loc>https://thevantage.media/blog/best-music-for-listing-videos</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://thevantage.media/blog/make-real-estate-videos-in-claude</loc>
+    <lastmod>2026-07-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://thevantage.media/blog/zillow-link-to-video-reel</loc>
+    <lastmod>2026-07-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://thevantage.media/blog/airbnb-listing-video-guide</loc>
+    <lastmod>2026-07-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

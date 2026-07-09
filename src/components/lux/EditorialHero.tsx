@@ -29,7 +29,7 @@ const EditorialHero = ({
   // simultaneously; no buyer felt named. New copy names ONE buyer (listing
   // agents) and leads with the specific job-to-be-done identified in research
   // ("look like a top producer at 11pm the night you list").
-  eyebrow = "FOR LISTING AGENTS · MAKE A CINEMATIC REEL TONIGHT",
+  eyebrow = "THE FIRST AGENTIC LISTING TOOL FOR REAL ESTATE AGENTS",
   edition = "TIKTOK · REELS · MLS · ZILLOW · REALTOR.COM",
   title,
   italic,
@@ -81,7 +81,7 @@ const EditorialHero = ({
           <div className="lg:col-span-7">
             <div className="lux-eyebrow mb-4 flex items-center gap-3" style={{ color: "var(--lux-brass)" }}>
               <span style={{ display: "inline-block", width: 36, height: 1, background: "var(--lux-brass)" }} />
-              BUILT FOR THE LISTING AGENT WHO POSTS THE SAME NIGHT THEY SIGN
+              NOW WORKS INSIDE CLAUDE · PASTE A ZILLOW LINK, GET A REEL
             </div>
 
             {/* Social proof strip — CRO P0 #1.
