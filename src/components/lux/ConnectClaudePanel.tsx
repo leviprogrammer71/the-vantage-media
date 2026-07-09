@@ -106,6 +106,14 @@ export default function ConnectClaudePanel() {
     <div style={{ background: "var(--lux-cream)", border: "1px solid var(--lux-hairline-strong)" }}>
       {/* Header */}
       <div className="p-6 sm:p-8" style={{ borderBottom: "1px solid var(--lux-hairline)" }}>
+        <img
+          src="/logo-v.png"
+          alt="The Vantage"
+          width={48}
+          height={48}
+          className="mb-4"
+          style={{ display: "block", borderRadius: 4 }}
+        />
         <div className="lux-eyebrow inline-flex items-center gap-2 mb-3" style={{ color: "var(--lux-rust)" }}>
           <Plug size={13} /> CONNECT TO CLAUDE
         </div>

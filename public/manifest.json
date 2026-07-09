@@ -1,11 +1,11 @@
 {
-  "name": "The Vantage",
+  "name": "The Vantage — AI Real Estate Video",
   "short_name": "Vantage",
-  "description": "Turn your after photos into viral transformation videos",
-  "start_url": "/video?mode=transform",
+  "description": "The first agentic listing tool for real estate agents. Paste a Zillow or Airbnb link and get a cinematic, captioned reel back in minutes.",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#0A0A0A",
-  "theme_color": "#E8C547",
+  "background_color": "#F4EFE6",
+  "theme_color": "#F4EFE6",
   "orientation": "portrait-primary",
   "icons": [
     {
