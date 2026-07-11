@@ -15,11 +15,13 @@ const publicNavLinks = [
   { to: "/pricing", label: "Pricing" },
 ];
 
+// Single account hub = /profile (shows credits, stats, identity, sign-out).
+// Dashboard was redundant with Profile, so it now redirects to /profile and
+// the credits pill on the right is the account entry point.
 const authedNavLinks = [
   { to: "/connect", label: "Connect to Claude" },
   { to: "/gallery", label: "My Gallery" },
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/profile", label: "Profile" },
+  { to: "/blog", label: "Blog" },
   { to: "/pricing", label: "Pricing" },
 ];
 
@@ -98,11 +100,20 @@ const LuxuryHeader = ({ variant = "bone" }: LuxuryHeaderProps) => {
             <>
               <Link
                 to="/profile"
-                className="hidden md:inline-flex lux-eyebrow"
-                style={{ color: fg, opacity: 0.7 }}
-                title="View profile, credits, and sign out"
+                className="hidden md:inline-flex items-center gap-2 lux-eyebrow transition-transform hover:scale-[1.03]"
+                style={{
+                  color: fg,
+                  border: `1px solid ${variant === "ink" ? "rgba(244,239,230,0.25)" : "var(--lux-hairline-strong)"}`,
+                  borderRadius: 999,
+                  padding: "9px 16px",
+                  fontSize: 11.5,
+                  letterSpacing: "0.14em",
+                  fontWeight: 600,
+                }}
+                title="Your account — credits, reels, billing, sign out"
               >
-                {credits ?? 0} CREDITS
+                <span style={{ color: "var(--lux-brass)" }}>◆</span>
+                {(credits ?? 0).toLocaleString()} CREDITS
               </Link>
               {/* Logged-in NEW FILM goes to the category picker so users can
                   see ALL 7 films, not just Done-For-You. Marketing CTAs on
@@ -178,6 +189,16 @@ const LuxuryHeader = ({ variant = "bone" }: LuxuryHeaderProps) => {
                 {l.label}
               </Link>
             ))}
+            {user && (
+              <Link
+                to="/profile"
+                onClick={() => setOpen(false)}
+                className="lux-eyebrow"
+                style={{ color: "var(--lux-brass)", fontSize: 12, letterSpacing: "0.24em", fontWeight: 700 }}
+              >
+                ◆ ACCOUNT · {(credits ?? 0).toLocaleString()} CREDITS
+              </Link>
+            )}
           </div>
         </div>
       )}

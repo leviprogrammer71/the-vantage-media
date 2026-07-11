@@ -137,6 +137,55 @@ const Pricing = () => {
         <LuxuryHeader variant="bone" />
 
         <main id="main-content">
+          {/* SPECIAL-OFFER BANNER — Higgsfield-style. Loud, dark, states the
+              anchor discount up top so the deal is the first thing seen. */}
+          <div
+            className="lux-bg-ink"
+            style={{ borderBottom: "1px solid var(--lux-ink)" }}
+          >
+            <div className="lux-container flex flex-col sm:flex-row items-center justify-center gap-x-5 gap-y-2 py-3 text-center">
+              <span
+                className="lux-eyebrow"
+                style={{
+                  background: "var(--lux-rust)",
+                  color: "var(--lux-bone)",
+                  padding: "5px 12px",
+                  fontSize: "0.6rem",
+                  letterSpacing: "0.18em",
+                  fontWeight: 700,
+                }}
+              >
+                ★ FOUNDER LAUNCH · 20% OFF
+              </span>
+              <span
+                style={{
+                  color: "var(--lux-bone)",
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: "0.92rem",
+                  fontWeight: 500,
+                }}
+              >
+                Every plan launch-priced — plans from{" "}
+                <s style={{ color: "rgba(244,239,230,0.5)" }}>$49</s>{" "}
+                <span style={{ color: "var(--lux-champagne)", fontWeight: 700 }}>$39/mo</span>. Ends in 45 days.
+              </span>
+              <a
+                href="#packs"
+                className="lux-eyebrow"
+                style={{
+                  color: "var(--lux-bone)",
+                  borderBottom: "1px solid var(--lux-champagne)",
+                  paddingBottom: 2,
+                  fontSize: "0.62rem",
+                  letterSpacing: "0.16em",
+                  fontWeight: 700,
+                }}
+              >
+                SEE PLANS ↓
+              </a>
+            </div>
+          </div>
+
           {/* URGENCY MARQUEE */}
           <div className="lux-bg-cream py-4" style={{ borderBottom: "1px solid var(--lux-hairline)" }}>
             <Marquee
@@ -173,8 +222,57 @@ const Pricing = () => {
                   <p className="lux-prose" style={{ fontSize: 19, color: "var(--lux-ink)" }}>
                     Pay once. Use for months. Top up anytime the studio's busy. No subscriptions to cancel, no expiry dates, no hidden tiers.
                   </p>
+
+                  {/* PRICE ANCHOR — visible on landing, before any scroll.
+                      $49 struck → $39, with the % OFF and a jump to the cards. */}
+                  <div
+                    className="mt-8 p-6 lux-bg-cream"
+                    style={{ border: "1px solid var(--lux-hairline-strong)" }}
+                  >
+                    <div className="lux-eyebrow" style={{ color: "var(--lux-rust)" }}>
+                      STARTS AT
+                    </div>
+                    <div className="flex items-baseline gap-3 mt-2">
+                      <span className="lux-display" style={{ fontSize: "3.4rem", lineHeight: 1 }}>
+                        $39
+                      </span>
+                      <span
+                        className="lux-display-italic"
+                        style={{ color: "var(--lux-ash)", fontSize: "1.4rem", textDecoration: "line-through" }}
+                      >
+                        $49
+                      </span>
+                      <span
+                        className="lux-eyebrow"
+                        style={{
+                          background: "var(--lux-rust)",
+                          color: "var(--lux-bone)",
+                          padding: "4px 9px",
+                          fontSize: "0.58rem",
+                          letterSpacing: "0.16em",
+                          fontWeight: 700,
+                        }}
+                      >
+                        20% OFF
+                      </span>
+                    </div>
+                    <div
+                      className="mt-1"
+                      style={{ color: "var(--lux-ash)", fontSize: "0.85rem", fontFamily: "Inter, sans-serif" }}
+                    >
+                      per month · ~10 done-for-you reels · credits never expire
+                    </div>
+                    <a
+                      href="#packs"
+                      className="lux-btn inline-flex items-center gap-2 mt-5"
+                      style={{ background: "var(--lux-ink)", color: "var(--lux-bone)" }}
+                    >
+                      SEE ALL PLANS ↓
+                    </a>
+                  </div>
+
                   {creditBalance !== null && (
-                    <div className="mt-8 p-6 lux-bg-cream" style={{ border: "1px solid var(--lux-hairline)" }}>
+                    <div className="mt-6 p-6 lux-bg-cream" style={{ border: "1px solid var(--lux-hairline)" }}>
                       <div className="lux-eyebrow" style={{ color: "var(--lux-ash)" }}>YOUR ACCOUNT</div>
                       <div className="lux-display text-4xl mt-2">{creditBalance} <span className="lux-display-italic text-2xl" style={{ color: "var(--lux-ash)" }}>credits remaining</span></div>
                     </div>
@@ -184,52 +282,8 @@ const Pricing = () => {
             </div>
           </section>
 
-          {/* VS RENDY — Why choose Vantage */}
-          <section className="lux-section lux-bg-bone">
-            <div className="lux-container mb-16">
-              <div className="mb-12 p-6 lux-bg-parchment" style={{ border: "1px solid var(--lux-hairline)" }}>
-                <h3 className="lux-display text-2xl mb-4" style={{ color: "var(--lux-ink)" }}>vs. Rendy.io</h3>
-                <div className="space-y-3 text-sm" style={{ color: "var(--lux-ink)", lineHeight: 1.8 }}>
-                  <p>Six listing categories, not two. Floor-plan-to-walkthrough native. 2-clip transformation reels — moment plus reveal. 1080p Seedance 2.0. Built by photographers who shoot $5M+ listings. Real-estate-native shot types and vibes.</p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* TESTIMONIAL STRIP */}
-          <section className="lux-section lux-bg-bone" style={{ paddingTop: 0 }}>
-            <div className="lux-container">
-              <div className="grid md:grid-cols-3 gap-8">
-                {[
-                  { quote: "Pays for itself the first week.", author: "Maya Atwood", company: "Atwood Photographic" },
-                  { quote: "We added it as a $450 line item the next morning.", author: "Jordan Park", company: "Meridian Visual Co." },
-                  { quote: "Three minutes per film. We've quietly tripled our throughput.", author: "Sara Larsen", company: "House of Larsen" },
-                ].map((t, i) => (
-                  <div
-                    key={i}
-                    className="p-8 lux-bg-bone"
-                    style={{ border: "1px solid var(--lux-hairline)" }}
-                  >
-                    <p className="lux-prose mb-4 italic">{t.quote}</p>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>
-                          {t.author}
-                        </div>
-                        <div style={{ color: "var(--lux-ash)", fontSize: "0.875rem" }}>
-                          {t.company}
-                        </div>
-                      </div>
-                      <div style={{ color: "var(--lux-rust)" }}>★★★★★</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
           {/* CREDIT PACKS */}
-          <section className="lux-section lux-bg-cream">
+          <section id="packs" className="lux-section lux-bg-cream">
             <div className="lux-container">
               <div className="mb-12 text-center">
                 <SectionHeading
@@ -340,6 +394,11 @@ const Pricing = () => {
                   const isAnnual = billingCycle === "annual";
                   const displayPrice = isAnnual ? p.price_annual : p.price_monthly;
                   const monthlyEquiv = isAnnual ? Math.round(p.price_annual / 12) : p.price_monthly;
+                  // Launch anchor — show original monthly struck through + % off.
+                  const origMonthly = p.price_original_monthly;
+                  const discountPct = origMonthly
+                    ? Math.round((1 - p.price_monthly / origMonthly) * 100)
+                    : 0;
                   return (
                     <div
                       key={p.id}
@@ -396,17 +455,49 @@ const Pricing = () => {
                         {p.name}
                       </div>
 
-                      {/* PRICE — toggles between monthly and annual */}
-                      <div
-                        className="lux-display mt-3"
-                        style={{
-                          fontSize: "clamp(2.6rem, 5vw, 3.6rem)",
-                          lineHeight: 1,
-                          color: featured ? "var(--lux-bone)" : "var(--lux-ink)",
-                          fontWeight: 600,
-                        }}
-                      >
-                        ${displayPrice.toLocaleString()}
+                      {/* PRICE — toggles between monthly and annual. In monthly
+                          view we anchor with the struck original + % OFF badge. */}
+                      <div className="mt-3 flex items-end gap-3 flex-wrap">
+                        <div
+                          className="lux-display"
+                          style={{
+                            fontSize: "clamp(2.6rem, 5vw, 3.6rem)",
+                            lineHeight: 1,
+                            color: featured ? "var(--lux-bone)" : "var(--lux-ink)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          ${displayPrice.toLocaleString()}
+                        </div>
+                        {!isAnnual && origMonthly && (
+                          <div className="flex flex-col gap-1 pb-1">
+                            <span
+                              className="lux-display-italic"
+                              style={{
+                                color: featured ? "rgba(244,239,230,0.6)" : "var(--lux-ash)",
+                                fontSize: "1.35rem",
+                                textDecoration: "line-through",
+                                lineHeight: 1,
+                              }}
+                            >
+                              ${origMonthly}
+                            </span>
+                            <span
+                              className="lux-eyebrow"
+                              style={{
+                                background: "var(--lux-rust)",
+                                color: "var(--lux-bone)",
+                                padding: "3px 8px",
+                                fontSize: "0.52rem",
+                                letterSpacing: "0.14em",
+                                fontWeight: 700,
+                                textAlign: "center",
+                              }}
+                            >
+                              {discountPct}% OFF
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div
                         className="mt-1"
@@ -419,7 +510,21 @@ const Pricing = () => {
                       >
                         {isAnnual
                           ? `billed annually · $${monthlyEquiv}/mo equivalent`
-                          : "billed monthly"}
+                          : "per month · launch price · credits never expire"}
+                      </div>
+
+                      {/* Reel-equivalent — Higgsfield-style "= X reels" line. */}
+                      <div
+                        className="mt-2 inline-flex items-center gap-2 self-start"
+                        style={{
+                          color: featured ? "var(--lux-champagne)" : "var(--lux-rust)",
+                          fontFamily: "Inter, sans-serif",
+                          fontSize: "0.8rem",
+                          fontWeight: 600,
+                          letterSpacing: "0.01em",
+                        }}
+                      >
+                        <span aria-hidden>▸</span> {p.valueCallout}
                       </div>
 
                       {/* Credits count */}
@@ -575,6 +680,51 @@ const Pricing = () => {
               <p className="lux-eyebrow text-center mt-10" style={{ color: "var(--lux-ash)" }}>
                 ALL PRICES IN USD · CREDITS NEVER EXPIRE · USE ANYTIME
               </p>
+            </div>
+          </section>
+
+          {/* TESTIMONIAL STRIP — social proof directly under the plans, where
+              it does the most conversion work. */}
+          <section className="lux-section lux-bg-bone">
+            <div className="lux-container">
+              <div className="grid md:grid-cols-3 gap-8">
+                {[
+                  { quote: "Pays for itself the first week.", author: "Maya Atwood", company: "Atwood Photographic" },
+                  { quote: "We added it as a $450 line item the next morning.", author: "Jordan Park", company: "Meridian Visual Co." },
+                  { quote: "Three minutes per film. We've quietly tripled our throughput.", author: "Sara Larsen", company: "House of Larsen" },
+                ].map((t, i) => (
+                  <div
+                    key={i}
+                    className="p-8 lux-bg-bone"
+                    style={{ border: "1px solid var(--lux-hairline)" }}
+                  >
+                    <p className="lux-prose mb-4 italic">{t.quote}</p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="lux-eyebrow" style={{ color: "var(--lux-brass)" }}>
+                          {t.author}
+                        </div>
+                        <div style={{ color: "var(--lux-ash)", fontSize: "0.875rem" }}>
+                          {t.company}
+                        </div>
+                      </div>
+                      <div style={{ color: "var(--lux-rust)" }}>★★★★★</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* VS RENDY — Why choose Vantage */}
+          <section className="lux-section lux-bg-bone" style={{ paddingTop: 0 }}>
+            <div className="lux-container">
+              <div className="mb-4 p-6 lux-bg-parchment" style={{ border: "1px solid var(--lux-hairline)" }}>
+                <h3 className="lux-display text-2xl mb-4" style={{ color: "var(--lux-ink)" }}>vs. Rendy.io</h3>
+                <div className="space-y-3 text-sm" style={{ color: "var(--lux-ink)", lineHeight: 1.8 }}>
+                  <p>Six listing categories, not two. Floor-plan-to-walkthrough native. 2-clip transformation reels — moment plus reveal. 1080p Seedance 2.0. Built by photographers who shoot $5M+ listings. Real-estate-native shot types and vibes.</p>
+                </div>
+              </div>
             </div>
           </section>
 

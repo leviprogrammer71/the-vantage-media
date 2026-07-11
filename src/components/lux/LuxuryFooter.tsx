@@ -6,6 +6,7 @@ const cols = [
     links: [
       { to: "/", label: "Home" },
       { to: "/gallery", label: "The Reel" },
+      { to: "/blog", label: "Blog" },
       { to: "/pricing", label: "Pricing" },
       { to: "/contact", label: "Contact" },
     ],
@@ -33,7 +34,7 @@ const cols = [
     links: [
       { to: "/login", label: "Sign In" },
       { to: "/signup", label: "Begin Free" },
-      { to: "/dashboard", label: "Dashboard" },
+      { to: "/profile", label: "My Account" },
       { to: "/privacy-policy", label: "Privacy" },
     ],
   },

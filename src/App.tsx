@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -25,7 +25,6 @@ const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const Generate = lazy(() => import("./pages/Generate"));
 const Gallery = lazy(() => import("./pages/Gallery"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -85,7 +84,10 @@ const App = () => (
                   <Route path="/signup" element={<Auth />} />
                   <Route path="/generate" element={<Generate />} />
                   <Route path="/gallery" element={<Gallery />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
+                  {/* Dashboard + Profile were redundant hubs — consolidated
+                      into a single account page at /profile. Old /dashboard
+                      links (footer, bookmarks, emails) redirect there. */}
+                  <Route path="/dashboard" element={<Navigate to="/profile" replace />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/credits" element={<Pricing />} />

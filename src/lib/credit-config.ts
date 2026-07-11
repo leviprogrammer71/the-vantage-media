@@ -64,6 +64,7 @@ export const CREDIT_PACKS = [
     credits: 500,                // ~10 Done-For-You reels or 60 single clips
     price: 39,
     price_monthly: 39,
+    price_original_monthly: 49,  // launch anchor — shows $49 struck → $39 (20% OFF)
     price_annual: 328,           // ~$27.33/mo equivalent — 30% off + 2-month bonus
     annual_credits_bonus: 1000,
     perCredit: "$0.078",
@@ -88,6 +89,7 @@ export const CREDIT_PACKS = [
     credits: 1200,               // ~24 Done-For-You reels
     price: 79,
     price_monthly: 79,
+    price_original_monthly: 99,  // launch anchor — $99 struck → $79 (20% OFF)
     price_annual: 664,           // ~$55.33/mo equivalent — 30% off + 2-month bonus
     annual_credits_bonus: 2400,
     perCredit: "$0.066",
@@ -115,6 +117,7 @@ export const CREDIT_PACKS = [
     credits: 2800,               // ~56 Done-For-You reels
     price: 149.99,
     price_monthly: 149.99,
+    price_original_monthly: 199, // launch anchor — $199 struck → $149.99 (25% OFF)
     price_annual: 1259,          // ~$104.92/mo equivalent — 30% off + 2-month bonus
     annual_credits_bonus: 5600,
     perCredit: "$0.054",
