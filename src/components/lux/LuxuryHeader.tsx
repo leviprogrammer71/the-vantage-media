@@ -9,9 +9,9 @@ interface LuxuryHeaderProps {
 }
 
 const publicNavLinks = [
-  { to: "/real-estate-photographers", label: "For Photographers" },
   { to: "/for-agents", label: "For Agents" },
   { to: "/for-airbnb", label: "Airbnb" },
+  { to: "/blog", label: "Blog" },
   { to: "/pricing", label: "Pricing" },
 ];
 
