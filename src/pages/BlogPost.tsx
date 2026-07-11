@@ -3,11 +3,21 @@ import { Link, useParams } from "react-router-dom";
 import LuxuryHeader from "@/components/lux/LuxuryHeader";
 import LuxuryFooter from "@/components/lux/LuxuryFooter";
 import PreviewVideo from "@/components/lux/PreviewVideo";
-import { BLOG_POSTS, getPostBySlug, type BlogPost } from "@/lib/blog-posts";
+import { BLOG_POSTS, type BlogPost } from "@/lib/blog-posts";
+import { useBlogPost } from "@/hooks/useBlog";
+import { Loader2 } from "lucide-react";
 
 const BlogPostPage = () => {
   const { slug } = useParams<{ slug: string }>();
-  const post = slug ? getPostBySlug(slug) : null;
+  const { post, loading } = useBlogPost(slug);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen lux-bg-bone flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: "var(--lux-rust)" }} />
+      </div>
+    );
+  }
 
   if (!post) {
     return (
@@ -291,6 +301,40 @@ const BlogPostPage = () => {
                       <Link to={s.href} className="lux-btn">
                         {s.label} →
                       </Link>
+                    </div>
+                  );
+                }
+                if (s.type === "image") {
+                  return (
+                    <figure key={i} className="my-10">
+                      <img
+                        src={s.url}
+                        alt={s.caption || ""}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full"
+                        style={{ border: "1px solid var(--lux-hairline)" }}
+                      />
+                      {s.caption && (
+                        <figcaption className="lux-eyebrow mt-3 text-center" style={{ color: "var(--lux-ash)", fontSize: "0.62rem" }}>
+                          {s.caption}
+                        </figcaption>
+                      )}
+                    </figure>
+                  );
+                }
+                if (s.type === "video") {
+                  return (
+                    <div key={i} className="my-10">
+                      <video
+                        src={s.url}
+                        poster={s.poster}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="w-full"
+                        style={{ border: "1px solid var(--lux-hairline)", background: "var(--lux-ink)" }}
+                      />
                     </div>
                   );
                 }

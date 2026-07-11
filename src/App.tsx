@@ -40,6 +40,7 @@ const RedditLanding = lazy(() => import("./pages/RedditLanding"));
 const WebsiteConsultation = lazy(() => import("./pages/WebsiteConsultation"));
 const Video = lazy(() => import("./pages/Video"));
 const ConnectClaude = lazy(() => import("./pages/ConnectClaude"));
+const BlogAdmin = lazy(() => import("./pages/BlogAdmin"));
 const Submit = lazy(() => import("./pages/Submit"));
 const Share = lazy(() => import("./pages/Share"));
 const Referral = lazy(() => import("./pages/Referral"));
@@ -113,6 +114,7 @@ const App = () => (
                   <Route path="/video" element={<Video />} />
                   <Route path="/connect" element={<ConnectClaude />} />
                   <Route path="/connect-claude" element={<ConnectClaude />} />
+                  <Route path="/admin/blog" element={<BlogAdmin />} />
                   <Route path="/submit" element={<Submit />} />
                   <Route path="/share/:id" element={<Share />} />
                   <Route path="/referral" element={<Referral />} />

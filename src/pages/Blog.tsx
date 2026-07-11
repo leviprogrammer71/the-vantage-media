@@ -4,8 +4,11 @@ import LuxuryHeader from "@/components/lux/LuxuryHeader";
 import LuxuryFooter from "@/components/lux/LuxuryFooter";
 import SectionHeading from "@/components/lux/SectionHeading";
 import { BLOG_POSTS } from "@/lib/blog-posts";
+import { useBlogPosts, useIsAdmin } from "@/hooks/useBlog";
 
 const Blog = () => {
+  const { posts } = useBlogPosts();
+  const isAdmin = useIsAdmin();
   return (
     <>
       <Helmet>
@@ -46,11 +49,19 @@ const Blog = () => {
             italic="Working playbooks."
             lede="Long-form guides on AI listing videos, virtual staging, real estate cinematography, music selection, and the workflows luxury studios are shipping with in 2026. Updated weekly."
             align="center"
-            className="mb-16"
+            className="mb-8"
           />
 
+          {isAdmin && (
+            <div className="flex justify-center mb-12">
+              <Link to="/admin/blog" className="lux-btn inline-flex items-center gap-2" style={{ background: "var(--lux-rust)", color: "var(--lux-bone)" }}>
+                ✎ MANAGE / NEW POST
+              </Link>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
-            {BLOG_POSTS.map((post, i) => (
+            {posts.map((post, i) => (
               <Link
                 key={post.slug}
                 to={`/blog/${post.slug}`}

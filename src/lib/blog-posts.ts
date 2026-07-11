@@ -29,6 +29,8 @@ export interface BlogPost {
     | { type: "ol"; items: string[] }
     | { type: "quote"; text: string; attribution?: string }
     | { type: "cta"; label: string; href: string; subhead?: string }
+    | { type: "image"; url: string; caption?: string }
+    | { type: "video"; url: string; poster?: string }
   >;
   /** SEO keywords this post targets (used in meta tag) */
   keywords: string[];
