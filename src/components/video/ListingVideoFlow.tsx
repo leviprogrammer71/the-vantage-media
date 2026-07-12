@@ -4,6 +4,7 @@ import { useCredits } from "@/hooks/useCredits";
 import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
 import { supabase } from "@/integrations/supabase/client";
 import { claudeCurate } from "@/hooks/useClaudeCurate";
+import { ClaudeQABadge } from "./ClaudeQABadge";
 import { InsufficientCreditsModal } from "./InsufficientCreditsModal";
 import { ShotTypePicker } from "./ShotTypePicker";
 import {
@@ -3443,6 +3444,20 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                   REMOVE FROM $39 →
                 </Link>
               </div>
+            </div>
+          )}
+
+          {/* Agentic QA — Claude reviews the finished reel and flags real
+              defects, offering a one-click re-generate. Renders nothing when
+              QA is unavailable (e.g. cross-origin frame extraction blocked),
+              so it never nags a good reel. */}
+          {videoUrl && (
+            <div className="mb-8 flex justify-center">
+              <ClaudeQABadge
+                videoUrl={(stitchedUrl || videoUrl) as string}
+                sourcePhotoUrls={photos.map((p) => p.url!).filter(Boolean)}
+                onReroll={handleGenerate}
+              />
             </div>
           )}
 
