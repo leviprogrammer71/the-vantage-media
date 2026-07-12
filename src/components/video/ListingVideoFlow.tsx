@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/hooks/useCredits";
 import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
 import { supabase } from "@/integrations/supabase/client";
+import { claudeCurate } from "@/hooks/useClaudeCurate";
 import { InsufficientCreditsModal } from "./InsufficientCreditsModal";
 import { ShotTypePicker } from "./ShotTypePicker";
 import {
@@ -550,6 +551,38 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
 
     try {
       const photoUrls = photos.map((p) => p.url!);
+
+      // ── CLAUDE CREATIVE DIRECTION (in-app quality layer) ──
+      // For Done-For-You reels, let Claude vision reorder the photos into a
+      // proper walk-through narrative (hero → living → kitchen → primary →
+      // view) before Seedance sees them — a real quality lift over upload
+      // order. Fully fail-safe: bounded to ~8s and any problem keeps the
+      // original order, so it can never block or break generation.
+      let reelPhotoUrls = photoUrls;
+      if (category === "done_for_you_reel" && photoUrls.length >= 3) {
+        try {
+          const curation = await Promise.race([
+            claudeCurate(
+              photoUrls,
+              {
+                address: isRealEstateAgent && location ? location : undefined,
+                price: isRealEstateAgent && showPrice ? price : undefined,
+              },
+              Math.min(photoUrls.length, 9),
+            ),
+            new Promise<null>((r) => setTimeout(() => r(null), 8000)),
+          ]);
+          if (curation?.ordered_photo_urls?.length) {
+            const known = new Set(photoUrls);
+            const front = curation.ordered_photo_urls.filter((u) => known.has(u));
+            const rest = photoUrls.filter((u) => !front.includes(u));
+            if (front.length >= 2) reelPhotoUrls = [...front, ...rest];
+          }
+        } catch {
+          /* keep original order */
+        }
+      }
+
       // ── DONE-FOR-YOU ARCHITECTURE (May 24, 2026) ──
       // Switched off client-stitching. Done-For-You now sends one straight
       // Seedance 2.0 multi-reference call that produces the full reel in
@@ -557,7 +590,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
       const response = await supabase.functions.invoke("generate-listing-video", {
         body: {
           category,
-          photo_urls: photoUrls,
+          photo_urls: reelPhotoUrls,
           shot_type: category === "animate_single" ? shotType : category === "virtual_staging" ? "push_in" : undefined,
           // Done-For-You edit-style prompt + its index — picked from the 4
           // user-tested options (Snappy / Fast Cuts / Creative / Luxury Minimal).
