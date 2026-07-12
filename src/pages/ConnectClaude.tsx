@@ -46,10 +46,29 @@ export default function ConnectClaude() {
         })}</script>
       </Helmet>
       <LuxuryHeader />
-      <main className="mx-auto px-5 sm:px-8" style={{ maxWidth: 820, paddingTop: 48, paddingBottom: 80 }}>
-        <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-rust)" }}>
-          <Link to="/dashboard" style={{ color: "var(--lux-ash)" }}>← DASHBOARD</Link>
+      <main className="mx-auto px-5 sm:px-8" style={{ maxWidth: 820, paddingTop: 32, paddingBottom: 80 }}>
+        <div className="lux-eyebrow mb-4" style={{ color: "var(--lux-rust)" }}>
+          <Link to="/profile" style={{ color: "var(--lux-ash)" }}>← ACCOUNT</Link>
         </div>
+
+        {/* Hero banner — "Claude meets The Vantage". Falls away cleanly if the
+            asset is missing, so the page never shows a broken image. */}
+        <img
+          src="/connect-claude-banner.png"
+          alt="Claude meets The Vantage — AI intelligence, cinematic storytelling, one seamless workflow"
+          loading="eager"
+          decoding="async"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+          style={{
+            width: "100%",
+            height: "auto",
+            display: "block",
+            borderRadius: 16,
+            marginBottom: 40,
+            boxShadow: "0 24px 60px -30px rgba(140,63,46,0.45)",
+          }}
+        />
+
         <ConnectClaudePanel />
       </main>
       <LuxuryFooter />
