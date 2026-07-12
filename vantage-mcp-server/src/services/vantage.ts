@@ -159,6 +159,10 @@ interface ReelJob {
   style: ReelStyle;
   resolution: ReelResolution;
   cost: number;
+  /** Generation category (done_for_you_reel, virtual_staging, animate_single…). */
+  category?: string;
+  /** Human label used in the submission history + credit ledger note. */
+  label?: string;
   address?: string;
   price?: string;
   features?: string;
@@ -264,20 +268,123 @@ export async function startReel(req: ReelRequest, token: string): Promise<{ jobI
   return { jobId: encodeJob(job) };
 }
 
+/**
+ * Generic start for any non-DFY generative category (virtual_staging,
+ * animate_single, …). Validates credits, calls the edge function with the
+ * category-specific body, and returns a job token that checkReel can poll and
+ * finalize — same async/upscale machinery as reels, but with the right
+ * category, cost, and history label threaded through.
+ * @throws {ReelError}
+ */
+export async function startGeneration(opts: {
+  category: string;
+  label: string;
+  body: Record<string, unknown>;
+  cost: number;
+  resolution?: ReelResolution;
+  caption?: {
+    style?: ReelStyle;
+    address?: string;
+    price?: string;
+    features?: string;
+    description?: string;
+    beds?: number | null;
+    baths?: number | null;
+  };
+  token: string;
+}): Promise<{ jobId: string }> {
+  const resolution = normalizeResolution(opts.resolution);
+  const style = normalizeStyle(opts.caption?.style);
+  const userId = await resolveUserOrThrow(opts.token);
+
+  let balance: number;
+  try {
+    balance = await getCreditBalance(userId);
+  } catch (error) {
+    throw new ReelError(`Could not check your credit balance: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (balance < opts.cost) {
+    throw new ReelError(
+      `Not enough credits: this ${opts.label} costs ${opts.cost} and your balance is ${balance}. Top up in the Vantage dashboard and try again.`,
+    );
+  }
+
+  let started: ReelFunctionResponse;
+  try {
+    started = await callFunction(opts.body, START_TIMEOUT_MS);
+  } catch (error) {
+    if (error instanceof ReelError) throw error;
+    if (error instanceof AdminConfigError) throw new ReelError(error.message);
+    if (error instanceof HttpError) throw new ReelError(`Could not reach The Vantage generator: ${error.message}`);
+    throw new ReelError(`Unexpected error starting ${opts.label}: ${String(error)}`);
+  }
+
+  const job: ReelJob = {
+    stage: "gen",
+    style,
+    resolution,
+    cost: opts.cost,
+    category: opts.category,
+    label: opts.label,
+    address: opts.caption?.address,
+    price: opts.caption?.price,
+    features: opts.caption?.features,
+    description: opts.caption?.description,
+    beds: opts.caption?.beds ?? null,
+    baths: opts.caption?.baths ?? null,
+    quick: started.quick_effect ?? null,
+  };
+  if (started.video_url) {
+    job.doneUrl = started.video_url;
+  } else if (Array.isArray(started.prediction_ids) && started.prediction_ids.length) {
+    job.preds = started.prediction_ids.map(String);
+  } else if (started.prediction_id) {
+    job.pred = String(started.prediction_id);
+  } else {
+    throw new ReelError(
+      started.error || `The generator did not start the ${opts.label}. Please try again.`,
+    );
+  }
+  return { jobId: encodeJob(job) };
+}
+
+/** Resolve the caller's account: credit balance + friendly capacity estimates. */
+export async function getAccountStatus(token: string): Promise<{
+  credits: number;
+  approx_reels: number;
+  approx_staging: number;
+  approx_animations: number;
+}> {
+  const userId = await resolveUserOrThrow(token);
+  let credits: number;
+  try {
+    credits = await getCreditBalance(userId);
+  } catch (error) {
+    throw new ReelError(`Could not read your credit balance: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  return {
+    credits,
+    approx_reels: Math.floor(credits / REEL_CREDIT_COST),
+    approx_staging: Math.floor(credits / 15),
+    approx_animations: Math.floor(credits / 10),
+  };
+}
+
 /** Finalize a completed render: record submission + charge credits (idempotent). */
 async function finalize(job: ReelJob, token: string, videoUrl: string): Promise<ReelResult> {
   const userId = await resolveUserOrThrow(token);
   const seed = job.preds?.join(",") || job.pred || job.doneUrl || videoUrl;
   const submissionId = deterministicUuid(seed);
 
+  const label = job.label || "reel";
   try {
     await insertSubmission({
       id: submissionId,
       userId,
       email: "",
       businessName: "Claude connector",
-      description: (job.address ? `${job.address} — ` : "") + "reel via Claude",
-      category: REEL_CATEGORY,
+      description: (job.address ? `${job.address} — ` : "") + `${label} via Claude`,
+      category: job.category || REEL_CATEGORY,
       videoUrl,
       videoStyle: job.style,
     });
@@ -286,7 +393,7 @@ async function finalize(job: ReelJob, token: string, videoUrl: string): Promise<
   }
 
   try {
-    await deductCredits(userId, job.cost ?? REEL_CREDIT_COST, `Reel via Claude connector (${job.resolution})`, submissionId);
+    await deductCredits(userId, job.cost ?? REEL_CREDIT_COST, `${label} via Claude connector (${job.resolution})`, submissionId);
   } catch (error) {
     console.error("[vantage] credit deduction failed:", error);
   }

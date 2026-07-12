@@ -10,6 +10,7 @@ import { MAX_PHOTOS } from "../constants.js";
 import { CreateReelFromUrlInput } from "../schemas.js";
 import { fetchListing, selectReelPhotos, ListingFetchError } from "../services/listing.js";
 import { startReel, ReelError } from "../services/vantage.js";
+import { curateReel } from "../services/curate.js";
 import type { ReelStyle } from "../types.js";
 import { currentToken, MissingAuthError, toErrorResult, toJsonResult } from "./shared.js";
 
@@ -22,6 +23,7 @@ const OutputSchema = {
   platform: z.string(),
   photo_count: z.number(),
   photos_available: z.number(),
+  curated_by: z.string(),
 };
 
 const DESCRIPTION = `Create a reel directly from a Zillow or Airbnb listing URL. Fetches + curates + starts the render, returning a job id to poll.
@@ -73,11 +75,23 @@ export function registerCreateReelFromUrl(server: McpServer): void {
         // 1) Fetch the listing (full gallery, up to 40 shots).
         const listing = await fetchListing(listing_url);
 
-        // 2) Auto-curate a balanced set (hero + even sample) for the reel.
-        const chosenPhotos = selectReelPhotos(listing.photos, MAX_PHOTOS);
+        // 2) Curate. First choice: Claude vision picks + orders the best shots
+        //    and infers a style (the "creative director"). If that's
+        //    unavailable for any reason, fall back to the deterministic
+        //    hero + even-sample selection. Never blocks the render.
+        const evenSample = selectReelPhotos(listing.photos, MAX_PHOTOS);
+        const platformStyle: ReelStyle = listing.platform === "airbnb" ? "airbnb" : "snappy";
 
-        // 3) Default style by platform if not specified.
-        const chosenStyle: ReelStyle = style ?? (listing.platform === "airbnb" ? "airbnb" : "snappy");
+        const curation = await curateReel(listing.photos, {
+          price: listing.price,
+          address: listing.address,
+          description: listing.description,
+          platform: listing.platform,
+        });
+
+        const chosenPhotos = curation?.photos?.length ? curation.photos : evenSample;
+        // Explicit caller style wins; else Claude's inferred style; else platform default.
+        const chosenStyle: ReelStyle = style ?? curation?.style ?? platformStyle;
 
         // 4) Start the render — returns a job id to poll.
         const { jobId } = await startReel(
@@ -104,6 +118,7 @@ export function registerCreateReelFromUrl(server: McpServer): void {
           platform: listing.platform,
           photo_count: chosenPhotos.length,
           photos_available: listing.photos.length,
+          curated_by: curation?.photos?.length ? "claude-vision" : "even-sample",
         });
       } catch (error) {
         if (

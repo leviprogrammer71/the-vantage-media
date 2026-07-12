@@ -6,9 +6,14 @@
  * a Zillow/Airbnb URL entirely through Claude — no dashboard login required.
  *
  * Tools:
+ *   - vantage_list_capabilities     (read-only): the full menu + workflow
+ *   - vantage_account_status        (read-only): credit balance + capacity
  *   - vantage_fetch_listing         (read-only): fetch photos + details from a URL
+ *   - vantage_create_reel_from_url  : fetch + render a reel in one call (primary)
  *   - vantage_generate_reel         : render a reel from uploaded photos
- *   - vantage_create_reel_from_url  : fetch + render in one call (primary tool)
+ *   - vantage_stage_room            : virtually stage a single room photo
+ *   - vantage_animate_photo         : animate one still with a camera move
+ *   - vantage_check_reel            : poll any job to completion
  *
  * Transport: Streamable HTTP (stateless JSON) for remote hosting, or stdio for
  * local use. Select with the TRANSPORT env var ("http" | "stdio", default http).
@@ -27,17 +32,25 @@ import { registerFetchListing } from "./tools/fetchListing.js";
 import { registerGenerateReel } from "./tools/generateReel.js";
 import { registerCreateReelFromUrl } from "./tools/createReelFromUrl.js";
 import { registerCheckReel } from "./tools/checkReel.js";
+import { registerStageRoom } from "./tools/stageRoom.js";
+import { registerAnimatePhoto } from "./tools/animatePhoto.js";
+import { registerAccountStatus } from "./tools/accountStatus.js";
+import { registerListCapabilities } from "./tools/listCapabilities.js";
 import { withRequestContext } from "./tools/shared.js";
 
 const SERVER_NAME = "vantage-mcp-server";
-const SERVER_VERSION = "1.0.0";
+const SERVER_VERSION = "1.1.0";
 
 /** Build a fully-configured MCP server instance with all tools registered. */
 function createServer(): McpServer {
   const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
+  registerListCapabilities(server); // the menu — helps Claude plan the whole job
+  registerAccountStatus(server);
   registerFetchListing(server);
-  registerGenerateReel(server);
   registerCreateReelFromUrl(server);
+  registerGenerateReel(server);
+  registerStageRoom(server);
+  registerAnimatePhoto(server);
   registerCheckReel(server);
   return server;
 }

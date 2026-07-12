@@ -58,7 +58,100 @@ export const CheckReelInput = z
     job_id: z
       .string()
       .min(1)
-      .describe("The job_id returned by vantage_generate_reel or vantage_create_reel_from_url."),
+      .describe("The job_id returned by any Vantage generation tool (reel, staging, or animate)."),
   })
   .strict();
 export type CheckReelInput = z.infer<typeof CheckReelInput>;
+
+// ── Virtual staging ────────────────────────────────────────────────────────
+export const StagingStyleEnum = z
+  .enum([
+    "modern",
+    "mid_century",
+    "coastal",
+    "farmhouse",
+    "luxury_modern",
+    "scandinavian",
+    "luxury_minimalist",
+    "bohemian",
+    "mediterranean",
+    "spanish",
+  ])
+  .describe("Interior design style the room is staged into.");
+
+export const RoomTypeEnum = z
+  .enum([
+    "living room",
+    "bedroom",
+    "master bedroom",
+    "kitchen",
+    "dining room",
+    "bathroom",
+    "home office",
+    "family room",
+    "den",
+    "sun room",
+    "foyer",
+    "patio",
+    "nursery",
+    "guest room",
+  ])
+  .describe("What room is in the photo — drives the staging prompt.");
+
+export const StageRoomInput = z
+  .object({
+    photo: z
+      .string()
+      .min(1)
+      .describe("ONE room photo as a public image URL or base64 data URI. Best results with a clear, straight-on shot."),
+    room_type: RoomTypeEnum.default("living room").describe("The room shown in the photo (default 'living room')."),
+    style: StagingStyleEnum.default("luxury_minimalist").describe("Target design style (default 'luxury_minimalist')."),
+    is_empty: z
+      .boolean()
+      .default(true)
+      .describe("true if the room is empty/unfurnished (it will be furnished); false to restyle existing furniture."),
+    resolution: ReelResolutionEnum.optional().describe("Output resolution '1080p' (default) or '4k'."),
+    address: z.string().optional().describe("Optional property address, for the caption."),
+    price: z.string().optional().describe("Optional listing price display string, for the caption."),
+  })
+  .strict();
+export type StageRoomInput = z.infer<typeof StageRoomInput>;
+
+// ── Single-photo animation ─────────────────────────────────────────────────
+export const ShotTypeEnum = z
+  .enum([
+    "push_in",
+    "pull_out",
+    "establishing",
+    "truck_left",
+    "truck_right",
+    "pan_left",
+    "pan_right",
+    "parallax_left",
+    "parallax_right",
+    "tilt_up",
+    "tilt_down",
+    "pedestal_up",
+    "pedestal_down",
+    "orbit_left",
+    "orbit_right",
+  ])
+  .describe("Camera move applied to the still photo. 'push_in' is the cinematic default.");
+
+export const AnimatePhotoInput = z
+  .object({
+    photo: z
+      .string()
+      .min(1)
+      .describe("ONE photo as a public image URL or base64 data URI to bring to life with a camera move."),
+    shot_type: ShotTypeEnum.default("push_in").describe("Camera move (default 'push_in')."),
+    resolution: ReelResolutionEnum.optional().describe("Output resolution '1080p' (default) or '4k'."),
+    address: z.string().optional().describe("Optional property address, for the caption."),
+    price: z.string().optional().describe("Optional listing price display string, for the caption."),
+  })
+  .strict();
+export type AnimatePhotoInput = z.infer<typeof AnimatePhotoInput>;
+
+// Tools that take no arguments (empty object).
+export const NoInput = z.object({}).strict();
+export type NoInput = z.infer<typeof NoInput>;
