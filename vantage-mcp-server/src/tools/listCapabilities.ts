@@ -22,6 +22,7 @@ const OutputSchema = {
   capabilities: z.array(z.record(z.any())),
   recommended_workflow: z.array(z.string()),
   styles: z.record(z.any()),
+  prompt_adaptation: z.string(),
 };
 
 const CATALOG = {
@@ -51,6 +52,22 @@ const CATALOG = {
       output: "A short motion clip from a single still",
       credits: ANIMATE_CREDIT_COST,
       best_for: "Turning a standout shot (kitchen, view, facade) into a scroll-stopper.",
+    },
+    {
+      name: "Sun-to-Sun Exterior",
+      tools: ["vantage_sun_to_sun"],
+      input: "ONE daytime exterior photo",
+      output: "The home across sunrise, golden hour, and dusk",
+      credits: 15,
+      best_for: "Making an ordinary exterior look aspirational.",
+    },
+    {
+      name: "Sketch-to-Real",
+      tools: ["vantage_sketch_to_real"],
+      input: "ONE sketch / floor plan / 3D render",
+      output: "A photoreal reveal of the design",
+      credits: 15,
+      best_for: "Pre-construction, renovations, and spec homes.",
     },
     {
       name: "Fetch Listing",
@@ -104,6 +121,8 @@ const CATALOG = {
       "parallax_right",
     ],
   },
+  prompt_adaptation:
+    "For reels you can pass a `scene_prompt` — LOOK at the photos and write ONE short, plain motion+mood line adapted from The Vantage house style (smooth cinematic camera glide, warm elegant tone), naming what's really in the shots. No negatives, no lists. This tailors Seedance to the actual home instead of a generic style preset.",
 };
 
 const DESCRIPTION = `List everything The Vantage connector can make — every asset type, its tools, credit cost, and a recommended step-by-step workflow for building a full listing package. Read-only. Call this first when a client asks "what can you do?" or when planning a multi-asset job, so you know the full menu (it's much more than reels: virtual staging and single-photo animation too).`;

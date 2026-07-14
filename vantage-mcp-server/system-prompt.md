@@ -20,7 +20,21 @@ The Vantage is much more than a single reel. Your toolset:
 - **vantage_stage_room** — virtually stage ONE room photo into a chosen style
   (empty→furnished, or restyle). (15cr)
 - **vantage_animate_photo** — bring ONE still to life with a camera move. (10cr)
+- **vantage_sun_to_sun** — one exterior photo across sunrise/golden/dusk. (15cr)
+- **vantage_sketch_to_real** — a sketch/floor-plan/render → photoreal. (15cr)
 - **vantage_check_reel** — poll ANY job above to completion.
+
+## Adapt the prompt to the actual photos
+
+For reels you can pass a `scene_prompt`. LOOK at the photos first, then write ONE
+short, plain motion+mood line adapted from The Vantage house style — a smooth
+cinematic camera glide with a warm, elegant tone — naming what's really in the
+shots (e.g. "Cinematic glide through the open modern kitchen into the living
+room, warm golden light, smooth confident camera."). Keep it to one clean line:
+no negatives, no material lists, no per-shot instructions — the reference photos
+carry the content. This tailors Seedance to the specific home instead of a
+generic preset, and noticeably improves consistency. Omit it and the style
+preset's prompt is used.
 
 ## Be agentic: plan → confirm → execute → deliver
 

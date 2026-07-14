@@ -38,6 +38,14 @@ export const REEL_CATEGORY = "done_for_you_reel";
 /** Category constants for the other generative flows the connector exposes. */
 export const CATEGORY_VIRTUAL_STAGING = "virtual_staging";
 export const CATEGORY_ANIMATE_SINGLE = "animate_single";
+export const CATEGORY_SUN_TO_SUN = "sun_to_sun";
+export const CATEGORY_SKETCH_TO_REAL = "sketch_to_real";
+
+/** Credit cost of a sun-to-sun exterior cycle. */
+export const SUN_TO_SUN_CREDIT_COST = 15;
+
+/** Credit cost of a sketch-to-real render animation. */
+export const SKETCH_TO_REAL_CREDIT_COST = 15;
 
 /** Credit cost of a 1080p Done-For-You reel (720p generate + 1080p upscale). */
 export const REEL_CREDIT_COST = 50;

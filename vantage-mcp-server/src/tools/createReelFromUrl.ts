@@ -68,7 +68,7 @@ export function registerCreateReelFromUrl(server: McpServer): void {
         openWorldHint: true,
       },
     },
-    async ({ listing_url, style, resolution }) => {
+    async ({ listing_url, style, scene_prompt, resolution }) => {
       try {
         const token = currentToken();
 
@@ -103,6 +103,7 @@ export function registerCreateReelFromUrl(server: McpServer): void {
             baths: listing.baths,
             description: listing.description,
             style: chosenStyle,
+            scenePrompt: scene_prompt,
             resolution,
           },
           token,

@@ -40,6 +40,12 @@ export interface ReelRequest {
   baths?: number | null;
   /** Output resolution. Defaults to 1080p; 4k costs more credits. */
   resolution?: ReelResolution;
+  /**
+   * Optional image-adapted Seedance prompt. When set, it OVERRIDES the fixed
+   * style prompt — this is how the connecting Claude, which can see the photos,
+   * tailors our base cinematic direction to the actual rooms/scene.
+   */
+  scenePrompt?: string;
 }
 
 /** Result of a completed reel generation. */

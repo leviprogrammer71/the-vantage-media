@@ -19,7 +19,7 @@ export default function ConnectClaude() {
   const [bannerImgFailed, setBannerImgFailed] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) navigate("/auth?next=/connect");
+    if (!loading && !user) navigate("/auth?returnUrl=%2Fconnect&next=/connect");
   }, [loading, user, navigate]);
 
   return (

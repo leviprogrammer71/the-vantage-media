@@ -34,6 +34,8 @@ import { registerCreateReelFromUrl } from "./tools/createReelFromUrl.js";
 import { registerCheckReel } from "./tools/checkReel.js";
 import { registerStageRoom } from "./tools/stageRoom.js";
 import { registerAnimatePhoto } from "./tools/animatePhoto.js";
+import { registerSunToSun } from "./tools/sunToSun.js";
+import { registerSketchToReal } from "./tools/sketchToReal.js";
 import { registerAccountStatus } from "./tools/accountStatus.js";
 import { registerListCapabilities } from "./tools/listCapabilities.js";
 import { withRequestContext } from "./tools/shared.js";
@@ -51,6 +53,8 @@ function createServer(): McpServer {
   registerGenerateReel(server);
   registerStageRoom(server);
   registerAnimatePhoto(server);
+  registerSunToSun(server);
+  registerSketchToReal(server);
   registerCheckReel(server);
   return server;
 }

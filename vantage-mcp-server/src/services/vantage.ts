@@ -88,11 +88,14 @@ function buildReelPrompt(_req: ReelRequest, style: ReelStyle): string {
 }
 
 function buildBody(req: ReelRequest, style: ReelStyle) {
+  // An image-adapted scene_prompt (written by the connecting Claude after
+  // seeing the photos) takes precedence over the fixed style prompt.
+  const prompt = req.scenePrompt?.trim() || buildReelPrompt(req, style);
   return {
     category: REEL_CATEGORY,
     photo_urls: req.photos,
     dfy_style: style,
-    dfy_prompt: buildReelPrompt(req, style),
+    dfy_prompt: prompt,
     generate_audio: true,
     duration: REEL_DURATION_SECONDS,
     credits_cost: REEL_CREDIT_COST,

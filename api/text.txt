@@ -1,0 +1,3 @@
+cd ~/Downloads/publish-parade-palace-main && 
+rm -f .git/index.lock .git/HEAD.lock && 
+git add -A && git commit -m "Branding: agentic-first positioning + bolder CTAs; fix FAQ schema pricing" && git push

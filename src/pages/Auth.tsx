@@ -61,7 +61,11 @@ const Auth = () => {
   // moment seats run out, but the UI no longer gates on a code.
   const isOpen = true;
 
-  const rawReturn = searchParams.get("returnUrl") || searchParams.get("redirect") || "";
+  const rawReturn =
+    searchParams.get("returnUrl") ||
+    searchParams.get("redirect") ||
+    searchParams.get("next") ||
+    "";
   let safeReturn = "/video?mode=listing";
   if (rawReturn) {
     try {
