@@ -73,7 +73,7 @@ export default function ConnectClaudeBanner({ className }: { className?: string 
         isolation: "isolate",
       }}
     >
-      {/* House photo bleeding in from the right (desktop only). */}
+      {/* DESKTOP — house photo bleeding in from the right. */}
       <div className="hidden md:block" style={{ position: "absolute", inset: 0, left: "auto", right: 0, width: "48%" }}>
         <img
           src="/hero-still.jpg"
@@ -93,6 +93,26 @@ export default function ConnectClaudeBanner({ className }: { className?: string 
         />
         {/* Warm tint to unify the photo with the brand rust. */}
         <div style={{ position: "absolute", inset: 0, background: "rgba(140,63,46,0.18)", mixBlendMode: "multiply" }} />
+      </div>
+
+      {/* MOBILE — house photo as a top strip that fades into the field. */}
+      <div className="block md:hidden" style={{ position: "relative", height: 128, overflow: "hidden" }}>
+        <img
+          src="/hero-still.jpg"
+          alt=""
+          aria-hidden="true"
+          loading="eager"
+          decoding="async"
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: `linear-gradient(180deg, rgba(140,63,46,0.25) 0%, rgba(140,63,46,0.55) 55%, ${RUST} 100%)`,
+          }}
+        />
+        <div style={{ position: "absolute", inset: 0, background: "rgba(140,63,46,0.15)", mixBlendMode: "multiply" }} />
       </div>
 
       {/* Content */}
@@ -134,8 +154,39 @@ export default function ConnectClaudeBanner({ className }: { className?: string 
           ))}
         </div>
 
+        {/* Platform badges — the connector runs everywhere Claude does. */}
+        <div className="flex flex-wrap items-center gap-2.5 mt-8">
+          <span className="lux-eyebrow" style={{ color: "var(--lux-champagne)", letterSpacing: "0.2em", fontSize: "0.6rem", marginRight: 2 }}>
+            RUNS IN
+          </span>
+          {[
+            { label: "Claude Desktop", d: "M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1ZM9 20h6M12 16v4" },
+            { label: "Claude Mobile", d: "M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1ZM11 18h2" },
+            { label: "Claude Web", d: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM3 12h18M12 3c2.5 2.5 3.5 6 3.5 9s-1 6.5-3.5 9M12 3C9.5 5.5 8.5 9 8.5 12s1 6.5 3.5 9" },
+          ].map((p) => (
+            <span
+              key={p.label}
+              className="inline-flex items-center gap-1.5"
+              style={{
+                border: "1px solid rgba(244,239,230,0.4)",
+                borderRadius: 999,
+                padding: "5px 11px",
+                fontFamily: "Inter, sans-serif",
+                fontSize: "0.72rem",
+                fontWeight: 500,
+                color: "var(--lux-bone)",
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d={p.d} />
+              </svg>
+              {p.label}
+            </span>
+          ))}
+        </div>
+
         {/* Claude ✕ Vantage lockup */}
-        <div className="flex items-center gap-4 mt-11">
+        <div className="flex items-center gap-4 mt-8">
           <span
             className="grid place-items-center"
             style={{ width: 64, height: 64, borderRadius: 16, background: "var(--lux-rust)", border: "1px solid rgba(244,239,230,0.35)", boxShadow: "0 8px 22px rgba(14,14,12,0.28)" }}

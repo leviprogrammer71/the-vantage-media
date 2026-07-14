@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,9 +14,6 @@ import ConnectClaudeBanner from "@/components/lux/ConnectClaudeBanner";
 export default function ConnectClaude() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  // Prefer the uploaded banner image; fall back to the coded banner only if
-  // the file isn't present, so the page is never without a hero.
-  const [bannerImgFailed, setBannerImgFailed] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth?returnUrl=%2Fconnect&next=/connect");
@@ -57,28 +54,11 @@ export default function ConnectClaude() {
           <Link to="/profile" style={{ color: "var(--lux-ash)" }}>← ACCOUNT</Link>
         </div>
 
-        {/* Hero banner — "Claude meets The Vantage". Uses the uploaded image
-            when present; otherwise the coded banner renders so the page's
-            sales point is always visible. */}
-        {bannerImgFailed ? (
-          <ConnectClaudeBanner className="mb-10" />
-        ) : (
-          <img
-            src="/connect-claude-banner.png"
-            alt="Claude meets The Vantage — AI intelligence, cinematic storytelling, one seamless workflow"
-            loading="eager"
-            decoding="async"
-            onError={() => setBannerImgFailed(true)}
-            className="mb-10"
-            style={{
-              width: "100%",
-              height: "auto",
-              display: "block",
-              borderRadius: 16,
-              boxShadow: "0 24px 60px -30px rgba(140,63,46,0.45)",
-            }}
-          />
-        )}
+        {/* Hero banner — "Claude meets The Vantage". Rendered in code so it's
+            responsive on its own: a wide desktop composition with the home
+            photo bleeding in from the right, and a mobile composition with a
+            photo strip on top. Always visible; this is the page's sales point. */}
+        <ConnectClaudeBanner className="mb-10" />
 
         <ConnectClaudePanel />
       </main>
