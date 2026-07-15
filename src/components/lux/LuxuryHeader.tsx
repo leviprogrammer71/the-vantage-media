@@ -10,6 +10,7 @@ interface LuxuryHeaderProps {
 
 const publicNavLinks = [
   { to: "/for-agents", label: "For Agents" },
+  { to: "/examples", label: "Examples" },
   { to: "/for-airbnb", label: "Airbnb" },
   { to: "/blog", label: "Blog" },
   { to: "/pricing", label: "Pricing" },
@@ -21,6 +22,7 @@ const publicNavLinks = [
 const authedNavLinks = [
   { to: "/connect", label: "Connect to Claude" },
   { to: "/gallery", label: "My Gallery" },
+  { to: "/examples", label: "Examples" },
   { to: "/blog", label: "Blog" },
   { to: "/pricing", label: "Pricing" },
 ];

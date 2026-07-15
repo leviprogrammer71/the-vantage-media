@@ -5,6 +5,7 @@ const cols = [
     title: "The Studio",
     links: [
       { to: "/", label: "Home" },
+      { to: "/examples", label: "Examples" },
       { to: "/gallery", label: "The Reel" },
       { to: "/blog", label: "Blog" },
       { to: "/pricing", label: "Pricing" },
