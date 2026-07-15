@@ -99,7 +99,26 @@ interface Photo {
   path?: string;      // storage path for gallery persistence (never expires)
   uploading?: boolean; // true while normalize+upload in flight — UI shows spinner
   uploadError?: string; // populated if upload failed; user can retry
+  roomLabel?: string;  // optional room label (Living Room, Kitchen…) → tailors the Seedance prompt
 }
+
+/** Room labels users can tag each photo with. Seedance renders more
+ *  consistently when the prompt names what each shot is, so a labeled shot
+ *  list is folded into the generation prompt. Applies to reels AND staging. */
+const ROOM_LABELS = [
+  "Exterior / Front",
+  "Living Room",
+  "Kitchen",
+  "Primary Bedroom",
+  "Bedroom",
+  "Bathroom",
+  "Dining Room",
+  "Home Office",
+  "Detail / Feature",
+  "Backyard / Pool",
+  "View",
+  "Other",
+];
 
 // Category order is the marketing order: Done-For-You headlines, then the
 // other multi-photo + single-photo features. Floor Plan is dropped from
@@ -584,23 +603,38 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
         }
       }
 
+      // ── ROOM LABELS → tailored prompt (Seedance labeling tip) ──
+      // Align each photo's room label to the order we actually send, then
+      // fold a concise labeled shot list into the generation prompt so
+      // Seedance knows what each frame is (better consistency).
+      const labelByUrl = new Map(photos.map((p) => [p.url, (p.roomLabel || "").trim()]));
+      const photoLabels = reelPhotoUrls.map((u) => labelByUrl.get(u) || "");
+      const labeledShots = photoLabels
+        .map((l, idx) => (l ? `${idx + 1}. ${l}` : null))
+        .filter(Boolean)
+        .join(", ");
+      const baseDfyPrompt =
+        dfyMode === "studio"
+          ? composeStudioPrompt()
+          : (DFY_STYLES.find((s) => s.id === dfyStyle)?.prompt || DFY_STYLES[0].prompt);
+      const finalDfyPrompt = labeledShots
+        ? `${baseDfyPrompt} Featured spaces, in order: ${labeledShots}.`
+        : baseDfyPrompt;
+
       // ── DONE-FOR-YOU ARCHITECTURE (May 24, 2026) ──
       // Switched off client-stitching. Done-For-You now sends one straight
       // Seedance 2.0 multi-reference call that produces the full reel in
       // one pass — same as the user's verified Replicate tests.
       const response = await supabase.functions.invoke("generate-listing-video", {
         body: {
+          photo_labels: photoLabels,
           category,
           photo_urls: reelPhotoUrls,
           shot_type: category === "animate_single" ? shotType : category === "virtual_staging" ? "push_in" : undefined,
           // Done-For-You edit-style prompt + its index — picked from the 4
           // user-tested options (Snappy / Fast Cuts / Creative / Luxury Minimal).
           dfy_style: category === "done_for_you_reel" ? (dfyMode === "studio" ? "studio" : dfyStyle) : undefined,
-          dfy_prompt: category === "done_for_you_reel"
-            ? (dfyMode === "studio"
-                ? composeStudioPrompt()
-                : (DFY_STYLES.find((s) => s.id === dfyStyle)?.prompt || DFY_STYLES[0].prompt))
-            : undefined,
+          dfy_prompt: category === "done_for_you_reel" ? finalDfyPrompt : undefined,
           // Audio toggle — default ON. Forwarded to Seedance modelInput so
           // it generates a music bed natively rather than requiring the
           // user to bolt their own track on after.
@@ -2466,18 +2500,34 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
-                    {/* Filename caption — at-a-glance which file is which */}
-                    <div
-                      className="absolute bottom-0 left-0 right-0 px-2 py-1.5 lux-prose truncate"
+                    {/* Room label picker — tag each photo so the reel/staging
+                        prompt can name the space (better Seedance consistency). */}
+                    <select
+                      value={photo.roomLabel || ""}
+                      onChange={(e) =>
+                        setPhotos(photos.map((p, j) => (j === i ? { ...p, roomLabel: e.target.value } : p)))
+                      }
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={`Label the room in photo ${i + 1}`}
+                      className="absolute bottom-0 left-0 right-0 lux-eyebrow"
                       style={{
-                        background: "rgba(14,14,12,0.65)",
+                        background: photo.roomLabel ? "var(--lux-rust)" : "rgba(14,14,12,0.72)",
                         color: "var(--lux-bone)",
-                        fontSize: "0.7rem",
+                        fontSize: "0.6rem",
+                        letterSpacing: "0.06em",
+                        fontWeight: 600,
+                        border: "none",
+                        padding: "6px 8px",
+                        cursor: "pointer",
+                        width: "100%",
+                        appearance: "auto",
                       }}
-                      title={photo.file?.name || `photo-${i + 1}`}
                     >
-                      {photo.file?.name || `photo-${i + 1}`}
-                    </div>
+                      <option value="" style={{ color: "#111" }}>+ Label room…</option>
+                      {ROOM_LABELS.map((r) => (
+                        <option key={r} value={r} style={{ color: "#111" }}>{r}</option>
+                      ))}
+                    </select>
                   </div>
                 ))}
               </div>
