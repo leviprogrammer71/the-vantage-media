@@ -4,21 +4,32 @@ Same core offer everywhere (**free reel / 60 credits / thevantage.media**). What
 
 ---
 
-## The 6 formats (pick, personalize, send)
+## ⚠️ Cost rule — don't gift reels to cold prospects
+
+Every reel you generate costs ~$2.70. Making a bespoke reel for each cold email doesn't scale for a solo founder. So:
+
+- **COLD outreach → NO reel spend.** Point them to the **/examples showcase** (thevantage.media/examples) and your **one reusable proof reel** (the Fresno clip). Let them make their own with the **free 60 credits** — that's self-serve, capped, and self-selecting. You spend nothing to send.
+- **WARM/high-value only → spend ONE reel to close.** If a strong agent replies, or a photographer who could resell, *then* make a reel from their real listing. $2.70 to close a warm lead is worth it; on cold strangers it isn't.
+
+Links to reuse forever (zero marginal cost): `thevantage.media/examples` and your best example/Fresno reel URL.
+
+---
+
+## COLD formats (no reel spend — send these at volume)
 
 ### Format A — Ultra-short (2 lines)
-> **Subject:** quick reel for [street]?
+> **Subject:** quick idea for [street]?
 >
-> Hi [First name] — saw your [address] listing. Want a free cinematic reel made from it so you can see what it looks like? Takes me two minutes.
+> Hi [First name] — saw your [address] listing. Here's what agents are making from their listings in ~3 min: thevantage.media/examples. You get 60 free credits to try it on yours — no card.
 >
-> — [You], thevantage.media
+> — [You]
 
-### Format B — The "I made you something" (gift-first)
-> **Subject:** made this for your [street] listing
+### Format B — Show, don't tell (examples-first)
+> **Subject:** what your [neighborhood] listings could look like
 >
-> [First name] — I made a quick reel from your [address] photos so you could see it, not just read a pitch: [link].
+> [First name] — instead of a pitch, here's the proof: thevantage.media/examples — real listing reels made from a link in minutes.
 >
-> If it's useful, you can make your own free (60 credits, no card) at thevantage.media. Either way it's yours to post.
+> Your first one's free (60 credits, no card). Want me to point you to the fastest way to make one from [address]?
 >
 > — [You]
 
@@ -27,32 +38,38 @@ Same core offer everywhere (**free reel / 60 credits / thevantage.media**). What
 >
 > Hi [First name], quick one. The Vantage turns a listing into a reel:
 > • Paste a Zillow/Airbnb link (or photos)
-> • Get a cinematic, captioned reel in ~3 min
+> • Cinematic, captioned reel in ~3 min
 > • MLS-safe, 1080p, ready for Reels/TikTok
 > • 60 free credits — no card
 >
-> Want me to make one from [address] so you can see it?
-> — [You] · thevantage.media
+> See real ones → thevantage.media/examples
+> — [You]
 
 ### Format D — Curiosity / question-led
 > **Subject:** how are you making your listing videos?
 >
-> Hi [First name] — genuinely curious how you're handling video for listings like [address]? I built a tool that makes a cinematic reel from a link in a couple minutes. Happy to make one from your listing free so you can compare. Worth a look?
-> — [You], thevantage.media
+> Hi [First name] — curious how you're handling video for listings like [address]? I built a tool that makes a cinematic reel from a link in a couple minutes. Here's what it produces: thevantage.media/examples. Free to try on your next listing. Worth a look?
+> — [You]
 
-### Format E — Plain personal note (no links, reply-to-engage)
+### Format E — Plain personal note (reply-to-engage)
 > **Subject:** [First name] — idea for your [neighborhood] listings
 >
-> Hey [First name], I follow a few [city] agents and your listings stand out. I run a small tool that turns listing photos into cinematic reels same-day. I'd love to make one from your latest listing, on the house — no strings. Want me to? Just reply with the link.
+> Hey [First name], I follow a few [city] agents and your listings stand out. I built a tool that turns listing photos into cinematic reels same-day — agents are using it the night they sign. Happy to send examples + get you set up free. Want me to?
 > — [You]
 
-### Format F — Social-proof-led (use once you have ONE real result)
-> **Subject:** turned a Fresno listing into this
+**Testing note:** send A/B/C to one third each this week; scale the format with the best reply rate. Keep the *offer* identical so you're testing format, not message.
+
+---
+
+## WARM close (spend ONE reel — only after they engage)
+
+### Format F — The bespoke closer
+> **Subject:** made this from your [street] listing
 >
-> Hi [First name] — an agent pasted their listing link and got this back in a few minutes: [link]. I can make the same from [address], free. 60 credits on us at thevantage.media if you want to run more yourself.
+> [First name] — you were curious, so I made a reel from your [address] photos: [link]. It's yours to post. If you want to run more, your account already has free credits at thevantage.media.
 > — [You]
 
-**Testing note:** send A/B/C to one third each this week; whichever format gets the best reply rate, scale it and retire the losers. Keep the *offer* identical so you're testing format, not message.
+Use F **only** for a warm reply or a genuinely high-value target (top producer, photographer, small brokerage). One reel, one warm lead — good money. Never send F cold.
 
 ### Follow-ups (any format, same 3-touch cadence)
 - **+2 days:** "re: [street] — did this land? Happy to make that free reel whenever." 

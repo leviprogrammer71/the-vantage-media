@@ -23,6 +23,8 @@ interface LazyVideoProps {
   style?: React.CSSProperties;
   /** Root margin for the observer — how early to start loading. */
   rootMargin?: string;
+  /** object-fit for the inner video. Defaults to "cover". */
+  fit?: "cover" | "contain";
 }
 
 export default function LazyVideo({
@@ -31,6 +33,7 @@ export default function LazyVideo({
   className,
   style,
   rootMargin = "300px",
+  fit = "cover",
 }: LazyVideoProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -83,7 +86,7 @@ export default function LazyVideo({
         loop
         playsInline
         preload={visible ? "metadata" : "none"}
-        className="absolute inset-0 w-full h-full object-cover"
+        className={`absolute inset-0 w-full h-full ${fit === "contain" ? "object-contain" : "object-cover"}`}
       />
     </div>
   );

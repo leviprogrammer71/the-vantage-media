@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import LuxuryHeader from "@/components/lux/LuxuryHeader";
@@ -8,207 +7,155 @@ import StatStrip from "@/components/lux/StatStrip";
 import LazyVideo from "@/components/lux/LazyVideo";
 
 /**
- * /examples — the public Showcase. Every example we've produced, presented as
- * a "project" with the finished reel, the category, and the agent/host behind
- * it, plus a testimonials wall.
+ * /examples — the public Showcase.
  *
- * NOTE: the profiles + quotes below are SAMPLE/placeholder marketing content.
- * Replace them with real, permissioned testimonials before scaling paid
- * traffic — presenting fabricated testimonials as real is both an ethics and
- * an FTC-endorsement-guidelines problem.
+ * Two tiers:
+ *   1. PROJECTS — full case studies: address + the reference photos a listing
+ *      was built from → the finished film. (Folders that ship input images.)
+ *   2. MORE FILMS — the rest, shown as simple video cards.
+ *
+ * NOTE: addresses, agent profiles, and quotes are SAMPLE/placeholder content.
+ * Replace with real, permissioned details before scaling paid traffic —
+ * fabricated testimonials/addresses presented as real are an ethics + FTC issue.
  */
 
 interface Project {
   title: string;
+  address: string;
   category: string;
-  location: string;
-  video: string;
-  poster?: string;
+  refs: string[];      // reference photos the film was made from
+  video: string;       // the finished film
   agent: string;
   role: string;
   quote: string;
 }
 
+interface Film {
+  title: string;
+  category: string;
+  video: string;
+  poster?: string;
+  agent: string;
+  role: string;
+}
+
 const PROJECTS: Project[] = [
   {
-    title: "Modern Hillside Estate",
+    title: "Seven photos, one cinematic reel",
+    address: "1420 Vista Ridge Dr · Malibu, CA",
     category: "Done-For-You Reel",
-    location: "Malibu, CA",
+    refs: [1, 2, 3, 4, 5, 6, 7].map((i) => `/vantage/done-for-you/house3/${i}.png`),
     video: "/vantage/done-for-you/luxuryminimal.mp4",
-    poster: "/vantage/done-for-you/house3/1.png",
     agent: "Maya Atwood",
     role: "Atwood Photographic",
-    quote: "Pays for itself the first week. I delivered a reel before the sign hit the lawn.",
+    quote: "Dropped seven photos in order, got a finished reel back. Pays for itself the first week.",
   },
   {
-    title: "Downtown Loft — Just Listed",
+    title: "Listing bundle — six clips",
+    address: "88 Bayfront Ave · Miami, FL",
     category: "Done-For-You Reel",
-    location: "Austin, TX",
-    video: "/vantage/done-for-you/snappy.mp4",
-    poster: "/vantage/done-for-you/house3/3.png",
-    agent: "Jordan Park",
-    role: "Meridian Visual Co.",
-    quote: "I added it as a $450 line item the next morning. Clients think I hired a crew.",
+    refs: [1, 2, 3, 4, 5, 6].map((i) => `/vantage/listing-bundle/${i}.webp`),
+    video: "/vantage/listing-bundle/1.mp4",
+    agent: "Luis Fernandez",
+    role: "Bayfront Luxury Group",
+    quote: "A full set of clips per listing. My feed finally looks like a brand.",
   },
   {
-    title: "Empty Living Room → Staged",
-    category: "Virtual Staging",
-    location: "Scottsdale, AZ",
-    video: "/vantage/virtual-staging/result.mp4",
-    agent: "Sara Larsen",
-    role: "House of Larsen",
-    quote: "Staged an empty $1.2M listing in minutes. Buyers finally saw the potential.",
-  },
-  {
-    title: "Golden-Hour Facade",
-    category: "Sun-to-Sun",
-    location: "Santa Barbara, CA",
-    video: "/vantage/sun-cycle/result.mp4",
-    agent: "Diego Ramos",
-    role: "Coastline Realty",
-    quote: "One midday exterior became a sunrise-to-dusk showcase. It stopped the scroll.",
-  },
-  {
-    title: "Render → Photoreal Reveal",
-    category: "Sketch-to-Real",
-    location: "Denver, CO",
-    video: "/vantage/sketch/result.mp4",
-    poster: "/vantage/sketch/original.webp",
-    agent: "Priya Nair",
-    role: "Summit New Construction",
-    quote: "For pre-construction this is unreal — buyers walk the home before it exists.",
-  },
-  {
-    title: "Cluttered → Clean Walk-Through",
+    title: "Cluttered room → clean walk-through",
+    address: "312 Rosemont St · Portland, OR",
     category: "Transformation",
-    location: "Portland, OR",
+    refs: ["/vantage/cleanup/mo.jpg"],
     video: "/vantage/cleanup/result.mp4",
-    poster: "/vantage/cleanup/mo.jpg",
     agent: "Marcus Webb",
     role: "Rose City Homes",
     quote: "The before/after does the selling for me. Sellers sign on the spot.",
   },
   {
-    title: "Bare Room → Fully Set",
+    title: "Bare room → fully staged",
+    address: "77 Music Row · Nashville, TN",
     category: "Transformation",
-    location: "Nashville, TN",
+    refs: ["/vantage/setup/before.webp", "/vantage/setup/after.jpeg"],
     video: "/vantage/setup/video.mp4",
-    poster: "/vantage/setup/before.webp",
     agent: "Alicia Grant",
     role: "Grant & Co. Realty",
     quote: "Staging used to cost me $1,800 and a week. Now it's a few minutes.",
   },
   {
-    title: "Ground-Up Build Timelapse",
+    title: "Kitchen renovation reveal",
+    address: "2203 N Laverne Ave · Sacramento, CA",
     category: "Transformation",
-    location: "Boise, ID",
-    video: "/vantage/build/result.mp4",
-    poster: "/vantage/ranch-build/input.png",
-    agent: "Tom Fielder",
-    role: "Fielder Custom Builders",
-    quote: "We show buyers the whole build in 10 seconds. Deposits went up.",
-  },
-  {
-    title: "Kitchen Renovation Reveal",
-    category: "Transformation",
-    location: "Sacramento, CA",
+    refs: ["/vantage/contractor/before.jpg"],
     video: "/vantage/contractor/result.mp4",
-    poster: "/vantage/contractor/before.jpg",
     agent: "Rosa Medina",
     role: "Medina Remodels",
     quote: "My renovation portfolio finally looks like the work I actually do.",
   },
   {
-    title: "Backyard Slow Reveal",
+    title: "Backyard slow reveal",
+    address: "540 Cliffside Dr · San Diego, CA",
     category: "Animate",
-    location: "San Diego, CA",
+    refs: ["/vantage/backyard-slow-reveal/before.jpg", "/vantage/backyard-slow-reveal/input.jpg"],
     video: "/vantage/backyard-slow-reveal/result.mp4",
-    poster: "/vantage/backyard-slow-reveal/before.jpg",
     agent: "Kevin Osei",
     role: "Pacific Coast Group",
     quote: "One photo of the yard turned into the best clip in the whole reel.",
   },
   {
-    title: "Ranch — Cleaned & Cinematic",
+    title: "Ranch — cleaned & cinematic",
+    address: "19 Valley Farm Rd · Fresno, CA",
     category: "Transformation",
-    location: "Fresno, CA",
+    refs: ["/vantage/ranch-clean/before.webp", "/vantage/ranch-clean/input.png"],
     video: "/vantage/ranch-clean/video.mp4",
-    poster: "/vantage/ranch-clean/before.webp",
     agent: "Lindsey Cole",
     role: "Valley Signature Homes",
     quote: "Rural listings are hard to market. This made a plain ranch look premium.",
   },
   {
-    title: "New Build — From Dirt",
+    title: "New build — from dirt",
+    address: "6 Sonoran Way · Phoenix, AZ",
     category: "Transformation",
-    location: "Phoenix, AZ",
+    refs: ["/vantage/ranch-build/input.png"],
     video: "/vantage/ranch-build/result.mp4",
-    poster: "/vantage/ranch-build/input.png",
     agent: "Andre Cole",
     role: "Cole Development",
     quote: "Buyers get the vision instantly. It's shortened our sales cycle.",
   },
   {
-    title: "Short-Term Rental Tour",
+    title: "Render → photoreal reveal",
+    address: "Lot 12, Summit Ridge · Denver, CO",
+    category: "Sketch-to-Real",
+    refs: ["/vantage/sketch/original.webp"],
+    video: "/vantage/sketch/result.mp4",
+    agent: "Priya Nair",
+    role: "Summit New Construction",
+    quote: "For pre-construction this is unreal — buyers walk the home before it exists.",
+  },
+  {
+    title: "Short-term rental tour",
+    address: "29 Cactus Bloom Ln · Joshua Tree, CA",
     category: "Airbnb",
-    location: "Joshua Tree, CA",
+    refs: ["/vantage/airbnb/hero-still.jpg"],
     video: "/vantage/airbnb/transform-1.mp4",
-    poster: "/vantage/airbnb/hero-still.jpg",
     agent: "Nina Alvarez",
     role: "Desert Stays Co.",
     quote: "My occupancy jumped after I swapped stills for a Vantage reel.",
   },
-  {
-    title: "Just Listed — Badge Overlay",
-    category: "Done-For-You Reel",
-    location: "Charlotte, NC",
-    video: "/vantage/just-listed/video.mp4",
-    poster: "/vantage/done-for-you/house3/2.png",
-    agent: "Brett Holloway",
-    role: "Queen City Realty",
-    quote: "Price and address baked right in. Post it the night I sign — done.",
-  },
-  {
-    title: "Single Photo → Motion",
-    category: "Animate",
-    location: "Seattle, WA",
-    video: "/vantage/animate-single/push_in.mp4",
-    poster: "/vantage/done-for-you/house3/5.png",
-    agent: "Hana Kim",
-    role: "Emerald Realty",
-    quote: "A flat kitchen photo became a scroll-stopping push-in. Two clicks.",
-  },
-  {
-    title: "Listing Bundle — Six Clips",
-    category: "Done-For-You Reel",
-    location: "Miami, FL",
-    video: "/vantage/listing-bundle/1.mp4",
-    poster: "/vantage/listing-bundle/1.webp",
-    agent: "Luis Fernandez",
-    role: "Bayfront Luxury Group",
-    quote: "A full set of clips per listing. My feed finally looks like a brand.",
-  },
+];
+
+const MORE_FILMS: Film[] = [
+  { title: "Empty room → staged", category: "Virtual Staging", video: "/vantage/virtual-staging/result.mp4", agent: "Sara Larsen", role: "House of Larsen · Scottsdale" },
+  { title: "Golden-hour facade", category: "Sun-to-Sun", video: "/vantage/sun-cycle/result.mp4", agent: "Diego Ramos", role: "Coastline Realty · Santa Barbara" },
+  { title: "Just listed — badge overlay", category: "Done-For-You Reel", video: "/vantage/just-listed/video.mp4", poster: "/vantage/done-for-you/house3/2.png", agent: "Brett Holloway", role: "Queen City Realty · Charlotte" },
+  { title: "Single photo → motion", category: "Animate", video: "/vantage/animate-single/push_in.mp4", poster: "/vantage/done-for-you/house3/5.png", agent: "Hana Kim", role: "Emerald Realty · Seattle" },
+  { title: "Orbit reveal", category: "Animate", video: "/vantage/animate-single/orbit_right.mp4", poster: "/vantage/done-for-you/house3/4.png", agent: "Owen Blake", role: "Cascade Homes · Portland" },
+  { title: "Ground-up build timelapse", category: "Transformation", video: "/vantage/build/result.mp4", poster: "/vantage/ranch-build/input.png", agent: "Tom Fielder", role: "Fielder Custom Builders · Boise" },
 ];
 
 const TESTIMONIALS = [
-  {
-    quote: "Three minutes per film. We've quietly tripled our throughput and our listings look like a luxury brand.",
-    agent: "Sara Larsen",
-    role: "House of Larsen · Scottsdale",
-  },
-  {
-    quote: "I stopped paying a videographer $300 a listing. Same-day reels, MLS-safe, and clients think I leveled up overnight.",
-    agent: "Jordan Park",
-    role: "Meridian Visual Co. · Austin",
-  },
-  {
-    quote: "Connecting it inside Claude was the unlock — I paste a Zillow link and the whole package comes back. It feels like cheating.",
-    agent: "Maya Atwood",
-    role: "Atwood Photographic · Malibu",
-  },
+  { quote: "Three minutes per film. We've quietly tripled our throughput and our listings look like a luxury brand.", agent: "Sara Larsen", role: "House of Larsen · Scottsdale" },
+  { quote: "I stopped paying a videographer $300 a listing. Same-day reels, MLS-safe, and clients think I leveled up overnight.", agent: "Jordan Park", role: "Meridian Visual Co. · Austin" },
+  { quote: "Connecting it inside Claude was the unlock — I paste a Zillow link and the whole package comes back. It feels like cheating.", agent: "Maya Atwood", role: "Atwood Photographic · Malibu" },
 ];
-
-const CATEGORIES = ["All", "Done-For-You Reel", "Virtual Staging", "Transformation", "Sun-to-Sun", "Sketch-to-Real", "Animate", "Airbnb"];
 
 function Avatar({ name, dark }: { name: string; dark?: boolean }) {
   const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
@@ -216,11 +163,10 @@ function Avatar({ name, dark }: { name: string; dark?: boolean }) {
     <span
       className="flex-shrink-0 grid place-items-center"
       style={{
-        width: 40, height: 40, borderRadius: 999,
+        width: 38, height: 38, borderRadius: 999,
         background: dark ? "rgba(244,239,230,0.14)" : "var(--lux-cream)",
         border: `1px solid ${dark ? "rgba(244,239,230,0.25)" : "var(--lux-hairline-strong)"}`,
-        color: "var(--lux-brass)", fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700,
-        letterSpacing: "0.02em",
+        color: "var(--lux-brass)", fontFamily: "Inter, sans-serif", fontSize: 12.5, fontWeight: 700,
       }}
     >
       {initials}
@@ -229,20 +175,17 @@ function Avatar({ name, dark }: { name: string; dark?: boolean }) {
 }
 
 export default function Showcase() {
-  const [filter, setFilter] = useState("All");
-  const shown = filter === "All" ? PROJECTS : PROJECTS.filter((p) => p.category === filter);
-
   return (
     <>
       <Helmet>
         <title>Showcase · Real Estate Reels Made With The Vantage</title>
         <meta
           name="description"
-          content="See real listing reels, virtual staging, transformations, and sun-to-sun exteriors created with The Vantage — the agentic listing tool. Browse projects by category."
+          content="Real listing projects — see the reference photos and the finished reels, virtual staging, transformations, and sun-to-sun exteriors made with The Vantage."
         />
         <link rel="canonical" href="https://thevantage.media/examples" />
         <meta property="og:title" content="The Vantage Showcase · Real Listing Reels" />
-        <meta property="og:description" content="Browse real projects: listing reels, virtual staging, transformations, and more — made with The Vantage." />
+        <meta property="og:description" content="Photos in, film out — browse real projects made with The Vantage." />
         <meta property="og:url" content="https://thevantage.media/examples" />
       </Helmet>
 
@@ -254,10 +197,10 @@ export default function Showcase() {
           <section className="lux-section lux-bg-bone" style={{ paddingBottom: 0 }}>
             <div className="lux-container">
               <SectionHeading
-                eyebrow="THE SHOWCASE · MADE WITH THE VANTAGE"
-                title="Real listings."
+                eyebrow="THE SHOWCASE · PHOTOS IN, FILM OUT"
+                title="Real projects."
                 italic="Real reels."
-                lede="Every film below was produced with The Vantage — from a Zillow link or a handful of photos. Browse the projects agents, photographers, and hosts have shipped."
+                lede="Each project below shows the reference photos a listing came in with — and the finished film that came out. Every one made with The Vantage."
                 align="center"
                 className="mb-10"
               />
@@ -273,82 +216,94 @@ export default function Showcase() {
             />
           </section>
 
-          {/* FILTER + GRID */}
+          {/* PROJECTS — refs → film */}
           <section className="lux-section lux-bg-bone">
             <div className="lux-container">
-              {/* Category filter */}
-              <div className="flex flex-wrap justify-center gap-2.5 mb-12">
-                {CATEGORIES.map((c) => {
-                  const active = filter === c;
-                  return (
-                    <button
-                      key={c}
-                      onClick={() => setFilter(c)}
-                      className="lux-eyebrow"
-                      style={{
-                        padding: "9px 16px",
-                        borderRadius: 999,
-                        fontSize: "0.62rem",
-                        letterSpacing: "0.14em",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        background: active ? "var(--lux-ink)" : "transparent",
-                        color: active ? "var(--lux-bone)" : "var(--lux-ink)",
-                        border: `1px solid ${active ? "var(--lux-ink)" : "var(--lux-hairline-strong)"}`,
-                        transition: "all 0.2s",
-                      }}
-                    >
-                      {c}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Project grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-                {shown.map((p) => (
-                  <div
-                    key={p.title + p.video}
-                    className="group overflow-hidden flex flex-col lux-bg-cream"
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
+                {PROJECTS.map((p) => (
+                  <article
+                    key={p.title}
+                    className="flex flex-col lux-bg-cream overflow-hidden"
                     style={{ border: "1px solid var(--lux-hairline-strong)", borderRadius: 4 }}
                   >
+                    {/* Finished film */}
                     <div className="relative w-full overflow-hidden lux-bg-ink" style={{ aspectRatio: "9 / 12" }}>
-                      <LazyVideo
-                        src={p.video}
-                        poster={p.poster}
-                        className="absolute inset-0 w-full h-full"
-                      />
+                      <LazyVideo src={p.video} poster={p.refs[0]} className="absolute inset-0 w-full h-full" />
                       <span
                         className="lux-eyebrow absolute top-3 left-3 px-2.5 py-1.5"
-                        style={{
-                          background: "var(--lux-bone)", color: "var(--lux-rust)",
-                          fontSize: "0.52rem", letterSpacing: "0.18em", fontWeight: 700, zIndex: 2,
-                        }}
+                        style={{ background: "var(--lux-bone)", color: "var(--lux-rust)", fontSize: "0.52rem", letterSpacing: "0.18em", fontWeight: 700, zIndex: 2 }}
                       >
                         {p.category}
                       </span>
                     </div>
+
                     <div className="p-5 flex-1 flex flex-col">
-                      <h3 className="lux-display" style={{ fontSize: "1.25rem", lineHeight: 1.15, color: "var(--lux-ink)" }}>
+                      <h3 className="lux-display" style={{ fontSize: "1.2rem", lineHeight: 1.15, color: "var(--lux-ink)" }}>
                         {p.title}
                       </h3>
-                      <div className="lux-eyebrow mt-1 mb-4" style={{ color: "var(--lux-ash)", fontSize: "0.58rem", letterSpacing: "0.16em" }}>
-                        {p.location}
+                      <div className="lux-eyebrow mt-1.5 flex items-center gap-1.5" style={{ color: "var(--lux-ash)", fontSize: "0.58rem", letterSpacing: "0.12em" }}>
+                        <span aria-hidden style={{ width: 5, height: 5, borderRadius: 999, background: "var(--lux-rust)", display: "inline-block" }} /> {p.address}
                       </div>
-                      <div className="mt-auto pt-4 flex items-start gap-3" style={{ borderTop: "1px solid var(--lux-hairline)" }}>
+
+                      {/* Reference photos it was made from */}
+                      <div className="mt-4">
+                        <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)", fontSize: "0.55rem", letterSpacing: "0.16em" }}>
+                          MADE FROM {p.refs.length} PHOTO{p.refs.length > 1 ? "S" : ""}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {p.refs.map((r) => (
+                            <img
+                              key={r}
+                              src={r}
+                              alt=""
+                              aria-hidden="true"
+                              loading="lazy"
+                              decoding="async"
+                              style={{ width: 38, height: 38, objectFit: "cover", borderRadius: 3, border: "1px solid var(--lux-hairline)" }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Who made it */}
+                      <div className="mt-auto pt-4 flex items-start gap-3" style={{ borderTop: "1px solid var(--lux-hairline)", marginTop: 18 }}>
                         <Avatar name={p.agent} />
                         <div>
-                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: "0.82rem", fontWeight: 600, color: "var(--lux-ink)" }}>
-                            {p.agent}
-                          </div>
-                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: "0.72rem", color: "var(--lux-ash)" }}>
-                            {p.role}
-                          </div>
-                          <p className="lux-prose mt-2" style={{ fontSize: "0.82rem", lineHeight: 1.45, color: "var(--lux-ink)", opacity: 0.85, fontStyle: "italic" }}>
+                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: "0.8rem", fontWeight: 600, color: "var(--lux-ink)" }}>{p.agent}</div>
+                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: "0.7rem", color: "var(--lux-ash)" }}>{p.role}</div>
+                          <p className="lux-prose mt-2" style={{ fontSize: "0.8rem", lineHeight: 1.45, color: "var(--lux-ink)", opacity: 0.85, fontStyle: "italic" }}>
                             &ldquo;{p.quote}&rdquo;
                           </p>
                         </div>
                       </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* MORE FILMS — the rest, shown simply */}
+          <section className="lux-section lux-bg-cream">
+            <div className="lux-container">
+              <SectionHeading
+                eyebrow="MORE FILMS"
+                title="Everything else"
+                italic="the studio ships."
+                lede="Virtual staging, sun-to-sun exteriors, single-photo animations, and more."
+                align="center"
+                className="mb-12"
+              />
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 lg:gap-5">
+                {MORE_FILMS.map((f) => (
+                  <div key={f.title} className="flex flex-col lux-bg-bone overflow-hidden" style={{ border: "1px solid var(--lux-hairline)", borderRadius: 4 }}>
+                    <div className="relative w-full overflow-hidden lux-bg-ink" style={{ aspectRatio: "9 / 14" }}>
+                      <LazyVideo src={f.video} poster={f.poster} className="absolute inset-0 w-full h-full" />
+                    </div>
+                    <div className="p-3">
+                      <div className="lux-eyebrow" style={{ color: "var(--lux-rust)", fontSize: "0.5rem", letterSpacing: "0.14em" }}>{f.category}</div>
+                      <div style={{ fontFamily: "Inter, sans-serif", fontSize: "0.8rem", fontWeight: 600, color: "var(--lux-ink)", marginTop: 3, lineHeight: 1.2 }}>{f.title}</div>
+                      <div style={{ fontFamily: "Inter, sans-serif", fontSize: "0.66rem", color: "var(--lux-ash)", marginTop: 3 }}>{f.role}</div>
                     </div>
                   </div>
                 ))}
@@ -370,9 +325,7 @@ export default function Showcase() {
                 {TESTIMONIALS.map((t, i) => (
                   <div key={i} className="p-8 flex flex-col" style={{ background: "rgba(244,239,230,0.05)", border: "1px solid rgba(244,239,230,0.14)", borderRadius: 4 }}>
                     <div style={{ color: "var(--lux-champagne)", letterSpacing: 2, marginBottom: 14 }}>★★★★★</div>
-                    <p className="lux-prose flex-1" style={{ color: "var(--lux-bone)", fontSize: "1rem", lineHeight: 1.6, fontStyle: "italic" }}>
-                      &ldquo;{t.quote}&rdquo;
-                    </p>
+                    <p className="lux-prose flex-1" style={{ color: "var(--lux-bone)", fontSize: "1rem", lineHeight: 1.6, fontStyle: "italic" }}>&ldquo;{t.quote}&rdquo;</p>
                     <div className="mt-6 flex items-center gap-3">
                       <Avatar name={t.agent} dark />
                       <div>
@@ -389,9 +342,7 @@ export default function Showcase() {
           {/* CTA */}
           <section className="lux-section lux-bg-bone">
             <div className="lux-container text-center">
-              <h2 className="lux-display" style={{ fontSize: "clamp(2.4rem, 6vw, 5rem)", lineHeight: 0.98 }}>
-                Your listing is next.
-              </h2>
+              <h2 className="lux-display" style={{ fontSize: "clamp(2.4rem, 6vw, 5rem)", lineHeight: 0.98 }}>Your listing is next.</h2>
               <p className="lux-prose mt-6 mx-auto" style={{ maxWidth: 460 }}>
                 60 free credits — about one full reel. No card. Make your first film in minutes.
               </p>
