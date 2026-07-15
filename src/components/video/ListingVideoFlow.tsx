@@ -2310,7 +2310,7 @@ export function ListingVideoFlow({ initialCategory }: ListingVideoFlowProps = {}
               >
                 ✦ IMPORTANT · READ BEFORE UPLOADING
               </div>
-              <p className="lux-display" style={{ fontSize: "clamp(1.1rem, 2.2vw, 1.5rem)", lineHeight: 1.25 }}>
+              <p className="lux-display" style={{ fontSize: "clamp(1.1rem, 2.2vw, 1.5rem)", lineHeight: 1.25, color: "var(--lux-bone)" }}>
                 The order you upload your photos
                 <br />
                 <span className="lux-display-italic" style={{ color: "var(--lux-champagne)" }}>

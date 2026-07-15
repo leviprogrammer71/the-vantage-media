@@ -320,6 +320,25 @@ All colors MUST be HSL.
   color: var(--lux-ink);
 }
 
+/* Contrast safety net — .lux-display and .lux-prose hard-code the dark ink
+   color, which disappears on dark sections. Inside any dark (ink) background,
+   default them to bone. Inline color styles still win, and any nested LIGHT
+   card re-darkens its own text. Fixes dark-on-dark text globally. */
+.lux-bg-ink .lux-display,
+.lux-bg-ink .lux-display-italic,
+.lux-bg-ink .lux-prose,
+.lux-bg-ink .lux-serif {
+  color: var(--lux-bone);
+}
+.lux-bg-ink .lux-bg-bone .lux-display,
+.lux-bg-ink .lux-bg-cream .lux-display,
+.lux-bg-ink .lux-bg-parchment .lux-display,
+.lux-bg-ink .lux-bg-bone .lux-prose,
+.lux-bg-ink .lux-bg-cream .lux-prose,
+.lux-bg-ink .lux-bg-parchment .lux-prose {
+  color: var(--lux-ink);
+}
+
 .lux-display-italic {
   font-family: 'Playfair Display', Georgia, serif;
   font-style: italic;
@@ -366,9 +385,14 @@ All colors MUST be HSL.
 /* Reveal on scroll — slow & ceremonial */
 .lux-reveal {
   opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 1.2s var(--lux-ease), transform 1.2s var(--lux-ease);
+  transform: translateY(14px);
+  /* Was 1.2s — felt sluggish on scroll. Snappier reveal reads as "faster site". */
+  transition: opacity 0.5s var(--lux-ease), transform 0.5s var(--lux-ease);
   will-change: opacity, transform;
+}
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .lux-reveal { transition: none; opacity: 1; transform: none; }
 }
 .lux-reveal.is-visible {
   opacity: 1;
