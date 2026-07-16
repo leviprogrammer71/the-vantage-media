@@ -1,191 +1,179 @@
+import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import LuxuryHeader from "@/components/lux/LuxuryHeader";
 import LuxuryFooter from "@/components/lux/LuxuryFooter";
-import SectionHeading from "@/components/lux/SectionHeading";
-import StatStrip from "@/components/lux/StatStrip";
 import LazyVideo from "@/components/lux/LazyVideo";
+import { PROJECTS, PROJECT_STATS, type Project } from "@/data/projects";
 
 /**
- * /examples — the public Showcase.
- *
- * Two tiers:
- *   1. PROJECTS — full case studies: address + the reference photos a listing
- *      was built from → the finished film. (Folders that ship input images.)
- *   2. MORE FILMS — the rest, shown as simple video cards.
- *
- * NOTE: addresses, agent profiles, and quotes are SAMPLE/placeholder content.
- * Replace with real, permissioned details before scaling paid traffic —
- * fabricated testimonials/addresses presented as real are an ethics + FTC issue.
+ * /examples — "The Gallery". A museum-style walk through real listings: the
+ * reference photos that went in, and the films that came out. Driven entirely
+ * by src/data/projects.ts (add a folder + entry to hang a new piece).
  */
 
-interface Project {
-  title: string;
-  address: string;
-  category: string;
-  refs: string[];      // reference photos the film was made from
-  video: string;       // the finished film
-  agent: string;
-  role: string;
-  quote: string;
+/** Reveal-on-scroll for [data-reveal] elements (adds .is-visible). */
+function useReveal() {
+  useEffect(() => {
+    const els = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
+    if (typeof IntersectionObserver === "undefined") {
+      els.forEach((el) => el.classList.add("is-visible"));
+      return;
+    }
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            e.target.classList.add("is-visible");
+            obs.unobserve(e.target);
+          }
+        }
+      },
+      { rootMargin: "0px 0px -8% 0px", threshold: 0.06 },
+    );
+    els.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
 }
 
-interface Film {
-  title: string;
-  category: string;
-  video: string;
-  poster?: string;
-  agent: string;
-  role: string;
-}
-
-const PROJECTS: Project[] = [
-  {
-    title: "Seven photos, one cinematic reel",
-    address: "1420 Vista Ridge Dr · Malibu, CA",
-    category: "Done-For-You Reel",
-    refs: [1, 2, 3, 4, 5, 6, 7].map((i) => `/vantage/done-for-you/house3/${i}.png`),
-    video: "/vantage/done-for-you/luxuryminimal.mp4",
-    agent: "Maya Atwood",
-    role: "Atwood Photographic",
-    quote: "Dropped seven photos in order, got a finished reel back. Pays for itself the first week.",
-  },
-  {
-    title: "Listing bundle — six clips",
-    address: "88 Bayfront Ave · Miami, FL",
-    category: "Done-For-You Reel",
-    refs: [1, 2, 3, 4, 5, 6].map((i) => `/vantage/listing-bundle/${i}.webp`),
-    video: "/vantage/listing-bundle/1.mp4",
-    agent: "Luis Fernandez",
-    role: "Bayfront Luxury Group",
-    quote: "A full set of clips per listing. My feed finally looks like a brand.",
-  },
-  {
-    title: "Cluttered room → clean walk-through",
-    address: "312 Rosemont St · Portland, OR",
-    category: "Transformation",
-    refs: ["/vantage/cleanup/mo.jpg"],
-    video: "/vantage/cleanup/result.mp4",
-    agent: "Marcus Webb",
-    role: "Rose City Homes",
-    quote: "The before/after does the selling for me. Sellers sign on the spot.",
-  },
-  {
-    title: "Bare room → fully staged",
-    address: "77 Music Row · Nashville, TN",
-    category: "Transformation",
-    refs: ["/vantage/setup/before.webp", "/vantage/setup/after.jpeg"],
-    video: "/vantage/setup/video.mp4",
-    agent: "Alicia Grant",
-    role: "Grant & Co. Realty",
-    quote: "Staging used to cost me $1,800 and a week. Now it's a few minutes.",
-  },
-  {
-    title: "Kitchen renovation reveal",
-    address: "2203 N Laverne Ave · Sacramento, CA",
-    category: "Transformation",
-    refs: ["/vantage/contractor/before.jpg"],
-    video: "/vantage/contractor/result.mp4",
-    agent: "Rosa Medina",
-    role: "Medina Remodels",
-    quote: "My renovation portfolio finally looks like the work I actually do.",
-  },
-  {
-    title: "Backyard slow reveal",
-    address: "540 Cliffside Dr · San Diego, CA",
-    category: "Animate",
-    refs: ["/vantage/backyard-slow-reveal/before.jpg", "/vantage/backyard-slow-reveal/input.jpg"],
-    video: "/vantage/backyard-slow-reveal/result.mp4",
-    agent: "Kevin Osei",
-    role: "Pacific Coast Group",
-    quote: "One photo of the yard turned into the best clip in the whole reel.",
-  },
-  {
-    title: "Ranch — cleaned & cinematic",
-    address: "19 Valley Farm Rd · Fresno, CA",
-    category: "Transformation",
-    refs: ["/vantage/ranch-clean/before.webp", "/vantage/ranch-clean/input.png"],
-    video: "/vantage/ranch-clean/video.mp4",
-    agent: "Lindsey Cole",
-    role: "Valley Signature Homes",
-    quote: "Rural listings are hard to market. This made a plain ranch look premium.",
-  },
-  {
-    title: "New build — from dirt",
-    address: "6 Sonoran Way · Phoenix, AZ",
-    category: "Transformation",
-    refs: ["/vantage/ranch-build/input.png"],
-    video: "/vantage/ranch-build/result.mp4",
-    agent: "Andre Cole",
-    role: "Cole Development",
-    quote: "Buyers get the vision instantly. It's shortened our sales cycle.",
-  },
-  {
-    title: "Render → photoreal reveal",
-    address: "Lot 12, Summit Ridge · Denver, CO",
-    category: "Sketch-to-Real",
-    refs: ["/vantage/sketch/original.webp"],
-    video: "/vantage/sketch/result.mp4",
-    agent: "Priya Nair",
-    role: "Summit New Construction",
-    quote: "For pre-construction this is unreal — buyers walk the home before it exists.",
-  },
-  {
-    title: "Short-term rental tour",
-    address: "29 Cactus Bloom Ln · Joshua Tree, CA",
-    category: "Airbnb",
-    refs: ["/vantage/airbnb/hero-still.jpg"],
-    video: "/vantage/airbnb/transform-1.mp4",
-    agent: "Nina Alvarez",
-    role: "Desert Stays Co.",
-    quote: "My occupancy jumped after I swapped stills for a Vantage reel.",
-  },
-];
-
-const MORE_FILMS: Film[] = [
-  { title: "Empty room → staged", category: "Virtual Staging", video: "/vantage/virtual-staging/result.mp4", agent: "Sara Larsen", role: "House of Larsen · Scottsdale" },
-  { title: "Golden-hour facade", category: "Sun-to-Sun", video: "/vantage/sun-cycle/result.mp4", agent: "Diego Ramos", role: "Coastline Realty · Santa Barbara" },
-  { title: "Just listed — badge overlay", category: "Done-For-You Reel", video: "/vantage/just-listed/video.mp4", poster: "/vantage/done-for-you/house3/2.png", agent: "Brett Holloway", role: "Queen City Realty · Charlotte" },
-  { title: "Single photo → motion", category: "Animate", video: "/vantage/animate-single/push_in.mp4", poster: "/vantage/done-for-you/house3/5.png", agent: "Hana Kim", role: "Emerald Realty · Seattle" },
-  { title: "Orbit reveal", category: "Animate", video: "/vantage/animate-single/orbit_right.mp4", poster: "/vantage/done-for-you/house3/4.png", agent: "Owen Blake", role: "Cascade Homes · Portland" },
-  { title: "Ground-up build timelapse", category: "Transformation", video: "/vantage/build/result.mp4", poster: "/vantage/ranch-build/input.png", agent: "Tom Fielder", role: "Fielder Custom Builders · Boise" },
-];
-
-const TESTIMONIALS = [
-  { quote: "Three minutes per film. We've quietly tripled our throughput and our listings look like a luxury brand.", agent: "Sara Larsen", role: "House of Larsen · Scottsdale" },
-  { quote: "I stopped paying a videographer $300 a listing. Same-day reels, MLS-safe, and clients think I leveled up overnight.", agent: "Jordan Park", role: "Meridian Visual Co. · Austin" },
-  { quote: "Connecting it inside Claude was the unlock — I paste a Zillow link and the whole package comes back. It feels like cheating.", agent: "Maya Atwood", role: "Atwood Photographic · Malibu" },
-];
-
-function Avatar({ name, dark }: { name: string; dark?: boolean }) {
-  const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+function Exhibit({ project, index, dark }: { project: Project; index: number; dark: boolean }) {
+  const p = project;
+  const single = p.outputs.length === 1;
+  const fg = dark ? "var(--lux-bone)" : "var(--lux-ink)";
+  const hair = dark ? "rgba(244,239,230,0.16)" : "var(--lux-hairline)";
   return (
-    <span
-      className="flex-shrink-0 grid place-items-center"
-      style={{
-        width: 38, height: 38, borderRadius: 999,
-        background: dark ? "rgba(244,239,230,0.14)" : "var(--lux-cream)",
-        border: `1px solid ${dark ? "rgba(244,239,230,0.25)" : "var(--lux-hairline-strong)"}`,
-        color: "var(--lux-brass)", fontFamily: "Inter, sans-serif", fontSize: 12.5, fontWeight: 700,
-      }}
+    <section
+      className={`lux-section ${dark ? "lux-bg-ink lux-grain" : "lux-bg-bone"}`}
+      style={{ color: fg }}
     >
-      {initials}
-    </span>
+      <div className="lux-container">
+        {/* Museum plate */}
+        <div data-reveal className="lux-reveal">
+          <div className="flex items-baseline gap-4 mb-3" style={{ borderBottom: `1px solid ${hair}`, paddingBottom: 14 }}>
+            <span
+              style={{ fontFamily: "'Space Mono', ui-monospace, monospace", fontSize: "0.9rem", color: "var(--lux-rust)", letterSpacing: "0.1em" }}
+            >
+              N° {String(index + 1).padStart(2, "0")}
+            </span>
+            <span className="lux-eyebrow" style={{ color: dark ? "var(--lux-champagne)" : "var(--lux-brass)", fontSize: "0.6rem" }}>
+              {p.refs.length} PHOTO{p.refs.length > 1 ? "S" : ""} IN · {p.outputs.length} FILM{p.outputs.length > 1 ? "S" : ""} OUT
+            </span>
+          </div>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <h2 className="lux-display" style={{ fontSize: "clamp(2rem, 5vw, 4rem)", lineHeight: 0.98, letterSpacing: "-0.02em", color: fg }}>
+              {p.address}
+              {p.city && (
+                <span className="lux-eyebrow" style={{ display: "block", marginTop: 10, color: dark ? "rgba(244,239,230,0.6)" : "var(--lux-ash)", fontSize: "0.72rem" }}>
+                  {p.city}
+                </span>
+              )}
+            </h2>
+            <p className="lux-display-italic" style={{ fontSize: "clamp(1.1rem, 2.4vw, 1.7rem)", color: "var(--lux-rust)" }}>
+              {p.tagline}
+            </p>
+          </div>
+        </div>
+
+        {/* THE INPUTS — contact sheet */}
+        <div data-reveal className="lux-reveal mt-10">
+          <div className="lux-eyebrow mb-3" style={{ color: dark ? "rgba(244,239,230,0.55)" : "var(--lux-ash)", fontSize: "0.6rem" }}>
+            THE INPUTS · THEIR LISTING PHOTOS
+          </div>
+          <div className="flex gap-2.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "thin" }}>
+            {p.refs.map((r, i) => (
+              <img
+                key={r}
+                src={r}
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                decoding="async"
+                style={{
+                  height: 84,
+                  width: 84,
+                  flexShrink: 0,
+                  objectFit: "cover",
+                  borderRadius: 3,
+                  border: `1px solid ${hair}`,
+                  filter: dark ? "none" : "none",
+                }}
+              />
+            ))}
+            <div
+              className="flex items-center justify-center flex-shrink-0"
+              style={{ height: 84, paddingInline: 14, color: "var(--lux-rust)", fontSize: 22 }}
+              aria-hidden
+            >
+              →
+            </div>
+          </div>
+        </div>
+
+        {/* THE FILMS — the outputs */}
+        <div data-reveal className="lux-reveal mt-8">
+          <div className="lux-eyebrow mb-4" style={{ color: dark ? "rgba(244,239,230,0.55)" : "var(--lux-ash)", fontSize: "0.6rem" }}>
+            THE FILMS · WHAT CAME OUT
+          </div>
+          <div
+            className="grid gap-4 lg:gap-5"
+            style={{
+              gridTemplateColumns: single
+                ? "minmax(220px, 300px)"
+                : "repeat(auto-fill, minmax(180px, 1fr))",
+              maxWidth: single ? undefined : "100%",
+            }}
+          >
+            {p.outputs.map((o) => (
+              <figure key={o.video} className="m-0">
+                <div className="relative w-full overflow-hidden lux-bg-ink" style={{ aspectRatio: "9 / 16", borderRadius: 4, border: `1px solid ${hair}` }}>
+                  <LazyVideo src={o.video} poster={o.poster} className="absolute inset-0 w-full h-full" />
+                </div>
+                <figcaption
+                  className="lux-eyebrow mt-2.5"
+                  style={{ color: dark ? "var(--lux-champagne)" : "var(--lux-rust)", fontSize: "0.6rem", letterSpacing: "0.14em", fontWeight: 700 }}
+                >
+                  {o.label}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+
+        {/* The maker */}
+        {p.quote && (
+          <div data-reveal className="lux-reveal mt-10 flex items-start gap-3" style={{ maxWidth: 620 }}>
+            <span
+              className="grid place-items-center flex-shrink-0"
+              style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${hair}`, color: dark ? "var(--lux-champagne)" : "var(--lux-brass)", fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700 }}
+            >
+              {(p.agent || "").split(" ").map((w) => w[0]).join("").slice(0, 2)}
+            </span>
+            <p className="lux-prose" style={{ fontStyle: "italic", color: fg, opacity: 0.9, fontSize: "0.95rem", lineHeight: 1.5 }}>
+              &ldquo;{p.quote}&rdquo;
+              <span style={{ display: "block", fontStyle: "normal", marginTop: 6, fontSize: "0.78rem", opacity: 0.7 }}>
+                {p.agent} · {p.role}
+              </span>
+            </p>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
 export default function Showcase() {
+  useReveal();
   return (
     <>
       <Helmet>
-        <title>Showcase · Real Estate Reels Made With The Vantage</title>
+        <title>The Gallery · Real Estate Reels Made With The Vantage</title>
         <meta
           name="description"
-          content="Real listing projects — see the reference photos and the finished reels, virtual staging, transformations, and sun-to-sun exteriors made with The Vantage."
+          content="A museum of real listing projects — see the reference photos that went in and the films that came out. Listing reels, virtual staging, transformations, camera moves, and more, made with The Vantage."
         />
         <link rel="canonical" href="https://thevantage.media/examples" />
-        <meta property="og:title" content="The Vantage Showcase · Real Listing Reels" />
-        <meta property="og:description" content="Photos in, film out — browse real projects made with The Vantage." />
+        <meta property="og:title" content="The Vantage Gallery · Photos In, Films Out" />
+        <meta property="og:description" content="Real listing projects — the reference photos and the finished films. Made with The Vantage." />
         <meta property="og:url" content="https://thevantage.media/examples" />
       </Helmet>
 
@@ -194,165 +182,79 @@ export default function Showcase() {
 
         <main id="main-content">
           {/* HERO */}
-          <section className="lux-section lux-bg-bone" style={{ paddingBottom: 0 }}>
-            <div className="lux-container">
-              <SectionHeading
-                eyebrow="THE SHOWCASE · PHOTOS IN, FILM OUT"
-                title="Real projects."
-                italic="Real reels."
-                lede="Each project below shows the reference photos a listing came in with — and the finished film that came out. Every one made with The Vantage."
-                align="center"
-                className="mb-10"
-              />
-            </div>
-            <StatStrip
-              variant="ink"
-              stats={[
-                { value: "16", label: "SAMPLE PROJECTS" },
-                { value: "7", label: "FILM TYPES" },
-                { value: "3 min", label: "AVG TURNAROUND" },
-                { value: "1080p", label: "MIN OUTPUT" },
-              ]}
+          <section className="relative overflow-hidden lux-bg-ink" style={{ minHeight: "62vh", display: "flex", alignItems: "center" }}>
+            <video
+              src="/projects/hero.mp4"
+              poster="/projects/hero.jpg"
+              muted
+              loop
+              autoPlay
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ opacity: 0.32 }}
             />
-          </section>
-
-          {/* PROJECTS — refs → film */}
-          <section className="lux-section lux-bg-bone">
-            <div className="lux-container">
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
-                {PROJECTS.map((p) => (
-                  <article
-                    key={p.title}
-                    className="flex flex-col lux-bg-cream overflow-hidden"
-                    style={{ border: "1px solid var(--lux-hairline-strong)", borderRadius: 4 }}
-                  >
-                    {/* Finished film */}
-                    <div className="relative w-full overflow-hidden lux-bg-ink" style={{ aspectRatio: "9 / 12" }}>
-                      <LazyVideo src={p.video} poster={p.refs[0]} className="absolute inset-0 w-full h-full" />
-                      <span
-                        className="lux-eyebrow absolute top-3 left-3 px-2.5 py-1.5"
-                        style={{ background: "var(--lux-bone)", color: "var(--lux-rust)", fontSize: "0.52rem", letterSpacing: "0.18em", fontWeight: 700, zIndex: 2 }}
-                      >
-                        {p.category}
-                      </span>
-                    </div>
-
-                    <div className="p-5 flex-1 flex flex-col">
-                      <h3 className="lux-display" style={{ fontSize: "1.2rem", lineHeight: 1.15, color: "var(--lux-ink)" }}>
-                        {p.title}
-                      </h3>
-                      <div className="lux-eyebrow mt-1.5 flex items-center gap-1.5" style={{ color: "var(--lux-ash)", fontSize: "0.58rem", letterSpacing: "0.12em" }}>
-                        <span aria-hidden style={{ width: 5, height: 5, borderRadius: 999, background: "var(--lux-rust)", display: "inline-block" }} /> {p.address}
-                      </div>
-
-                      {/* Reference photos it was made from */}
-                      <div className="mt-4">
-                        <div className="lux-eyebrow mb-2" style={{ color: "var(--lux-brass)", fontSize: "0.55rem", letterSpacing: "0.16em" }}>
-                          MADE FROM {p.refs.length} PHOTO{p.refs.length > 1 ? "S" : ""}
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {p.refs.map((r) => (
-                            <img
-                              key={r}
-                              src={r}
-                              alt=""
-                              aria-hidden="true"
-                              loading="lazy"
-                              decoding="async"
-                              style={{ width: 38, height: 38, objectFit: "cover", borderRadius: 3, border: "1px solid var(--lux-hairline)" }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Who made it */}
-                      <div className="mt-auto pt-4 flex items-start gap-3" style={{ borderTop: "1px solid var(--lux-hairline)", marginTop: 18 }}>
-                        <Avatar name={p.agent} />
-                        <div>
-                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: "0.8rem", fontWeight: 600, color: "var(--lux-ink)" }}>{p.agent}</div>
-                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: "0.7rem", color: "var(--lux-ash)" }}>{p.role}</div>
-                          <p className="lux-prose mt-2" style={{ fontSize: "0.8rem", lineHeight: 1.45, color: "var(--lux-ink)", opacity: 0.85, fontStyle: "italic" }}>
-                            &ldquo;{p.quote}&rdquo;
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                ))}
+            <div
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(180deg, rgba(14,14,12,0.55) 0%, rgba(14,14,12,0.35) 40%, rgba(14,14,12,0.85) 100%)" }}
+            />
+            <div className="lux-container relative" style={{ zIndex: 1, paddingBlock: 80 }}>
+              <div className="lux-eyebrow mb-5" style={{ color: "var(--lux-champagne)" }}>
+                THE VANTAGE GALLERY
               </div>
-            </div>
-          </section>
-
-          {/* MORE FILMS — the rest, shown simply */}
-          <section className="lux-section lux-bg-cream">
-            <div className="lux-container">
-              <SectionHeading
-                eyebrow="MORE FILMS"
-                title="Everything else"
-                italic="the studio ships."
-                lede="Virtual staging, sun-to-sun exteriors, single-photo animations, and more."
-                align="center"
-                className="mb-12"
-              />
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 lg:gap-5">
-                {MORE_FILMS.map((f) => (
-                  <div key={f.title} className="flex flex-col lux-bg-bone overflow-hidden" style={{ border: "1px solid var(--lux-hairline)", borderRadius: 4 }}>
-                    <div className="relative w-full overflow-hidden lux-bg-ink" style={{ aspectRatio: "9 / 14" }}>
-                      <LazyVideo src={f.video} poster={f.poster} className="absolute inset-0 w-full h-full" />
-                    </div>
-                    <div className="p-3">
-                      <div className="lux-eyebrow" style={{ color: "var(--lux-rust)", fontSize: "0.5rem", letterSpacing: "0.14em" }}>{f.category}</div>
-                      <div style={{ fontFamily: "Inter, sans-serif", fontSize: "0.8rem", fontWeight: 600, color: "var(--lux-ink)", marginTop: 3, lineHeight: 1.2 }}>{f.title}</div>
-                      <div style={{ fontFamily: "Inter, sans-serif", fontSize: "0.66rem", color: "var(--lux-ash)", marginTop: 3 }}>{f.role}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* TESTIMONIALS WALL */}
-          <section className="lux-section lux-bg-ink lux-grain">
-            <div className="lux-container">
-              <SectionHeading
-                eyebrow="WHAT AGENTS SAY"
-                title="Loved by the people"
-                italic="who post the same night they sign."
-                align="center"
-                className="mb-16"
-              />
-              <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-                {TESTIMONIALS.map((t, i) => (
-                  <div key={i} className="p-8 flex flex-col" style={{ background: "rgba(244,239,230,0.05)", border: "1px solid rgba(244,239,230,0.14)", borderRadius: 4 }}>
-                    <div style={{ color: "var(--lux-champagne)", letterSpacing: 2, marginBottom: 14 }}>★★★★★</div>
-                    <p className="lux-prose flex-1" style={{ color: "var(--lux-bone)", fontSize: "1rem", lineHeight: 1.6, fontStyle: "italic" }}>&ldquo;{t.quote}&rdquo;</p>
-                    <div className="mt-6 flex items-center gap-3">
-                      <Avatar name={t.agent} dark />
-                      <div>
-                        <div style={{ fontFamily: "Inter, sans-serif", fontSize: "0.85rem", fontWeight: 600, color: "var(--lux-bone)" }}>{t.agent}</div>
-                        <div style={{ fontFamily: "Inter, sans-serif", fontSize: "0.72rem", color: "rgba(244,239,230,0.6)" }}>{t.role}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* CTA */}
-          <section className="lux-section lux-bg-bone">
-            <div className="lux-container text-center">
-              <h2 className="lux-display" style={{ fontSize: "clamp(2.4rem, 6vw, 5rem)", lineHeight: 0.98 }}>Your listing is next.</h2>
-              <p className="lux-prose mt-6 mx-auto" style={{ maxWidth: 460 }}>
-                60 free credits — about one full reel. No card. Make your first film in minutes.
+              <h1 className="lux-display" style={{ fontSize: "clamp(2.6rem, 7vw, 6rem)", lineHeight: 0.95, letterSpacing: "-0.02em", color: "var(--lux-bone)", maxWidth: 900 }}>
+                A few listing photos in.
+                <br />
+                <span className="lux-display-italic" style={{ color: "var(--lux-champagne)" }}>Masterpieces out.</span>
+              </h1>
+              <p className="lux-prose mt-6" style={{ color: "rgba(244,239,230,0.85)", fontSize: "1.05rem", maxWidth: 560 }}>
+                Every film below started as ordinary listing photos. Walk the gallery — then upload yours and get the same.
               </p>
-              <div className="mt-10 flex flex-wrap items-center justify-center gap-5">
-                <Link to="/signup" className="lux-btn" style={{ background: "var(--lux-rust)", color: "var(--lux-bone)" }}>
-                  START FREE — 60 CREDITS →
+              <div className="mt-9 flex flex-wrap items-center gap-8">
+                <Link to="/signup" className="lux-btn lux-btn-bone">
+                  UPLOAD YOUR LISTING — FREE →
                 </Link>
-                <Link to="/connect" className="lux-eyebrow inline-flex items-center gap-2" style={{ color: "var(--lux-ink)" }}>
-                  ⚡ CONNECT TO CLAUDE →
-                </Link>
+                <div className="flex items-center gap-8">
+                  {[
+                    { v: PROJECT_STATS.projects, l: "PROJECTS" },
+                    { v: PROJECT_STATS.films, l: "FILMS" },
+                    { v: "3 min", l: "EACH" },
+                  ].map((s) => (
+                    <div key={s.l}>
+                      <div className="lux-display" style={{ fontSize: "1.8rem", color: "var(--lux-bone)", lineHeight: 1 }}>{s.v}</div>
+                      <div className="lux-eyebrow" style={{ color: "rgba(244,239,230,0.6)", fontSize: "0.55rem", marginTop: 4 }}>{s.l}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* EXHIBITS */}
+          {PROJECTS.map((p, i) => (
+            <Exhibit key={p.slug} project={p} index={i} dark={i % 2 === 1} />
+          ))}
+
+          {/* CLOSING CTA */}
+          <section className="lux-section lux-bg-cream">
+            <div className="lux-container text-center">
+              <div data-reveal className="lux-reveal">
+                <div className="lux-eyebrow mb-4" style={{ color: "var(--lux-rust)" }}>YOUR TURN</div>
+                <h2 className="lux-display" style={{ fontSize: "clamp(2.4rem, 6vw, 5rem)", lineHeight: 0.98 }}>
+                  Hang your listing
+                  <br />
+                  <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>in the gallery.</span>
+                </h2>
+                <p className="lux-prose mt-6 mx-auto" style={{ maxWidth: 460 }}>
+                  60 free credits — about one full reel. No card. Upload your photos and watch what comes out.
+                </p>
+                <div className="mt-10 flex flex-wrap items-center justify-center gap-5">
+                  <Link to="/signup" className="lux-btn" style={{ background: "var(--lux-rust)", color: "var(--lux-bone)" }}>
+                    START FREE — 60 CREDITS →
+                  </Link>
+                  <Link to="/connect" className="lux-eyebrow inline-flex items-center gap-2" style={{ color: "var(--lux-ink)" }}>
+                    ⚡ CONNECT TO CLAUDE →
+                  </Link>
+                </div>
               </div>
             </div>
           </section>
