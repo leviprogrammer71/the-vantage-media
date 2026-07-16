@@ -79,8 +79,13 @@ function Exhibit({ project, index, dark }: { project: Project; index: number; da
           <div className="lux-eyebrow mb-3" style={{ color: dark ? "rgba(244,239,230,0.55)" : "var(--lux-ash)", fontSize: "0.6rem" }}>
             THE INPUTS · THEIR LISTING PHOTOS
           </div>
-          <div className="flex gap-2.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "thin" }}>
-            {p.refs.map((r, i) => (
+          {/* The inputs are half the story — show them at real size, not as
+              thumbnails. Large tiles, wrapping grid. */}
+          <div
+            className="grid gap-3 lg:gap-4"
+            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", maxWidth: p.refs.length <= 2 ? 460 : undefined }}
+          >
+            {p.refs.map((r) => (
               <img
                 key={r}
                 src={r}
@@ -88,24 +93,18 @@ function Exhibit({ project, index, dark }: { project: Project; index: number; da
                 aria-hidden="true"
                 loading="lazy"
                 decoding="async"
+                className="w-full"
                 style={{
-                  height: 84,
-                  width: 84,
-                  flexShrink: 0,
+                  aspectRatio: "1 / 1",
                   objectFit: "cover",
-                  borderRadius: 3,
+                  borderRadius: 4,
                   border: `1px solid ${hair}`,
-                  filter: dark ? "none" : "none",
                 }}
               />
             ))}
-            <div
-              className="flex items-center justify-center flex-shrink-0"
-              style={{ height: 84, paddingInline: 14, color: "var(--lux-rust)", fontSize: 22 }}
-              aria-hidden
-            >
-              →
-            </div>
+          </div>
+          <div className="lux-eyebrow mt-3 flex items-center gap-2" style={{ color: "var(--lux-rust)", fontSize: "0.62rem", letterSpacing: "0.16em" }}>
+            <span aria-hidden style={{ fontSize: 16 }}>↓</span> RENDERED INTO
           </div>
         </div>
 

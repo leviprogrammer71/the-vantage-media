@@ -100,7 +100,10 @@ export default function VideoPage() {
       </Helmet>
 
       <ErrorBoundary>
-        <div className="min-h-screen bg-background pb-24">
+        {/* One continuous bone surface — the previous bg-background (near-white)
+            wrapper made inner lux-bone blocks read as awkward floating boxes
+            with white gutters around them. */}
+        <div className="min-h-screen pb-24" style={{ background: "var(--lux-bone)" }}>
         {/* Header */}
         <header
           className="sticky top-0 z-50"
