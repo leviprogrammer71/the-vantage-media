@@ -8,7 +8,6 @@ import StatStrip from "@/components/lux/StatStrip";
 import Marquee from "@/components/lux/Marquee";
 import VideoReel from "@/components/lux/VideoReel";
 import BeforeAfterSlider from "@/components/lux/BeforeAfterSlider";
-import CaseStudy from "@/components/lux/CaseStudy";
 import PreviewVideo from "@/components/lux/PreviewVideo";
 import ROICalculator from "@/components/lux/ROICalculator";
 import SectionHeading from "@/components/lux/SectionHeading";
@@ -130,16 +129,18 @@ const Index = () => {
               User direction: every landing-page top-CTA hero uses the
               luxury-minimal Done-For-You edit. It's the highest-converting
               edit style and matches the brand tone. */}
+          {/* result.mp4 = the reel rendered from the house3 photos used
+              across this page, so input imagery and output reel match. */}
           <EditorialHero
             rightImage="/vantage/done-for-you/house3/1.png"
-            rightVideo="/vantage/done-for-you/luxuryminimal.mp4"
+            rightVideo="/vantage/done-for-you/result.mp4"
           />
 
           {/* Trust Badges */}
           <div className="lux-bg-parchment py-6 border-b" style={{ borderColor: "var(--lux-hairline)" }}>
             <div className="lux-container flex flex-wrap justify-center items-center gap-6 text-sm">
               <div className="flex items-center gap-2" style={{ color: "var(--lux-rust)" }}>
-                30-DAY REFUND
+                CANCEL ANYTIME
               </div>
               <div className="flex items-center gap-2" style={{ color: "var(--lux-rust)" }}>
                 NO CARD REQUIRED
@@ -621,13 +622,13 @@ const Index = () => {
                   caption="BACKYARD BUILD · CONTRACTOR'S CINEMATIC DELIVERABLE"
                 />
                 <BeforeAfterSlider
-                  before="/vantage/ranch-clean/before.webp"
-                  after="/vantage/ranch-clean/input.png"
-                  afterVideo="/vantage/ranch-clean/video.mp4"
-                  beforeLabel="MOMENT 00:00"
-                  afterLabel="FRAME 03:52"
+                  before="/vantage/setup/before.webp"
+                  after="/vantage/setup/after.jpeg"
+                  afterVideo="/vantage/setup/video.mp4"
+                  beforeLabel="EMPTY ROOM"
+                  afterLabel="VIRTUALLY STAGED"
                   ratio="4/5"
-                  caption="RANCH CLEANUP · LISTING-READY IN ONE FILM"
+                  caption="VIRTUAL STAGING · FURNISHED IN ONE FILM"
                 />
               </div>
 
@@ -640,8 +641,8 @@ const Index = () => {
                   {isLoggedIn ? "ENTER THE STUDIO →" : "BEGIN A FILM — FREE →"}
                 </Link>
                 <div className="mt-6 p-4 lux-bg-bone" style={{ border: "1px solid var(--lux-hairline)", display: "inline-block" }}>
-                  <p className="lux-eyebrow" style={{ color: "var(--lux-rust)", marginBottom: 8 }}>30-DAY REFUND · CANCEL ANYTIME · NO CARD</p>
-                  <p className="text-xs" style={{ color: "var(--lux-ink)" }}>Full refund within 30 days. Zero commitment contracts.</p>
+                  <p className="lux-eyebrow" style={{ color: "var(--lux-rust)", marginBottom: 8 }}>CANCEL ANYTIME · NO CARD REQUIRED</p>
+                  <p className="text-xs" style={{ color: "var(--lux-ink)" }}>Start free with 60 credits. Zero commitment contracts.</p>
                 </div>
                 <p className="lux-prose text-sm mt-6" style={{ color: "var(--lux-rust)" }}>
                   ✦ {liveCount} studios began a film today
@@ -667,9 +668,9 @@ const Index = () => {
                       lineHeight: 0.96,
                     }}
                   >
-                    Recently delivered
+                    Every film type,
                     <br />
-                    <span className="lux-display-italic" style={{ color: "var(--lux-champagne)" }}>to studios in 17 cities.</span>
+                    <span className="lux-display-italic" style={{ color: "var(--lux-champagne)" }}>one studio.</span>
                   </h2>
                 </div>
                 <div className="lg:col-span-5">
@@ -806,76 +807,6 @@ const Index = () => {
             </div>
           </section>
 
-          {/* CASE STUDIES */}
-          <section className="lux-section lux-bg-parchment [content-visibility:auto] [contain-intrinsic-size:1px_1400px]">
-            <div className="lux-container">
-              <SectionHeading
-                eyebrow="THE CLIENTELE"
-                title="Worn by working studios."
-                lede="A small selection of films delivered this quarter to operators who shoot, sell, and build for the upper end of the market."
-                align="center"
-                className="mb-24"
-              />
-
-              <div className="flex flex-col gap-32">
-                <CaseStudy
-                  index="01"
-                  studio="Atwood Photographic"
-                  city="BEACON HILL · BOSTON"
-                  quote="We added it as a $450 line item the next morning. Eleven of our twelve March shoots took it."
-                  body="Maya Atwood runs a four-person studio shooting $2.5M+ residential listings across Greater Boston. Cinematic listing video used to mean a second crew, a second invoice, and 5–7 days of post."
-                  metrics={[
-                    { value: "+$5,400", label: "MAR · ADD-ON" },
-                    { value: "92%", label: "ATTACH RATE" },
-                    { value: "0 hrs", label: "POST-PRODUCTION" },
-                  ]}
-                  before="/vantage/ranch-build/input.png"
-                  after="/vantage/ranch-build/input.png"
-                  afterVideo="/vantage/ranch-build/result.mp4"
-                  beforeLabel="STILL · DELIVERED PHOTO"
-                  afterLabel="CINEMATIC REEL"
-                />
-
-                <CaseStudy
-                  index="02"
-                  studio="Meridian Visual Co."
-                  city="SILVER LAKE · LOS ANGELES"
-                  reverse
-                  quote="The agents stopped asking for drone. They started asking for The Vantage."
-                  body="A boutique two-person video studio that previously charged $1,800 per cinematic listing. Now bundles a Vantage film into every $850 photo package and hits volume their old workflow couldn't support."
-                  metrics={[
-                    { value: "3.4×", label: "MONTHLY VOLUME" },
-                    { value: "+62%", label: "AGENT BOOKINGS" },
-                    { value: "$28k", label: "Q1 UPLIFT" },
-                  ]}
-                  before="/vantage/contractor/before.jpg"
-                  after="/vantage/contractor/before.jpg"
-                  afterVideo="/vantage/contractor/result.mp4"
-                  beforeLabel="UPLOADED PHOTO"
-                  afterLabel="CINEMATIC REEL"
-                />
-
-                <CaseStudy
-                  index="03"
-                  studio="Larsen Gardens"
-                  city="HUDSON VALLEY · NEW YORK"
-                  quote="The before-and-after used to take a drone, a second day on site, and an editor. Now it's the after photo and a coffee."
-                  body="A landscape design-build studio specializing in country residences. Switched every project's marketing reel to single-frame Vantage output in February. Booked solid through May."
-                  metrics={[
-                    { value: "248", label: "FILMS / Q1" },
-                    { value: "$117k", label: "NEW REVENUE" },
-                    { value: "0", label: "RE-EDITS REQUESTED" },
-                  ]}
-                  before="/vantage/backyard-slow-reveal/before.jpg"
-                  after="/vantage/backyard-slow-reveal/input.jpg"
-                  afterVideo="/vantage/backyard-slow-reveal/result.mp4"
-                  beforeLabel="THE BARE SITE"
-                  afterLabel="DELIVERED REEL"
-                />
-              </div>
-            </div>
-          </section>
-
           {/* STAT STRIP — May 24, 2026, swapped fabricated counts ("12,400
               films" / "248 studios") for defensible facts: render time,
               pricing anchors, free credits. Don't claim what you can't back. */}
@@ -885,7 +816,7 @@ const Index = () => {
               { value: "3 min", label: "AVG. RENDER TIME" },
               { value: "$79", label: "PRO · UNLIMITED MONTHLY" },
               { value: "60 cr", label: "FREE AT SIGNUP · NO CARD" },
-              { value: "30 day", label: "MONEY-BACK · PRO + STUDIO" },
+              { value: "1080p", label: "MINIMUM OUTPUT" },
             ]}
           />
 

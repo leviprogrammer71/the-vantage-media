@@ -43,7 +43,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description: "The complete 2026 guide to making cinematic real estate listing videos from a single photo. Workflow, prompts, camera moves, and the AI tools photographers actually ship with.",
     publishedAt: "2026-05-06",
     readTime: 9,
-    cover: "/trenton/outside.webp",
+    cover: "/vantage/done-for-you/house3/2.png",
     coverVideo: "/trenton/321-e-drumont-final-cut.mp4",
     category: "AI VIDEO · WORKFLOW",
     keywords: [

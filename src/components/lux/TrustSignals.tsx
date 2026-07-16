@@ -21,7 +21,7 @@ interface TrustSignalsProps {
 const items = [
   { icon: Shield, label: "MLS-safe · AI disclosure tag included" },
   { icon: Sparkles, label: "60 free credits · no card required" },
-  { icon: Check, label: "30-day money-back on PRO + STUDIO" },
+  { icon: Check, label: "Cancel anytime — keep your remaining credits" },
   { icon: Lock, label: "Your photos never leave Vantage" },
 ];
 

@@ -144,7 +144,7 @@ export default function DfyShowcase({
               style={{ color: "var(--lux-brass)" }}
             >
               <span style={{ display: "inline-block", width: 28, height: 1, background: "var(--lux-brass)" }} />
-              {STYLE_LABEL[editStyle]} · 15s
+              THE FINISHED REEL · 15s
             </div>
             <div
               className="relative w-full overflow-hidden"
@@ -154,8 +154,13 @@ export default function DfyShowcase({
                 border: "1px solid var(--lux-hairline-strong)",
               }}
             >
+              {/* result.mp4 is the reel actually rendered FROM the house3
+                  photos shown on the left — inputs and output must match.
+                  The per-style videos are different houses, which made the
+                  section look wrong. */}
               <LazyVideo
-                src={`/vantage/done-for-you/${editStyle}.mp4`}
+                src="/vantage/done-for-you/result.mp4"
+                poster={HOUSE3_PHOTOS[0]}
                 className="absolute inset-0 w-full h-full"
               />
             </div>

@@ -181,49 +181,33 @@ export default function Showcase() {
         <LuxuryHeader variant="bone" />
 
         <main id="main-content">
-          {/* HERO */}
-          <section className="relative overflow-hidden lux-bg-ink" style={{ minHeight: "62vh", display: "flex", alignItems: "center" }}>
-            <video
-              src="/projects/hero.mp4"
-              poster="/projects/hero.jpg"
-              muted
-              loop
-              autoPlay
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover"
-              style={{ opacity: 0.32 }}
-            />
-            <div
-              className="absolute inset-0"
-              style={{ background: "linear-gradient(180deg, rgba(14,14,12,0.55) 0%, rgba(14,14,12,0.35) 40%, rgba(14,14,12,0.85) 100%)" }}
-            />
-            <div className="lux-container relative" style={{ zIndex: 1, paddingBlock: 80 }}>
-              <div className="lux-eyebrow mb-5" style={{ color: "var(--lux-champagne)" }}>
-                THE VANTAGE GALLERY
-              </div>
-              <h1 className="lux-display" style={{ fontSize: "clamp(2.6rem, 7vw, 6rem)", lineHeight: 0.95, letterSpacing: "-0.02em", color: "var(--lux-bone)", maxWidth: 900 }}>
-                A few listing photos in.
-                <br />
-                <span className="lux-display-italic" style={{ color: "var(--lux-champagne)" }}>Masterpieces out.</span>
-              </h1>
-              <p className="lux-prose mt-6" style={{ color: "rgba(244,239,230,0.85)", fontSize: "1.05rem", maxWidth: 560 }}>
-                Every film below started as ordinary listing photos. Walk the gallery — then upload yours and get the same.
-              </p>
-              <div className="mt-9 flex flex-wrap items-center gap-8">
-                <Link to="/signup" className="lux-btn lux-btn-bone">
-                  UPLOAD YOUR LISTING — FREE →
-                </Link>
-                <div className="flex items-center gap-8">
+          {/* HERO — compact plate. Visitors are here to SEE the work, so the
+              first exhibit lands almost immediately. */}
+          <section className="lux-bg-bone" style={{ borderBottom: "1px solid var(--lux-hairline)" }}>
+            <div className="lux-container" style={{ paddingBlock: "44px" }}>
+              <div className="flex flex-wrap items-end justify-between gap-6">
+                <div>
+                  <div className="lux-eyebrow mb-3" style={{ color: "var(--lux-rust)" }}>
+                    THE VANTAGE GALLERY · PHOTOS IN, FILMS OUT
+                  </div>
+                  <h1 className="lux-display" style={{ fontSize: "clamp(2rem, 4.5vw, 3.4rem)", lineHeight: 0.98, letterSpacing: "-0.02em" }}>
+                    Real listings. <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>Real films.</span>
+                  </h1>
+                </div>
+                <div className="flex items-center gap-7">
                   {[
                     { v: PROJECT_STATS.projects, l: "PROJECTS" },
                     { v: PROJECT_STATS.films, l: "FILMS" },
                     { v: "3 min", l: "EACH" },
                   ].map((s) => (
                     <div key={s.l}>
-                      <div className="lux-display" style={{ fontSize: "1.8rem", color: "var(--lux-bone)", lineHeight: 1 }}>{s.v}</div>
-                      <div className="lux-eyebrow" style={{ color: "rgba(244,239,230,0.6)", fontSize: "0.55rem", marginTop: 4 }}>{s.l}</div>
+                      <div className="lux-display" style={{ fontSize: "1.6rem", lineHeight: 1 }}>{s.v}</div>
+                      <div className="lux-eyebrow" style={{ color: "var(--lux-ash)", fontSize: "0.55rem", marginTop: 4 }}>{s.l}</div>
                     </div>
                   ))}
+                  <Link to="/signup" className="lux-btn" style={{ background: "var(--lux-rust)", color: "var(--lux-bone)" }}>
+                    TRY IT FREE →
+                  </Link>
                 </div>
               </div>
             </div>

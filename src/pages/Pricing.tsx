@@ -380,7 +380,7 @@ const Pricing = () => {
               >
                 <span style={{ color: "var(--lux-rust)", fontWeight: 700 }}>★</span>
                 <span>
-                  30-day money-back guarantee on PRO &amp; STUDIO · refund the month if you don't love it, no questions
+                  60 free credits to start · cancel anytime · credits never expire
                 </span>
                 <span style={{ color: "var(--lux-rust)", fontWeight: 700 }}>★</span>
               </div>
@@ -833,7 +833,7 @@ const Pricing = () => {
             <div className="lux-container">
               <div className="grid md:grid-cols-3 gap-8">
                 {[
-                  { icon: "🛡️", label: "30-DAY REFUND", desc: "No questions asked, full refund" },
+                  { icon: "⚡", label: "60 FREE CREDITS", desc: "Try it fully before you pay" },
                   { icon: "🔒", label: "256-BIT SSL", desc: "Bank-level encryption" },
                   { icon: "✕", label: "CANCEL ANYTIME", desc: "No long-term contracts" },
                 ].map((item, i) => (
@@ -1135,7 +1135,7 @@ const Pricing = () => {
                   <Zap className="w-4 h-4" style={{ color: "var(--lux-brass)" }} />
                   GDPR compliant
                 </div>
-                <div style={{ color: "var(--lux-ash)" }}>30-day refund guarantee</div>
+                <div style={{ color: "var(--lux-ash)" }}>Cancel anytime</div>
               </div>
             </div>
           </div>

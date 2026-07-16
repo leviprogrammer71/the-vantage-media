@@ -106,7 +106,7 @@ export const CREDIT_PACKS = [
       "★ Watermark removed",
       "★ Brand presets — logo + agent name baked in",
       "★ Priority render queue",
-      "★ 30-day money-back guarantee",
+      
       "AI-disclosure tag · MLS-safe",
       "Credits valid 12 months from purchase",
     ],
@@ -134,7 +134,7 @@ export const CREDIT_PACKS = [
       "★ Watermark removed",
       "★ Brand presets — logo + agent name baked in",
       "★ Priority render queue",
-      "★ 30-day money-back guarantee",
+      
       "★ Team seats — invite up to 5 agents",
       "★ MLS-ready exports + agent disclosure URL",
       "AI-disclosure tag · MLS-safe",

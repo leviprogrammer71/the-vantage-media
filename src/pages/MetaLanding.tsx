@@ -506,7 +506,7 @@ const MetaLanding = () => {
                   },
                   {
                     q: "What if I don't love it?",
-                    a: "Your first 60 credits are free — that's a full Done-For-You reel. If you upgrade to PRO or STUDIO and don't love it, we refund the month. 30-day money-back.",
+                    a: "Your first 60 credits are free — that's a full Done-For-You reel. Cancel anytime and keep your remaining credits.",
                   },
                 ].map((f) => (
                   <details

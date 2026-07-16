@@ -43,11 +43,11 @@ const groups = [
       },
       {
         q: "Can I get a refund?",
-        a: "Yes. PRO ($79) and STUDIO ($149.99) include a 30-day money-back guarantee — refund the month if you don't love it, no calls, no forms. STARTER ($39) doesn't include the guarantee but you can cancel anytime and keep your remaining credits.",
+        a: "You can cancel anytime and keep your remaining credits — they stay valid 12 months from purchase. Start with 60 free credits (no card) so you can fully try the studio before paying anything.",
       },
       {
         q: "What's the difference between the three tiers?",
-        a: "STARTER ($39 / 500 credits) is the watermark trial. PRO ($79 / 1,200 credits) removes the watermark, adds brand presets (logo + agent name), priority render queue, and the 30-day money-back. STUDIO ($149.99 / 2,800 credits) adds team seats for up to 5 agents and MLS-ready exports with disclosure URLs.",
+        a: "STARTER ($39 / 500 credits) is the watermark trial. PRO ($79 / 1,200 credits) removes the watermark, adds brand presets (logo + agent name) and priority render queue. STUDIO ($149.99 / 2,800 credits) adds team seats for up to 5 agents and MLS-ready exports with disclosure URLs.",
       },
     ],
   },

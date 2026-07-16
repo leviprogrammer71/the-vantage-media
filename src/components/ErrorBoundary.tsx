@@ -25,26 +25,27 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div
-          className="min-h-[60vh] flex flex-col items-center justify-center text-center px-10"
+          className="min-h-[70vh] lux-bg-bone flex flex-col items-center justify-center text-center px-10"
           role="alert"
+          style={{ color: "var(--lux-ink)" }}
         >
-          <h1
-            className="text-5xl text-primary mb-4"
-            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-          >
-            SOMETHING WENT WRONG
-          </h1>
-          <p className="text-muted-foreground mb-6">
-            An unexpected error occurred.
+          <div className="lux-eyebrow mb-5" style={{ color: "var(--lux-rust)" }}>
+            INTERMISSION · UNEXPECTED ERROR
+          </div>
+          <h1 className="lux-display" style={{ fontSize: "clamp(2rem, 5vw, 3.4rem)", lineHeight: 1 }}>
+            Something went wrong
             <br />
-            Your credits were not affected.
+            <span className="lux-display-italic" style={{ color: "var(--lux-rust)" }}>behind the lens.</span>
+          </h1>
+          <p className="lux-prose mt-5 mb-8" style={{ maxWidth: 420, color: "var(--lux-ash)" }}>
+            An unexpected error occurred. Your credits were not affected — reload and pick up where you left off.
           </p>
           <Button
             onClick={() => window.location.reload()}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none px-8 py-4 font-bold"
-            style={{ fontFamily: "'Space Mono', monospace" }}
+            className="rounded-none px-8 py-4"
+            style={{ background: "var(--lux-ink)", color: "var(--lux-bone)", fontFamily: "'Space Mono', monospace", letterSpacing: "0.14em" }}
           >
-            RELOAD PAGE
+            RELOAD PAGE →
           </Button>
         </div>
       );

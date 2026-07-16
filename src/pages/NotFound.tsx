@@ -1,33 +1,44 @@
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import LuxuryHeader from "@/components/lux/LuxuryHeader";
+import LuxuryFooter from "@/components/lux/LuxuryFooter";
 
+/** 404 — styled to the luxury editorial system so even a dead end feels on-brand. */
 const NotFound = () => {
   return (
     <>
       <Helmet>
-        <title>404 — The Vantage</title>
+        <title>Page Not Found — The Vantage</title>
+        <meta name="robots" content="noindex" />
       </Helmet>
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-        <h1
-          className="text-8xl md:text-[12rem] font-bold text-primary leading-none"
-          style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-        >
-          404
-        </h1>
-        <p className="text-xl font-semibold text-foreground mt-4 tracking-wide" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-          PAGE NOT FOUND
-        </p>
-        <p className="text-sm text-muted-foreground mt-2 mb-8">
-          The page you're looking for doesn't exist.
-        </p>
-        <Button asChild variant="outline" className="gap-2">
-          <Link to="/">
-            <ArrowLeft className="h-4 w-4" />
-            Go Home
-          </Link>
-        </Button>
+      <div className="min-h-screen lux-bg-bone flex flex-col" style={{ color: "var(--lux-ink)" }}>
+        <LuxuryHeader variant="bone" />
+        <main className="flex-1 flex items-center">
+          <div className="lux-container text-center py-24">
+            <div className="lux-eyebrow mb-6" style={{ color: "var(--lux-rust)" }}>
+              LOST FRAME · 404
+            </div>
+            <h1 className="lux-display" style={{ fontSize: "clamp(4rem, 14vw, 11rem)", lineHeight: 0.9, letterSpacing: "-0.03em" }}>
+              404
+            </h1>
+            <p className="lux-display-italic mt-4" style={{ fontSize: "clamp(1.2rem, 3vw, 1.8rem)", color: "var(--lux-rust)" }}>
+              This page didn&rsquo;t make the final cut.
+            </p>
+            <p className="lux-prose mt-5 mx-auto" style={{ maxWidth: 420, color: "var(--lux-ash)" }}>
+              The address may have moved or never existed. The studio, the
+              gallery, and your reels are all still exactly where you left them.
+            </p>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-5">
+              <Link to="/" className="lux-btn" style={{ background: "var(--lux-ink)", color: "var(--lux-bone)" }}>
+                ← BACK TO THE STUDIO
+              </Link>
+              <Link to="/examples" className="lux-eyebrow inline-flex items-center gap-2" style={{ color: "var(--lux-ink)" }}>
+                SEE THE GALLERY →
+              </Link>
+            </div>
+          </div>
+        </main>
+        <LuxuryFooter />
       </div>
     </>
   );

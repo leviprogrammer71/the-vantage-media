@@ -171,7 +171,7 @@ const AgentsLanding = () => {
               { value: "3 min", label: "RENDER TIME · EVERY REEL" },
               { value: "$79", label: "PRO · UNLIMITED MONTHLY" },
               { value: "60 cr", label: "FREE AT SIGNUP · NO CARD" },
-              { value: "30 day", label: "MONEY-BACK · PRO + STUDIO" },
+              { value: "1080p", label: "MINIMUM OUTPUT" },
             ]}
           />
 

@@ -437,7 +437,7 @@ const TikTokLanding = () => {
                   },
                   {
                     q: "What if I hate the result?",
-                    a: "Your first 60 credits are free — that's a full Done-For-You reel plus a single-clip animation. If you upgrade to PRO or STUDIO and don't love it, we refund the month, no calls, no forms. 30-day money-back.",
+                    a: "Your first 60 credits are free — that's a full Done-For-You reel plus a single-clip animation. Cancel anytime and keep your remaining credits.",
                   },
                 ].map((f) => (
                   <details
@@ -523,7 +523,7 @@ const TikTokLanding = () => {
                   fontSize: "0.7rem",
                 }}
               >
-                60 FREE CREDITS · NO CARD · 30-DAY MONEY-BACK ON PAID TIERS
+                60 FREE CREDITS · NO CARD · CANCEL ANYTIME
               </div>
             </div>
           </section>

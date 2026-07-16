@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import LuxuryHeader from "@/components/lux/LuxuryHeader";
 import LuxuryFooter from "@/components/lux/LuxuryFooter";
 import ConnectClaudePanel from "@/components/lux/ConnectClaudePanel";
-import ConnectClaudeBanner from "@/components/lux/ConnectClaudeBanner";
 
 /**
  * /connect — the Connect-to-Claude page. Signed-in agents mint a connector
@@ -54,11 +53,24 @@ export default function ConnectClaude() {
           <Link to="/profile" style={{ color: "var(--lux-ash)" }}>← ACCOUNT</Link>
         </div>
 
-        {/* Hero banner — "Claude meets The Vantage". Rendered in code so it's
-            responsive on its own: a wide desktop composition with the home
-            photo bleeding in from the right, and a mobile composition with a
-            photo strip on top. Always visible; this is the page's sales point. */}
-        <ConnectClaudeBanner className="mb-10" />
+        {/* Hero banner — the real brand artwork, responsive: desktop banner
+            on md+, mobile banner below. */}
+        <img
+          src="/connect-banner-desktop.jpg"
+          alt="Claude meets The Vantage — AI intelligence, cinematic storytelling, one seamless workflow"
+          loading="eager"
+          decoding="async"
+          className="hidden md:block mb-10"
+          style={{ width: "100%", height: "auto", borderRadius: 16, boxShadow: "0 24px 60px -30px rgba(140,63,46,0.45)" }}
+        />
+        <img
+          src="/connect-banner-mobile.jpg"
+          alt="Claude meets The Vantage — AI intelligence, cinematic storytelling, one seamless workflow"
+          loading="eager"
+          decoding="async"
+          className="block md:hidden mb-8"
+          style={{ width: "100%", height: "auto", borderRadius: 14, boxShadow: "0 18px 44px -24px rgba(140,63,46,0.45)" }}
+        />
 
         <ConnectClaudePanel />
       </main>

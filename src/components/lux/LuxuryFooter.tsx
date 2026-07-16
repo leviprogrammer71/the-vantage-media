@@ -56,8 +56,9 @@ const LuxuryFooter = () => {
               CINEMATIC LISTING FILMS · EST. 2026
             </div>
             <p className="lux-prose mt-8 max-w-sm" style={{ color: "rgba(244,239,230,0.7)" }}>
-              The world's first single-frame transformation studio. One photo in.
-              A scroll-stopping listing film out — delivered in minutes, not days.
+              The first agentic listing tool. Paste a listing link — or a few
+              photos — and get a cinematic reel back in minutes. Works inside
+              your Claude.
             </p>
 
             <div className="mt-10">
