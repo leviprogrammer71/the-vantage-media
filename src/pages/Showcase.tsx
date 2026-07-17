@@ -43,8 +43,9 @@ function Exhibit({ project, index, dark }: { project: Project; index: number; da
   const hair = dark ? "rgba(244,239,230,0.16)" : "var(--lux-hairline)";
   return (
     <section
+      id={p.slug}
       className={`lux-section ${dark ? "lux-bg-ink lux-grain" : "lux-bg-bone"}`}
-      style={{ color: fg }}
+      style={{ color: fg, scrollMarginTop: 90 }}
     >
       <div className="lux-container">
         {/* Museum plate */}
