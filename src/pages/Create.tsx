@@ -6,6 +6,8 @@ import { useCredits } from "@/hooks/useCredits";
 import { useListingPipeline, type PipelineResult, type LogLine } from "@/hooks/useListingPipeline";
 import { useBrandKit, EMPTY_KIT, type BrandKit } from "@/hooks/useBrandKit";
 import { Pill, Tag, Field, StatCard, Card, HandNote, PhoneMock } from "@/components/lux/elements";
+import { appendEndCard } from "@/lib/brand-engine";
+import { packageForFormat } from "@/lib/format-engine";
 import { toast } from "sonner";
 
 /**
@@ -255,25 +257,52 @@ function ReviewScreen({
   const [showControls, setShowControls] = useState(false);
   useEffect(() => { const t = setTimeout(() => setShowControls(true), 5000); return () => clearTimeout(t); }, []);
 
+  const [branding, setBranding] = useState<string | null>(null);
+
   const download = async () => {
+    const safe = (result.listing.address || "vantage").replace(/[^A-Za-z0-9]+/g, "-").toLowerCase();
     try {
-      const res = await fetch(result.videoUrl);
-      const blob = await res.blob();
+      // Stage 7 — burn the Brand Kit end card on, in-browser. Falls back to
+      // the plain reel if ffmpeg.wasm isn't available on this device.
+      let blob: Blob | null = null;
+      if (kit?.full_name) {
+        setBranding("Applying your brand…");
+        blob = await appendEndCard({
+          videoUrl: result.videoUrl,
+          kit,
+          listingLine: [result.listing.address, result.listing.price].filter(Boolean).join("  ·  "),
+          onProgress: (m) => setBranding(m),
+        });
+        if (!blob) toast.message("Downloading unbranded — compositing isn't supported on this browser.");
+      }
+
+      // Stage 8 — package for the chosen platform (recut, not regenerate).
+      const packaged = await packageForFormat({
+        source: blob ?? result.videoUrl,
+        format: format === "reel" ? "instagram" : format === "tiktok" ? "tiktok" : "mls",
+        title: result.listing.address || "The Vantage listing reel",
+        onProgress: (m) => setBranding(m),
+      });
+      if (packaged) blob = packaged;
+
+      if (!blob) blob = await (await fetch(result.videoUrl)).blob();
+
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      const safe = (result.listing.address || "vantage").replace(/[^A-Za-z0-9]+/g, "-").toLowerCase();
       a.download = `${safe}-${format}.mp4`;
       a.click();
       URL.revokeObjectURL(a.href);
     } catch {
       window.open(result.videoUrl, "_blank");
+    } finally {
+      setBranding(null);
     }
   };
 
   const FORMATS: { id: typeof format; label: string; note: string }[] = [
-    { id: "reel", label: "Instagram Reel", note: "9:16 · 15s" },
-    { id: "tiktok", label: "TikTok", note: "9:16 · captions" },
-    { id: "mls", label: "MLS Export", note: "AI-disclosure tag" },
+    { id: "reel", label: "Instagram Reel", note: "9:16 · ≤30s" },
+    { id: "tiktok", label: "TikTok", note: "9:16 · ≤60s" },
+    { id: "mls", label: "MLS Export", note: "16:9 · disclosure" },
   ];
 
   return (
@@ -361,8 +390,13 @@ function ReviewScreen({
             )}
           </Card>
 
-          <Pill variant="rust" onClick={download} className="mt-7" style={{ width: "100%", justifyContent: "center", padding: "19px 28px", fontSize: "0.95rem" }}>
-            Download &amp; post →
+          <Pill
+            variant="rust"
+            onClick={() => { if (!branding) download(); }}
+            className="mt-7"
+            style={{ width: "100%", justifyContent: "center", padding: "19px 28px", fontSize: "0.95rem", opacity: branding ? 0.7 : 1 }}
+          >
+            {branding || "Download & post →"}
           </Pill>
           <div className="flex gap-5 mt-5">
             <Link to="/gallery" className="lux-eyebrow" style={{ color: "var(--lux-ink)", fontSize: "0.58rem" }}>MY GALLERY →</Link>
