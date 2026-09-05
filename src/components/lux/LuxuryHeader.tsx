@@ -123,7 +123,7 @@ const LuxuryHeader = ({ variant = "bone" }: LuxuryHeaderProps) => {
                   DFY — that's the conversion funnel. But once you're in the
                   product, every film should be one click away. */}
               <Link
-                to="/video?mode=listing"
+                to="/create"
                 className="lux-eyebrow inline-flex items-center gap-2 transition-transform hover:scale-[1.04]"
                 style={{
                   color: "var(--lux-bone)",

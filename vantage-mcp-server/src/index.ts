@@ -93,6 +93,59 @@ async function runHttp(): Promise<void> {
     res.json({ status: "ok", server: SERVER_NAME, version: SERVER_VERSION });
   });
 
+  // ── REST: listing fetch for the WEB APP's /create flow ──────────────────
+  // Reuses the same Apify-backed fetcher the connector uses. Guarded by a
+  // Supabase user JWT (Authorization: Bearer <access_token>) so only
+  // signed-in Vantage users can trigger paid Apify fetches.
+  app.post("/api/fetch-listing", async (req, res) => {
+    try {
+      const jwt = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+      if (!jwt) {
+        res.status(401).json({ error: "Sign in required." });
+        return;
+      }
+      // Validate the user token against Supabase Auth.
+      const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = await import("./constants.js");
+      const authRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${jwt}` },
+      });
+      if (!authRes.ok) {
+        res.status(401).json({ error: "Invalid or expired session. Sign in again." });
+        return;
+      }
+
+      const url = typeof req.body?.url === "string" ? req.body.url.trim() : "";
+      if (!/^https?:\/\//i.test(url)) {
+        res.status(400).json({ error: "Provide a valid Zillow or Airbnb listing URL." });
+        return;
+      }
+
+      const { fetchListing, selectReelPhotos, ListingFetchError } = await import("./services/listing.js");
+      try {
+        const listing = await fetchListing(url);
+        res.json({
+          address: listing.address,
+          price: listing.price,
+          beds: listing.beds,
+          baths: listing.baths,
+          description: listing.description,
+          platform: listing.platform,
+          photos: listing.photos,
+          curated: selectReelPhotos(listing.photos, 8),
+        });
+      } catch (err) {
+        if (err instanceof ListingFetchError) {
+          res.status(422).json({ error: err.message });
+          return;
+        }
+        throw err;
+      }
+    } catch (error) {
+      console.error("[vantage] /api/fetch-listing error:", error);
+      res.status(500).json({ error: "Listing fetch failed. Try again, or upload photos instead." });
+    }
+  });
+
   // Root ping — some connector validators GET the base URL first.
   app.get("/", (_req, res) => {
     res.json({ status: "ok", server: SERVER_NAME, version: SERVER_VERSION, mcp: "/mcp" });

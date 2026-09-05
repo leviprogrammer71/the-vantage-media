@@ -23,6 +23,7 @@ import Auth from "./pages/Auth";
 // Lazy-load secondary pages
 const Blog = lazy(() => import("./pages/Blog"));
 const Showcase = lazy(() => import("./pages/Showcase"));
+const Create = lazy(() => import("./pages/Create"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const Generate = lazy(() => import("./pages/Generate"));
 const Gallery = lazy(() => import("./pages/Gallery"));
@@ -93,6 +94,7 @@ const App = () => (
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/credits" element={<Pricing />} />
                   <Route path="/contact" element={<Contact />} />
+                  <Route path="/create" element={<Create />} />
                   <Route path="/examples" element={<Showcase />} />
                   <Route path="/showcase" element={<Showcase />} />
                   <Route path="/blog" element={<Blog />} />
